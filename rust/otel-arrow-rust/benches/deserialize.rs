@@ -1,6 +1,10 @@
 //! This crate benchmarks deserialization
 
-use divan::Bencher;
+use divan::{Bencher, black_box_drop};
+use otel_arrow_rust::proto::opentelemetry::arrow::v1::{
+    ArrowPayload, ArrowPayloadType, BatchArrowRecords,
+};
+use otel_arrow_rust::proto::opentelemetry::collector::logs::v1::ExportLogsServiceRequest;
 use otel_arrow_rust::proto::opentelemetry::common::v1::*;
 use otel_arrow_rust::proto::opentelemetry::common::v1::{AnyValue, InstrumentationScope};
 use otel_arrow_rust::proto::opentelemetry::logs::v1::*;
@@ -16,8 +20,30 @@ fn main() {
 
 /// Benches
 #[divan::bench]
-fn iter_bytes(b: Bencher) {
-    b.bench(|| create_logs_data());
+fn decode_logs(b: Bencher) {
+    b.bench(|| {
+        let logs = create_logs_data();
+        let mut buf = vec![];
+        logs.encode(&mut buf).unwrap();
+        black_box_drop(buf);
+        let arrow_records = BatchArrowRecords::decode(&buf).unwrap();
+    });
+}
+
+fn create_bar() -> BatchArrowRecords {
+    let logs_data = create_logs_data();
+
+    let payloads = vec![ArrowPayload {
+        schema_id: "todo".into(),
+        r#type: ArrowPayloadType::Logs,
+        record: logs_data.encode_to_vec(),
+    }];
+
+    let bar = BatchArrowRecords {
+        batch_id: 1,
+        arrow_payloads: vec![],
+        headers: vec![],
+    };
 }
 
 fn create_logs_data() -> LogsData {
