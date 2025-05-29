@@ -3,6 +3,8 @@
 use std::io::Read;
 
 use divan::{Bencher, black_box_drop};
+use otel_arrow_rust::Consumer;
+use otel_arrow_rust::otap::{OtapBatch, from_record_messages};
 use otel_arrow_rust::proto::opentelemetry::arrow::v1::{
     ArrowPayload, ArrowPayloadType, BatchArrowRecords,
 };
@@ -23,37 +25,15 @@ fn main() {
 /// Benches
 #[divan::bench]
 fn decode_logs(b: Bencher) {
-    let bar = create_bar();
-    for payload in &bar.arrow_payloads {
-        println!("{:?}", payload);
-    }
     b.bench(|| {
-        // let logs = create_logs_data();
-        // let mut buf = vec![];
-        // logs.encode(&mut buf).unwrap();
-        // black_box_drop(buf);
-        // let arrow_records = BatchArrowRecords::decode(&buf).unwrap();
-        let bar = create_bar();
-        assert!(bar.arrow_payloads.len() > 0);
-        assert_eq!(2, bar.arrow_payloads.len());
+        let mut bar = create_bar();
+        let mut consumer = Consumer::default();
+        let messages = consumer.consume_bar(&mut bar).expect("Failed to consume");
+        let otap_batch = OtapBatch::Logs(from_record_messages(messages));
     });
 }
 
 fn create_bar() -> BatchArrowRecords {
-    // let logs_data = create_logs_data();
-    //
-    // let payloads = vec![ArrowPayload {
-    //     schema_id: "todo".into(),
-    //     r#type: ArrowPayloadType::Logs,
-    //     record: logs_data.encode_to_vec(),
-    // }];
-    //
-    // let bar = BatchArrowRecords {
-    //     batch_id: 1,
-    //     arrow_payloads: vec![],
-    //     headers: vec![],
-    // };
-    //
     let path = std::env::var("FILE_PATH").expect("FILE_PATH must be set");
     let metadata = std::fs::metadata(&path).expect("Failed to get file metadata");
     let size = metadata.len();

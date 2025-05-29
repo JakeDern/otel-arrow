@@ -62,7 +62,6 @@ fn main() {
         .downcast_ref::<UInt16DictionaryArray>()
         .expect("Failed to cast attrs");
 
-    // let keys = int_attrs.keys();
     let values = int_attrs
         .values()
         .as_primitive_opt::<Int64Type>()
