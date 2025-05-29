@@ -88,7 +88,8 @@ func main() {
 		maxIter := uint64(1)
 
 		// Compare the performance between the standard OTLP representation and the OTLP Arrow representation.
-		profiler := benchmark.NewProfiler([]int{128, 1024, 2048, 4096}, "output/logs_benchmark.log", 2)
+		profiler := benchmark.NewProfiler([]int{4096}, "output/logs_benchmark.log", 2)
+		// profiler := benchmark.NewProfiler([]int{128, 1024, 2048, 4096}, "output/logs_benchmark.log", 2)
 		//profiler := benchmark.NewProfiler([]int{10}, "output/logs_benchmark.log", 2)
 
 		// in case formatFlag was not passed
