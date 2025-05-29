@@ -24,21 +24,17 @@ use prost::{Message, bytes};
 
 fn main() {
     let mut bar = create_bar();
+
+    for payload in &bar.arrow_payloads {
+        println!("Schema id: {}", payload.schema_id);
+        println!("Type: {:?}", payload.r#type);
+    }
+
+    println!();
+
     let mut consumer = Consumer::default();
     let messages = consumer.consume_bar(&mut bar).expect("Failed to consume");
     let otap_batch = OtapBatch::Logs(from_record_messages(messages));
-    // for batch in otap_batch.get(ArrowPayloadType::Logs) {
-    //     println!("Log rows: {}", batch.num_rows());
-    //
-    //     for field in batch.schema().fields() {
-    //         println!("Field: {}", field.name());
-    //     }
-    //
-    //     println!("{:?}", batch.schema());
-    //     for column in batch.columns() {
-    //         println!("Column type: {:?}", column.data_type().to_string())
-    //     }
-    // }
 
     for batch in otap_batch.get(ArrowPayloadType::LogAttrs) {
         println!("Attr rows: {}", batch.num_rows());
@@ -55,23 +51,27 @@ fn main() {
     let attrs = otap_batch
         .get(ArrowPayloadType::LogAttrs)
         .expect("No attributes in record batch");
-    let int_attrs = attrs.column_by_name("int").expect("No int attrs");
-    println!("int col datatype: {}", int_attrs.data_type());
-    let int_attrs = int_attrs
+    let int_col = attrs.column_by_name("int").expect("No int col");
+    println!("int col datatype: {}", int_col.data_type());
+    let int_col = int_col
         .as_any()
         .downcast_ref::<UInt16DictionaryArray>()
         .expect("Failed to cast attrs");
 
-    let values = int_attrs
-        .values()
-        .as_primitive_opt::<Int64Type>()
-        .expect("Failed to cast");
-    for key in int_attrs.keys() {
-        if let Some(k) = key {
-            println!("Key: {}", k);
-            println!("Value: {}", values.value(k as usize))
-        }
-    }
+    let key_col = attrs.column_by_name("key").expect("No key col");
+    dbg!(&key_col);
+    println!("Key data type: {}", key_col.data_type());
+
+    // let values = int_col
+    //     .values()
+    //     .as_primitive_opt::<Int64Type>()
+    //     .expect("Failed to cast");
+    // for key in int_col.keys() {
+    //     if let Some(k) = key {
+    //         println!("Key: {}", k);
+    //         println!("Value: {}", values.value(k as usize))
+    //     }
+    // }
 }
 
 fn create_bar() -> BatchArrowRecords {

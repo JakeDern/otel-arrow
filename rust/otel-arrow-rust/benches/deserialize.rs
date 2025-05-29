@@ -2,7 +2,8 @@
 
 use std::io::Read;
 
-use divan::{Bencher, black_box_drop};
+use divan::counter::BytesCount;
+use divan::{Bencher, black_box};
 use otel_arrow_rust::Consumer;
 use otel_arrow_rust::otap::{OtapBatch, from_record_messages};
 use otel_arrow_rust::proto::opentelemetry::arrow::v1::{
@@ -22,26 +23,42 @@ fn main() {
     divan::main();
 }
 
-/// Benches
 #[divan::bench]
-fn decode_logs(b: Bencher) {
-    b.bench(|| {
-        let mut bar = create_bar();
-        let mut consumer = Consumer::default();
-        let messages = consumer.consume_bar(&mut bar).expect("Failed to consume");
-        let otap_batch = OtapBatch::Logs(from_record_messages(messages));
-    });
+fn decode_bar(b: Bencher) {
+    let sample = read_bytes();
+    b.counter(BytesCount::new(sample.len()))
+        .with_inputs(|| read_bytes())
+        .bench_values(move |buf| {
+            let buf = bytes::Bytes::from(buf);
+            let mut bar = BatchArrowRecords::decode(buf).expect("Failed to decode records");
+            let _ = black_box(bar);
+        });
 }
 
-fn create_bar() -> BatchArrowRecords {
+/// Benches
+#[divan::bench]
+fn create_otap_batch(b: Bencher) {
+    let sample = read_bytes();
+    b.counter(BytesCount::new(sample.len()))
+        .with_inputs(|| read_bytes())
+        .bench_values(move |buf| {
+            let buf = bytes::Bytes::from(buf);
+            let mut bar = BatchArrowRecords::decode(buf).expect("Failed to decode records");
+            let mut consumer = Consumer::default();
+            let messages = consumer.consume_bar(&mut bar).expect("Failed to consume");
+            let otap_batch = OtapBatch::Logs(from_record_messages(messages));
+            let _ = black_box(otap_batch);
+        });
+}
+
+fn read_bytes() -> Vec<u8> {
     let path = std::env::var("FILE_PATH").expect("FILE_PATH must be set");
     let metadata = std::fs::metadata(&path).expect("Failed to get file metadata");
     let size = metadata.len();
     let mut reader = std::fs::File::open(path).expect("Failed to open file");
     let mut buf = vec![];
     let _ = reader.read_to_end(&mut buf).expect("Failed to read file");
-    let buf = bytes::Bytes::from(buf);
-    BatchArrowRecords::decode(buf).expect("Failed to decode records")
+    buf
 }
 
 fn create_logs_data() -> LogsData {
