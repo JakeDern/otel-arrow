@@ -25,6 +25,7 @@ use snafu::{ResultExt, ensure};
 use std::collections::HashMap;
 use std::io::Cursor;
 
+/// foo
 pub struct StreamConsumer {
     payload_type: ArrowPayloadType,
     stream_reader: StreamReader<Cursor<Vec<u8>>>,

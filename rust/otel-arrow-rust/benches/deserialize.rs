@@ -1,5 +1,7 @@
 //! This crate benchmarks deserialization
 
+use std::io::Read;
+
 use divan::{Bencher, black_box_drop};
 use otel_arrow_rust::proto::opentelemetry::arrow::v1::{
     ArrowPayload, ArrowPayloadType, BatchArrowRecords,
@@ -12,7 +14,7 @@ use otel_arrow_rust::proto::opentelemetry::logs::v1::{
     LogRecord, LogRecordFlags, LogsData, ResourceLogs, ScopeLogs, SeverityNumber,
 };
 use otel_arrow_rust::proto::opentelemetry::resource::v1::Resource;
-use prost::Message;
+use prost::{Message, bytes};
 
 fn main() {
     divan::main();
@@ -21,29 +23,45 @@ fn main() {
 /// Benches
 #[divan::bench]
 fn decode_logs(b: Bencher) {
+    let bar = create_bar();
+    for payload in &bar.arrow_payloads {
+        println!("{:?}", payload);
+    }
     b.bench(|| {
-        let logs = create_logs_data();
-        let mut buf = vec![];
-        logs.encode(&mut buf).unwrap();
-        black_box_drop(buf);
-        let arrow_records = BatchArrowRecords::decode(&buf).unwrap();
+        // let logs = create_logs_data();
+        // let mut buf = vec![];
+        // logs.encode(&mut buf).unwrap();
+        // black_box_drop(buf);
+        // let arrow_records = BatchArrowRecords::decode(&buf).unwrap();
+        let bar = create_bar();
+        assert!(bar.arrow_payloads.len() > 0);
+        assert_eq!(2, bar.arrow_payloads.len());
     });
 }
 
 fn create_bar() -> BatchArrowRecords {
-    let logs_data = create_logs_data();
-
-    let payloads = vec![ArrowPayload {
-        schema_id: "todo".into(),
-        r#type: ArrowPayloadType::Logs,
-        record: logs_data.encode_to_vec(),
-    }];
-
-    let bar = BatchArrowRecords {
-        batch_id: 1,
-        arrow_payloads: vec![],
-        headers: vec![],
-    };
+    // let logs_data = create_logs_data();
+    //
+    // let payloads = vec![ArrowPayload {
+    //     schema_id: "todo".into(),
+    //     r#type: ArrowPayloadType::Logs,
+    //     record: logs_data.encode_to_vec(),
+    // }];
+    //
+    // let bar = BatchArrowRecords {
+    //     batch_id: 1,
+    //     arrow_payloads: vec![],
+    //     headers: vec![],
+    // };
+    //
+    let path = std::env::var("FILE_PATH").expect("FILE_PATH must be set");
+    let metadata = std::fs::metadata(&path).expect("Failed to get file metadata");
+    let size = metadata.len();
+    let mut reader = std::fs::File::open(path).expect("Failed to open file");
+    let mut buf = vec![];
+    let _ = reader.read_to_end(&mut buf).expect("Failed to read file");
+    let buf = bytes::Bytes::from(buf);
+    BatchArrowRecords::decode(buf).expect("Failed to decode records")
 }
 
 fn create_logs_data() -> LogsData {
