@@ -36,15 +36,17 @@ fn main() {
     let messages = consumer.consume_bar(&mut bar).expect("Failed to consume");
     let otap_batch = OtapBatch::Logs(from_record_messages(messages));
 
+    for batch in otap_batch.get(ArrowPayloadType::Logs) {
+        println!("Log rows: {}", batch.num_rows());
+        for field in batch.schema().fields() {
+            println!("Field: {} {}", field.name(), field.data_type());
+        }
+    }
+
     for batch in otap_batch.get(ArrowPayloadType::LogAttrs) {
         println!("Attr rows: {}", batch.num_rows());
-
         for field in batch.schema().fields() {
-            println!("Field: {}", field.name());
-        }
-
-        for column in batch.columns() {
-            println!("Column type: {:?}", column.data_type().to_string())
+            println!("Field: {} {}", field.name(), field.data_type());
         }
     }
 
