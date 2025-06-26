@@ -52,27 +52,28 @@ and Traces are similarly represented, though with more tables.
 OTAP, like OTLP, uses protobuf as the message payload. One of each table that
 makes up a complete dataset are grouped together and sent in a  _batch_ via a 
 [BatchArrowRecords](https://github.com/open-telemetry/otel-arrow/blob/5b0da3dab952ad7e8196ffab00d59b27655fce76/proto/opentelemetry/proto/experimental/arrow/v1/arrow_service.proto#L66C1-L76C1) 
-construct. Like the name suggests, the payloads within these batches each contains
-a table - one part of a complete dataset - that is formatted as an 
+construct. The payloads within these batches each contains a table that is formatted as an 
 [Apache Arrow IPC message](https://arrow.apache.org/docs/format/Columnar.html#serialization-and-interprocess-communication-ipc). 
 This will be described in more detail in further sections.
 
-However, unlike OTLP, the protobuf messages are just an envelope containing
-protocol level metadata. This makes the protobuf definition compact enough to 
-easily fit in a single [couple hundred line file](https://github.com/open-telemetry/otel-arrow/blob/main/proto/opentelemetry/proto/experimental/arrow/v1/arrow_service.proto).
+One last thing to note is that the protocol is stateful.
 
-Clients send a series of [BatchArrowRecords](https://github.com/open-telemetry/otel-arrow/blob/5b0da3dab952ad7e8196ffab00d59b27655fce76/proto/opentelemetry/proto/experimental/arrow/v1/arrow_service.proto#L66C1-L76C1) to a server. These batches contain one or 
-more [ArrowPayloads](https://github.com/open-telemetry/otel-arrow/blob/5b0da3dab952ad7e8196ffab00d59b27655fce76/proto/opentelemetry/proto/experimental/arrow/v1/arrow_service.proto#L119C1-L136C2) that carry our _signal_ data within a 
-`record` byte array.
-
-This `record` contains one or more [Encapsulated Arrow IPC](https://arrow.apache.org/docs/format/Columnar.html#encapsulated-message-format) `messages`.
-
-
-
-The OTLP represents _signals_ in a hierarchical schema. For example 
-
-Where OTLP chooses a [protobuf](https://github.com/open-telemetry/opentelemetry-proto)
-representation to serialize its payloads
-
+<!-- However, unlike OTLP, the protobuf messages are just an envelope containing -->
+<!-- protocol level metadata. This makes the protobuf definition compact enough to  -->
+<!-- easily fit in a single [couple hundred line file](https://github.com/open-telemetry/otel-arrow/blob/main/proto/opentelemetry/proto/experimental/arrow/v1/arrow_service.proto). -->
+<!---->
+<!-- Clients send a series of [BatchArrowRecords](https://github.com/open-telemetry/otel-arrow/blob/5b0da3dab952ad7e8196ffab00d59b27655fce76/proto/opentelemetry/proto/experimental/arrow/v1/arrow_service.proto#L66C1-L76C1) to a server. These batches contain one or  -->
+<!-- more [ArrowPayloads](https://github.com/open-telemetry/otel-arrow/blob/5b0da3dab952ad7e8196ffab00d59b27655fce76/proto/opentelemetry/proto/experimental/arrow/v1/arrow_service.proto#L119C1-L136C2) that carry our _signal_ data within a  -->
+<!-- `record` byte array. -->
+<!---->
+<!-- This `record` contains one or more [Encapsulated Arrow IPC](https://arrow.apache.org/docs/format/Columnar.html#encapsulated-message-format) `messages`. -->
+<!---->
+<!---->
+<!---->
+<!-- The OTLP represents _signals_ in a hierarchical schema. For example  -->
+<!---->
+<!-- Where OTLP chooses a [protobuf](https://github.com/open-telemetry/opentelemetry-proto) -->
+<!-- representation to serialize its payloads -->
+<!---->
 
 
