@@ -82,4 +82,35 @@ is indicated by the
 
 ## Apache Arrow Primer
 
-Before getting into the gritty details of a request, 
+Before getting into the gritty details we omitted before, there are some key
+aspects of Apache Arrow to be aware of.
+
+Apache Arrow offers a language agnostic way to represent data such that it can
+be shared between different systems without copying. The data is represented
+in a columnar format which groups all of the values for a particular column in
+memory next to each other. [This article](https://arrow.apache.org/blog/2023/04/11/our-journey-at-f5-with-apache-arrow-part-1/)
+from F5 has a great diagram comparing row and columnar data.
+
+One of the key features of Arrow is that the same columnar data can be encoded 
+in different ways to optimize its size. For example, a column could be _dictionary_
+encoded. In a dictionary encoding, instead of writing out every value we can write
+an integer key that is used to look up the value in a dictionary. This can be
+highly effective in data that has lots of repeated values i.e. a column that
+represents an enum.
+
+The thing to highlight is such a column _could_ be encoded as a dictionary,
+it doesn't _have_ to be encoded that way. And furthermore there can be different
+dictionary encodings for the same data. You can imagine some data with lower
+cardinality can make use of 8-bit integer keys, while some data with higher
+cardinality might need 16-bit integer keys to avoid overflow. There are multipl 
+valid encodings for the same data and which to use is highly dependent on the 
+characteristics of the data being transported. 
+[This article](https://arrow.apache.org/blog/2023/04/11/our-journey-at-f5-with-apache-arrow-part-1/)
+ from F5 has more details on considerations for picking an encoding.
+
+Because Telemetry data varies wildly between domains, it's impossible to pick
+a near optimal encoding that will work for the entire world. OTAP aims to provide 
+the flexibility required to find and use the near optimal encoding for _any_ 
+system.
+
+## OTAP 
