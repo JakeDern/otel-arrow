@@ -53,6 +53,9 @@ The primary Logs table has foreign keys to each of the other three tables that
 allows them to be joined together to reconstruct a complete Logs signal. Metrics
 and Traces are similarly represented, though with more tables.
 
+This is how we will think of Logs, Metrics, and Traces for the remainder of this
+document.
+
 ### Transport
 
 To transmit this data model, OTAP is defined in terms of a 
@@ -82,22 +85,25 @@ is indicated by the
 
 ## Apache Arrow Primer
 
+OTAP is a sort of "protocol on top of a protocol". The inner protocol here is
+Apache Arrow Interprocess communication (Arrow IPC).
+
 Before getting into the gritty details we omitted before, there are some key
 aspects of Apache Arrow to be aware of that we'll discuss in this section.
 
-As always you can refer to the [full manual](https://arrow.apache.org/docs/format/Intro.html)
-on Apache Arrow for full details.
+Arrow is a deep topic in itself, you can refer to the [full manual](https://arrow.apache.org/docs/format/Intro.html)
+on Apache Arrow for more details.
 
 ### Basics
 
 Apache Arrow offers a language agnostic way to represent data such that it can
 be shared between different systems without copying. Languages receive a byte
 array that contains data formatted according to some Schema and rather than 
-deserializing to a language specific struct or object type, the data can be
-read and operated on in-place.
+deserializing to a language specific struct/object equivalent type, the data can 
+be read and operated on in-place.
 
-Something different about the way that Arrow represents data compared to a typical
-traditional struct or object is that the data is in a columnar format. This type
+Something different about the way that Arrow represents data compared to a 
+typical struct or object is that the data is in a columnar format. This type
 of format groups all of the values for a particular column in memory next to each 
 other. [This article](https://arrow.apache.org/blog/2023/04/11/our-journey-at-f5-with-apache-arrow-part-1/)
 from F5 has a great diagram comparing row and columnar data.
@@ -133,19 +139,19 @@ characteristics of the data being transported.
 Because Telemetry data varies wildly between domains, it's impossible to pick
 a single encoding that will be near optimal for the entire world. OTAP provides
 the flexibility required to find and use the near optimal encoding for 
-_any_ system.
+_any_ system. Once again, more on that later 🙂.
 
 ### Interprocess Communication (IPC)
 
-Unlike with gRPC, another advantage of Arrow is that clients and servers do not 
-have to be aware ahead of time of the schema of the data being transmitted. 
-How these schemas are negotiated (and updated) for the lifetime of the connection 
-is defined via the [Apache Arrow IPC Streaming format](https://arrow.apache.org/docs/format/Columnar.html#ipc-streaming-format).
+Unlike with protobuf, another advantage of the Arrow format is that clients and 
+servers do not have to be aware ahead of time of the schema of the data being 
+transmitted. How these schemas are negotiated (and updated) for the lifetime of 
+the connection is defined via the [Apache Arrow IPC Streaming format](https://arrow.apache.org/docs/format/Columnar.html#ipc-streaming-format).
 
 This format, is modeled as a one way stream of messages from Client to Server.
 The types of messages that Clients can send and the order in which they are 
-allowed to send them so that the Server has the information it needs to process 
-the data are well defined. There are three kinds of so called 
+allowed to send them ensure that the Server has the information it needs to process 
+the data. There are three kinds of so called 
 [Encapsulated Messages](https://arrow.apache.org/docs/format/Columnar.html#encapsulated-message-format)
 that can appear in this stream:
 
@@ -172,18 +178,18 @@ yielding massive savings on network bandwidth.
 
 In some cases, a Client will not know the full set of values that a column can
 have at the outset. You can imagine a scraper that is collecting Kubernetes pod
-logs and passes along the name of the pod as a resource attribute. Dictionary
-encoding was chosen because the cardinality of these pod names is relatively 
-small.
+logs and passes along the name of the pod as a resource attribute. Suppose a
+dictionary encoding was chosen because the cardinality of these pod names is 
+relatively small.
 
 When new pods come online, we don't have entries for them in the dictionary. We
-could terminate our connection to the server and re-transmit the full schema and
-dictionary with the new set of values, but this is wasteful. Instead we can
-communicate to the server that there are some new values for it to be aware of.
-These arrive in new Dictionary Batches that contain so called _Delta Dictionaries_
-and contain just the new entries to be aware of.
+could re-create our connection to the server and re-transmit the full schema and
+dictionary with the new set of values, but this is wasteful and could happen
+quite often. Instead we can communicate to the server that there are some new 
+values for it to be aware of. These arrive in new Dictionary Batches that contain 
+so called _Delta Dictionaries_ with just the new entries to be aware of.
 
-## Summary 
+### Summary 
 
 Apache Arrow allows systems to communicate structured data without knowing schemas
 ahead of time. It allows for efficient encoding of that data via dictionaries
@@ -192,7 +198,7 @@ which can be updated on the fly as needed. The
 defines the mechanics of how this process works including the types of messages
 that can be sent and the order that they must appear. This is inherently a
 stateful process, and persistent connections are used to transmit many batches
-of data between a client and a server.
+of data between a client and a server efficiently.
 
 ## OTAP Clients 
 
