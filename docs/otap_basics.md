@@ -202,7 +202,11 @@ of data between a client and a server efficiently.
 
 ## OTAP Clients 
 
-This section is going to walk through a client request end to end 
+This section is going to walk through from start to finish what a client needs
+to do to establish a request.
 
 ## OTAP Servers
+
+This section is going to walk through from start to finish how a server will
+process those requests from a client.
 
