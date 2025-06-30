@@ -2,8 +2,8 @@
 
 This document is meant to be an introduction to the Open Telemetry Arrow 
 Protocol (OTAP). It is not a full technical specification, but enumerates the
-major requirements of clients and servers communicating over OTAP along with some
-mechanical details that are not obvious. If you are inexperienced 
+major requirements of clients and servers communicating over OTAP along with
+mechanical details of Schema resets and evolution. If you are inexperienced 
 with the OTAP and looking to familiarize yourself with the major components 
 and mechanisms, then this is a good place to start.
 
@@ -26,6 +26,14 @@ and OpenTelemetry Protocol (OTLP).
 - TODO: OTLP
 
 ## Basic Description
+
+OTAP is a sort of "protocol on top of a protocol". At the outer layer is a gRPC
+service defined via protobuf. Within that we have Apache Arrow Interprocess 
+communication (Arrow IPC).
+
+Before diving into the specifics of Arrow IPC and the intersection with the
+gRPC streams that Arrow defines, we'll start with a high level overview of the 
+data model and transport.
 
 ### Data model
 
@@ -84,13 +92,12 @@ is indicated by the
 
 ## Apache Arrow Primer
 
-OTAP is a sort of "protocol on top of a protocol". The inner protocol here is
-Apache Arrow Interprocess communication (Arrow IPC).
+As mentioned earlier, OTAP is a sort of "protocol on top of a protocol". Before 
+getting into the gritty details, there are some key aspects of Apache Arrow to 
+be aware of that we'll discuss in this section.
 
-Before getting into the gritty details we omitted before, there are some key
-aspects of Apache Arrow to be aware of that we'll discuss in this section.
-
-Arrow is a deep topic in itself, you can refer to the [full manual](https://arrow.apache.org/docs/format/Intro.html)
+Arrow is a deep topic in itself, you can refer to the 
+[full manual](https://arrow.apache.org/docs/format/Intro.html)
 on Apache Arrow for more details.
 
 ### Basics
@@ -483,6 +490,4 @@ with a Schema message.
 
 ## OTAP Servers
 
-This section is going to walk through from start to finish how a server will
-process those requests from a client.
-
+- TODO:
