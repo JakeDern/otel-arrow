@@ -93,8 +93,9 @@ is indicated by the
 ## Apache Arrow Primer
 
 As mentioned earlier, OTAP is a sort of "protocol on top of a protocol". Before 
-getting into the gritty details, there are some key aspects of Apache Arrow to 
-be aware of that we'll discuss in this section.
+getting into the gritty details of Arrow IPC and the interplay with the OTAP
+gRPC streams, there are some key aspects of Apache Arrow in general to be aware 
+of that we'll discuss in this section.
 
 Arrow is a deep topic in itself, you can refer to the 
 [full manual](https://arrow.apache.org/docs/format/Intro.html)
