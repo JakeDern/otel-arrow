@@ -278,7 +278,7 @@ as follows:
 
 For the attributes, however, we want to efficiently represent the `user.id` 
 attribute because we attach that information to most logs. So we will choose
-to represent the `user.id` column as a dictionary with 16 bit integer keys. Fields
+to represent the `str` column as a dictionary with 16 bit integer keys. Fields
 and types are as follows:
 
 - parent_id: u16
