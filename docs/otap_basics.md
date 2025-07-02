@@ -4,35 +4,42 @@ This document is meant to be an introduction to the Open Telemetry Arrow
 Protocol (OTAP). It is not a full technical specification, but enumerates the
 major requirements of clients and servers communicating over OTAP along with
 mechanical details of Schema resets and evolution. If you are inexperienced 
-with the OTAP and looking to familiarize yourself with the major components 
-and mechanisms, then this is a good place to start.
+with OTAP and looking to familiarize yourself with the major components and 
+mechanisms, then this is a good place to start.
 
 It may also be helpful to consult the reference implementation of the protocol
-while reading this document or vice versa.
+while reading this document or vice versa:
 
-- TODO: Reference implementation
+- [Producer](https://github.com/open-telemetry/otel-arrow/blob/a429ef2e3d436e7c110fb312f2105341732fa233/pkg/otel/arrow_record/producer.go)
+- [Consumer](https://github.com/open-telemetry/otel-arrow/blob/a429ef2e3d436e7c110fb312f2105341732fa233/pkg/otel/arrow_record/consumer.go)
 
 This document does not revisit the motivations of technology choices like Apache
 Arrow in detail. For that information, the following may be helpful:
 
-- TODO: OTel Arrow Phase 2
-- TODO: F5 Parts 1&2
-- TODO: Original OTAP design spec
+- [OTEP 0156: Columnar Encoding](https://github.com/open-telemetry/oteps/blob/main/text/0156-columnar-encoding.md)
+- [OTAP Validation Process](https://github.com/open-telemetry/otel-arrow/blob/main/docs/validation_process.md)
+- [OTAP Benchmarks](https://github.com/open-telemetry/otel-arrow/blob/main/docs/benchmarks.md)
+- F5 Journey with Arrow 
+[Part 1](https://arrow.apache.org/blog/2023/04/11/our-journey-at-f5-with-apache-arrow-part-1/) 
+and [Part 2](https://arrow.apache.org/blog/2023/06/26/our-journey-at-f5-with-apache-arrow-part-2/)
 
 This document also assumes basic familiarity with the OpenTelemetry Data model
 and OpenTelemetry Protocol (OTLP).
 
-- TODO: OpenTelemetry Data Model
-- TODO: OTLP
+- [Logs data model](https://opentelemetry.io/docs/specs/otel/logs/data-model/)
+- [Metrics data model](https://opentelemetry.io/docs/specs/otel/metrics/data-model/)
+- [OTLP](https://opentelemetry.io/docs/specs/otlp/)
 
 ## Basic Description
 
 OTAP is a sort of "protocol on top of a protocol". At the outer layer is a gRPC
 service defined via protobuf. Within that we have Apache Arrow Interprocess 
-communication (Arrow IPC).
+Communication (Arrow IPC). OTAP leverages both it's own mechanisms at the gRPC
+layer and existing Arrow IPC mechanisms to reliably transport telemetry signals
+from a Client to a Server.
 
 Before diving into the specifics of Arrow IPC and the intersection with the
-gRPC streams that Arrow defines, we'll start with a high level overview of the 
+gRPC streams that OTAP defines, we'll start with a high level overview of the 
 data model and transport.
 
 ### Data model
@@ -73,8 +80,8 @@ The stateful nature of this communication will be described in more details in
 later sections.
 
 Each `BatchArrowRecords` contains a complete set of telemetry data for one 
-particular signal in the form of multiple [ArrowPayloads](https://github.com/open-telemetry/otel-arrow/blob/5b0da3dab952ad7e8196ffab00d59b27655fce76/proto/opentelemetry/proto/experimental/arrow/v1/arrow_service.proto#L66C1-L76C1)s.
-For exmaple a batch of logs would contain four payloads representing the four tables
+particular signal in the form of multiple [ArrowPayloads](https://github.com/open-telemetry/otel-arrow/blob/5b0da3dab952ad7e8196ffab00d59b27655fce76/proto/opentelemetry/proto/experimental/arrow/v1/arrow_service.proto#L66C1-L76C1).
+For example, a batch of logs would contain four payloads representing the four tables
 of Logs, Log Attributes, Resource Attributes, and Scope Attributes.
 
 > Note: If any of the tables are empty, for example if there are no Scope
@@ -92,10 +99,9 @@ is indicated by the
 
 ## Apache Arrow Primer
 
-As mentioned earlier, OTAP is a sort of "protocol on top of a protocol". Before 
-getting into the gritty details of Arrow IPC and the interplay with the OTAP
-gRPC streams, there are some key aspects of Apache Arrow in general to be aware 
-of that we'll discuss in this section.
+As mentioned earlier, OTAP is a sort of "protocol on top of a protocol" where
+gRPC wraps Arrow IPC. This section will explain some key aspects of Arrow and 
+Arrow IPC before we put everything together and look at some requests end to end.
 
 Arrow is a deep topic in itself, you can refer to the 
 [full manual](https://arrow.apache.org/docs/format/Intro.html)
@@ -163,9 +169,9 @@ the data. There are three kinds of so called
 that can appear in this stream:
 
 - Schema - Contains the schema of the messages that will follow
-- Record Batch - Contains a shard of data (e.g. 100 rows) that follow the Schema
 - Dictionary Batch - Contains dictionaries that can be used to interpret data
 passed in the Record Batch
+- Record Batch - Contains a shard of data (e.g. 100 rows) that follow the Schema
 
 These messages must come in a particular order, the rules are:
 
@@ -194,7 +200,7 @@ could re-create our connection to the server and re-transmit the full schema and
 dictionary with the new set of values, but this is wasteful and could happen
 quite often. Instead we can communicate to the server that there are some new 
 values for it to be aware of. These arrive in new Dictionary Batches that contain 
-so called _Delta Dictionaries_ with just the new entries to be aware of.
+so called _Delta Dictionaries_ with just the new entries.
 
 ### Summary 
 
@@ -211,6 +217,13 @@ of data between a client and server efficiently.
 
 This section is going to walk through from start to finish the major things a 
 client needs to do to create OTAP requests. 
+
+For now, don't worry about the mechanics for constructing Arrow IPC messages. In 
+practice we would use an existing library such as 
+[arrow-go](https://github.com/apache/arrow-go).
+To understand the protocol, it's enough to know _what_ you want to create. To see
+it in practice, you can take a look at the `Producer` reference implementation
+linked at the top of this document.
 
 For simplicity and readablility we'll take some liberties in this section like 
 trimming down the required fields. You can refer back to the data model for a 
@@ -238,7 +251,7 @@ We have two log records:
       "body_str": "Database connection failed"
     }
 ]
-``
+```
 
 These log records each have some attributes:
 
@@ -286,6 +299,13 @@ and types are as follows:
 - str: Dictionary<u16, string>
 - int: i64
 
+> Note that the attribute `key` and `body_str` fields are also usually Dictionary 
+encoded in practice and this is the default behavior of the reference implementation. 
+The attributes produced by an application are often repeated and limited in 
+cardinality. Log bodies are also often repeated with the variable parts of 
+the message extracted out to attributes. This makes Dictionary encodings often a
+good choice for these fields.
+
 ### Constructing the protobuf envelope
 
 Before sending our data off to the server, we need to construct the protobuf
@@ -309,13 +329,10 @@ the `record`.
 
 Recall the
 [Apache Arrow IPC Streaming format](https://arrow.apache.org/docs/format/Columnar.html#ipc-streaming-format)
-from earlier. The rules state that the first message must be a schema. For now,
-don't worry about the mechanics for constructing these messages, in practice we 
-would use an existing library such as [arrow-go](https://github.com/apache/arrow-go).
-To understand the protocol, it's enough to know _what_ you want to create.
+from earlier. The rules state that the first message must be a schema. 
 
 Following the schema we could add a Dictionary Batch if we needed it, but we
-don't have dicitonary encodings for this logs table, so there's no need.
+don't have dictionary encodings for this logs table, so there's no need.
 
 Following Schema batches and any pre-requisite DictionaryBatch(s) we can add 
 RecordBatch messages containing our data. 
@@ -336,11 +353,11 @@ and `type`. This time for the `type` we'll use `LOG_ATTRS`.
 
 For the `record` we need to start again with a Schema message, but since we also
 have dictionary encodings for the `str` column, we need to create a DictionaryBatch
-message. The mechanics of tracking the set of keys and values for for a particular
+message. The mechanics of tracking the set of keys and values for a particular
 column are an implementation detail and out of scope for this document. Following
 the DictionaryBatch, we can include RecordBatch messages.
 
-So in the first `ArrowPayload` for the `LOG_ATTRS` table, wes will send three 
+So, in the first `ArrowPayload` for the `LOG_ATTRS` table, we will send three 
 Encapsulated Arrow IPC messages within the `record` body as follows:
 
 ```
@@ -369,7 +386,6 @@ Suppose a second user logs in. We have the following log record to export:
 Logs:
 
 ```jsonc
-// Logs:
 [
     {
       "id": 2,
@@ -377,8 +393,11 @@ Logs:
       "body_str": "User login successful"
     }
 ]
+```
 
-// Log Attributes:
+Attributes:
+
+```json
 [
     {
       "parent_id": 2,
@@ -402,7 +421,7 @@ again we omit the `headers` as optional, but need two `arrow_payloads` for our
 Handling ArrowPayload for the `LOGS` table is easy. We've already established the 
 Schema for the _arrow_ stream and there's been no change, so the `schema_id` 
 remains `"0"`. The only message we need is a single RecordBatch message 
-contianing the new log. The `record` field then looks like this:
+containing the new log. The `record` field then looks like this:
 
 ```
 ---------------
@@ -429,7 +448,7 @@ pack two messages as follows in the `record`:
 
 Now the server will process the DeltaDictionary and update its lookup table for
 that column before processing the RecordBatch which has the new key. Note that 
-our Arrow Schema remains the same as before, we just updated the lookup table. 
+our Arrow Schema remains the same as before, we only updated the lookup table. 
 So our `schema_id` remains `"0"` for this ArrowPayload.
 
 ### Resetting the Schema
@@ -439,7 +458,7 @@ Updating our Arrow stream with delta dictionaries will work great for the first
 for our dictionary keys.
 
 At some point we'll have too many users and experience dictionary overflow. Then
-current Schema can no longer be used. When that happens we need to pick a new 
+the current Schema can no longer be used. When that happens we need to pick a new 
 Schema, e.g swap the dictionary to use 32-bit integer keys, and signal that to 
 the server.
 
@@ -447,8 +466,8 @@ However there is no mechanism within _Arrow_ streams to do this. Remember that
 Schemas must be sent only a single time at the start of an Arrow stream. Instead
 this is handled by OTAP within the gRPC stream via a _Schema Reset_.
 
-For the sake of the example, let's assume our app had a big traffic traffic
-spike and this happens after we send batch `9`.
+For the sake of the example, let's assume our app had a big traffic spike and 
+this happens after we send batch `9`.
 
 At this point we're familiar with the mechanics of bumping the `batch_id` 
 (now `10`) and starting a couple of `arrow_payloads`. For our `LOGS` table, 
