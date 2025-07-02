@@ -299,12 +299,12 @@ and types are as follows:
 - str: Dictionary<u16, string>
 - int: i64
 
-> Note that the attribute `key` and `body_str` fields are also usually Dictionary 
-encoded in practice and this is the default behavior of the reference implementation. 
-The attributes produced by an application are often repeated and limited in 
-cardinality. Log bodies are also often repeated with the variable parts of 
-the message extracted out to attributes. This makes Dictionary encodings often a
-good choice for these fields.
+> Note that the attribute `key` and log `body_str` fields are also usually 
+Dictionary encoded in practice and this is the default behavior of the reference 
+implementation. The attributes produced by an application are often repeated and 
+limited in cardinality. Log bodies are also often repeated with the variable 
+parts of the message extracted out to attributes. This makes Dictionary encodings 
+often a good choice for these fields.
 
 ### Constructing the protobuf envelope
 
