@@ -1,0 +1,6 @@
+module coin {
+    type Addr = str
+    type Uint = int
+
+    pure val MAX_UINT = 2^256 - 1;
+}
