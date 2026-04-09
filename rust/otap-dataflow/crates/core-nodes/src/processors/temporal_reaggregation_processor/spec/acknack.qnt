@@ -44,7 +44,6 @@ module processor {
     import slot_map
 
     type InboundTracker = {
-        batch: Batch,
         flushed: bool,
     }
 
@@ -74,18 +73,7 @@ module processor {
     type ProcessResult = {
         p: Processor,
         result: Result
-    }
-    
-    pure def process_message(p: Processor, m: Message): 
-
-
-    pure def process_pdata(p: Processor, b: Batch): Processor = {
-        p
-    }
-
-    pure def process_ack(p: Processor, ack: Ack): Processor = {
-        p
-    }
+    }    
 }
 
 module acknack {
