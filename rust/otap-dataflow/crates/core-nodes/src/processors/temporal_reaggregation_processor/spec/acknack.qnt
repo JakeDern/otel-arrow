@@ -113,7 +113,7 @@ module processor {
         all {
             proc' = {
                 ...proc,
-                inbound: slot_map::insert(proc.inbound, b, { flushed: false, pending: 1 }), 
+                inbound: slot_map::insert(proc.inbound, b, { flushed: false, pending: 0 }), 
                 pending: proc.pending.union(Set(b)),
             },
             outbox' = outbox,
@@ -141,11 +141,19 @@ module processor {
             proc' = {
                 ...proc,
                 pending: Set(),
+                inbound: proc.pending.fold(proc.inbound, (acc, i) => {
+                    if (not(acc.map.has(i))) acc
+                    else {
+                        val current = acc.map.get(i)
+                        slot_map::insert(acc, i, { flushed: true, pending: current.pending + 1 })
+                    }
+                }),
                 outbound: slot_map::insert(proc.outbound, proc.outbound_batch, proc.pending),
             },
             outbox' = outbox.append(SendPdata(proc.outbound_batch))
         }
     }
+
 
     action process_ack(b: Batch): bool = {
         val p = apply_ack(proc, b)
@@ -153,7 +161,7 @@ module processor {
         val inbound = slot_map::remove_many(p.inbound, acks)
         all {
             proc' = { ...p, inbound: inbound },
-            outbox' = outbox.concat(acks.foldl(List(), (acc, b) => acc.append(NotifyAck(b))))
+            outbox' = outbox.concat(acks.fold(List(), (acc, b) => acc.append(NotifyAck(b))))
         }
     }
 
@@ -183,7 +191,6 @@ module processor {
             tracker.flushed == true and tracker.pending == 0
         })
     }
-
 
     action process_nack(b: Batch): bool = {
         all {
