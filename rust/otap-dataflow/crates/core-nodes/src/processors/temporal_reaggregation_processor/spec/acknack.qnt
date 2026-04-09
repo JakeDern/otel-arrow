@@ -1,5 +1,20 @@
 module common {
+    // Batch is just an integer id representing a particular batch of pdata
     type Batch = int
+
+    // Types of messages the engine can send, for simplicity we don't distinguish
+    // between control messages and pdata messages right now.
+    type Message = 
+        Pdata(Batch)
+        |Ack(Batch)
+        |Nack(Batch)
+        |TimerTick
+
+    // Types of effects that a node can apply
+    type Effect =
+        SendPdata(Batch)
+        | NotifyAck(Batch)
+        | NotifyNack(Batch)
 }
 
 module slot_map {
@@ -24,16 +39,6 @@ module slot_map {
     pure def size_less_than_cap(m: SlotMap[k, v]): bool = remaining_cap(m) >= 0
 }
 
-module engine {
-    import common.*
-
-    type ControlMessage = 
-        Ack(Batch) 
-        |Nack(Batch)
-
-    type PdataMessage = Pdata(Batch)
-}
-
 module processor {
     import common.*
     import slot_map
@@ -41,16 +46,12 @@ module processor {
     type InboundTracker = {
         batch: Batch,
         flushed: bool,
-        tracker: bool,
     }
 
-    type InboundMap = slot_map::SlotMap[Batch, InboundTracker]
-    type OutboundMap = slot_map::SlotMap[Batch, Set[Batch]]
-
     type Processor = {
-        inbound: InboundMap,
+        inbound: slot_map::SlotMap[Batch, InboundTracker],
         pending: Set[Batch],
-        outbound: OutboundMap,
+        outbound: slot_map::SlotMap[Batch, Set[Batch]],
     }
 
     pure def new(cap: int): Processor = {
@@ -65,16 +66,35 @@ module processor {
     pure def accept_pdata(p: Processor): bool = {
         slot_map::has_cap(p.inbound) and slot_map::remaining_cap(p.outbound) >= 2
     }
+
+    type Result = {
+
+    }
+
+    type ProcessResult = {
+        p: Processor,
+        result: Result
+    }
+    
+    pure def process_message(p: Processor, m: Message): 
+
+
+    pure def process_pdata(p: Processor, b: Batch): Processor = {
+        p
+    }
+
+    pure def process_ack(p: Processor, ack: Ack): Processor = {
+        p
+    }
 }
 
 module acknack {
     import common.*
-    import engine.*
     import processor
     import slot_map
 
     var proc: processor::Processor
-    var received: Set[Batch]
+    var received: Set[Batch] // Can we just make this an integer?
     var acked: Set[Batch]
     var nacked: Set[Batch]
 
@@ -96,37 +116,25 @@ module acknack {
         }
     }
 
-    action receive_pdata(p: PdataMessage): bool = {
-        val b = match p { | Pdata(b) => b }
-        
+    action step: bool = {
+        // Pick batch 0, 1, 2, ...
+        val batch: Batch = received.size()
+        nondet ack_nack_batch: Batch = received.oneOf()
+
+        any {
+            send_pdata(batch),
+
+        }
+    }
+
+    action send_pdata(p: Batch): bool = {
         all {
+            // Can only do this 
             processor::accept_pdata(proc),
-            not(received.contains(b)),
-            received' = received.union(Set(b)),
+            received' = received.union(Set(p)),
+            proc' = proc,
             acked' = acked,
             nacked' = nacked,
         }
     }
-
-    pure val BATCHES: Set[Batch] = 0.to(2^16)
-
-    action step: bool = {
-        nondet batch = BATCHES.exclude(received).oneOf()
-
-        any {
-            receive_pdata(Pdata(batch))
-        }
-    }
-
-    // action process_split(p: PdataMessage): bool = all {
-    //
-    // }
-    //
-    // action process_aggregate(p: PdataMessage): bool = all {
-    //
-    // }
-    //
-    // action process_passthrough(p: PdataMessage): bool = all {
-    //
-    // }
 }
