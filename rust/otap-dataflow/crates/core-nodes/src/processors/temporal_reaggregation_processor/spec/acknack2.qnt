@@ -65,31 +65,6 @@ module processor {
     def accept_pdata(): bool = {
         slot_map::has_cap(inbound) and slot_map::remaining_cap(outbound) >= 2
     }
-
-    def process_message(m: Message): List[Effect] = {
-        match m {
-            | Pdata(b) => process_pdata(b)
-            | Ack(b) => process_ack(b)
-            | Nack(b) => process_nack(b)
-            | TimerTick => process_timer()
-        }
-    }
-
-    def process_pdata(b: Batch): List[Effect] = {
-        List()
-    }
-
-    def process_ack(b: Batch): List[Effect] = {
-        List()
-    }
-
-    def process_nack(b: Batch): List[Effect] = {
-        List()
-    }
-
-    def process_timer(): List[Effect] = {
-        List()
-    }
 }
 
 module acknack {
