@@ -196,16 +196,37 @@ module acknack {
         }
     }
 
-    action step: bool = any {
-        drain_outbox,
-        send_pdata,
-        send_timer_tick,
+    val state = {
+        s: s,
+        proc: proc::state,
+    }
+
+    action step: bool = {
+        nondet ack_nack_batch = s.received.oneOf() 
+
+        any {
+            drain_outbox,
+            send_pdata,
+            send_timer_tick,
+            send_ack(ack_nack_batch),
+            send_nack(ack_nack_batch)
+        }
     }
 
     action send_pdata: bool = all {
         s.next_pdata < 64,
         proc::process_message(Pdata(s.next_pdata)),
         s' = { ...s, next_pdata: s.next_pdata + 1 },
+    }
+
+    action send_ack(batch: Batch): bool = all {
+       proc::process_message(Ack(batch)),
+       s' = { ...s, acked: s.acked.union(Set(batch)) }
+    }
+
+    action send_nack(batch: Batch): bool = all {
+       proc::process_message(Nack(batch)),
+       s' = { ...s, nacked: s.nacked.union(Set(batch)) }
     }
 
     action send_timer_tick: bool = all {
