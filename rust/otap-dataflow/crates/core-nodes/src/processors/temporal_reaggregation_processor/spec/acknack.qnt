@@ -36,7 +36,7 @@ module slot_map {
         remaining_cap(m) > 0
 
     pure def remove_many(m: SlotMap[k, v], s: Set[k]): SlotMap[k, v] = {
-        { ...m, map: s.foldl(m.map, (acc, key) => mapRemove(acc, key))}
+        { ...m, map: s.fold(m.map, (acc, key) => mapRemove(acc, key))}
     }
 
     pure def insert(m: SlotMap[k, v], k: k, v: v): SlotMap[k, v] =
