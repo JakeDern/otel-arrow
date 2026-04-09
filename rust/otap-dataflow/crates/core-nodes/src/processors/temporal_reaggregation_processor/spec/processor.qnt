@@ -15,7 +15,9 @@ module slot_map {
         remaining_cap(m) > 0
 
     pure def insert(m: SlotMap[k, v], k: k, v: v): SlotMap[k, v] =
-        if (has_cap(m)) { ...m, map: m.map.put(k, v) } else m
+        { ...m, map: m.map.put(k, v) }
+
+    pure def size_less_than_cap(m: SlotMap): bool = remaining_cap(m) > 0
 }
 
 module processor {
