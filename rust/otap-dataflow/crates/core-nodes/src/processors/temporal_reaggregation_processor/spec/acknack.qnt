@@ -159,88 +159,67 @@ module acknack {
     import slot_map
     import basicSpells.* from "spells/basicSpells"
 
-    // The id of the next pdata
-    var next_pdata: Batch
+    type AckNackState = {
+        // The id of the next pdata to send.
+        next_pdata: Batch,
+        // The batches we have sent acks or nacks to the processor for.
+        acked: Set[Batch],
+        // The batches we have sent nacks to the processor for.
+        nacked: Set[Batch],
+        // The batches the processor has sent out.
+        received: Set[Batch],
+        // The number of times the processor has acked each batch.
+        proc_acked: Batch -> int,
+        // The number of times the processor has nacked each batch.
+        proc_nacked: Batch -> int,
+    }
 
-    // The batches we have sent acks or nacks to the processor for
-    var acked: Set[Batch]
-    var nacked: Set[Batch]
-
-    // The batches the processor has sent out
-    var received: Set[Batch]
-    // The batches the processor has acked or nacked
-    var proc_acked: Batch -> int
-    var proc_nacked: Batch -> int
-
-    var outbox: List[Effect]
+    var s: AckNackState
     import processor as proc
 
-    val state = { 
-        received: received,
-        acked: acked,
-        nacked: nacked,
-        proc_acked: proc_acked,
-        proc_nacked: proc_nacked,
-    }
-
-    action init: bool = {
-        all {
-            proc::init,
-            next_pdata'  = 0,
-            received'    = Set(),
-            acked'       = Set(),
-            nacked'      = Set(),
-            proc_acked'  = Map(),
-            proc_nacked' = Map(),
+    action init: bool = all {
+        proc::init,
+        s' = {
+            next_pdata:  0,
+            received:    Set(),
+            acked:       Set(),
+            nacked:      Set(),
+            proc_acked:  Map(),
+            proc_nacked: Map(),
         }
     }
 
-    action step: bool = {
-        any {
-            drain_outbox,
-            send_pdata,
-        }
+    action step: bool = any {
+        drain_outbox,
+        send_pdata,
     }
 
-    action send_pdata: bool = {
-       all {
-            next_pdata < 1024,
-            next_pdata' = next_pdata + 1,
-            proc::process_message(Pdata(next_pdata)),
-
-            proc_acked' = proc_acked,
-            proc_nacked' = proc_nacked,
-            acked' = acked,
-            nacked' = nacked,
-            received' = received,
-       } 
+    action send_pdata: bool = all {
+        s.next_pdata < 1024,
+        proc::process_message(Pdata(s.next_pdata)),
+        s' = { ...s, next_pdata: s.next_pdata + 1 },
     }
 
-    action drain_outbox: bool = {
-        all {
-            proc::outbox' = proc::outbox,
-            proc::proc' = proc::proc,
-            received' = proc::outbox.foldl(received, (acc, e) => {
+    action drain_outbox: bool = all {
+        proc::proc' = proc::proc,
+        proc::outbox' = List(),
+        s' = {
+            ...s,
+            received: proc::outbox.foldl(s.received, (acc, e) =>
                 match e {
-                    | SendPdata(p) => acc.union(Set(p))
-                    | _ => acc
-                }
-            }),
-            proc_acked' = proc::outbox.foldl(proc_acked, (acc, e) => {
+                | SendPdata(p) => acc.union(Set(p))
+                | _ => acc
+                }),
+            proc_acked: proc::outbox.foldl(s.proc_acked, (acc, e) =>
                 match e {
-                    | NotifyAck(p) => acc.setByWithDefault(p, v => v + 1, 1)
-                    | _ => acc
-                }
-            }),
-            proc_nacked' = proc::outbox.foldl(proc_nacked, (acc, e) => {
+                | NotifyAck(p) => acc.setByWithDefault(p, v => v + 1, 1)
+                | _ => acc
+                }),
+            proc_nacked: proc::outbox.foldl(s.proc_nacked, (acc, e) =>
                 match e {
-                    | NotifyNack(p) => acc.setByWithDefault(p, v => v + 1, 1)
-                    | _ => acc
-                }
-            }),
-            acked' = acked,
-            nacked' = nacked,
-            next_pdata' = next_pdata
+                | NotifyNack(p) => acc.setByWithDefault(p, v => v + 1, 1)
+                | _ => acc
+                }),
         }
     }
 }
