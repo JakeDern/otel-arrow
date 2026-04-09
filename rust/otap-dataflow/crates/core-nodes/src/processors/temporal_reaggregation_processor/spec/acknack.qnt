@@ -18,6 +18,8 @@ module common {
 }
 
 module slot_map {
+    import basicSpells.* from "spells/basicSpells"
+
     type SlotMap[k, v] = {
         map: k -> v,
         cap: int
@@ -33,6 +35,10 @@ module slot_map {
     pure def has_cap(m: SlotMap[k, v]): bool =
         remaining_cap(m) > 0
 
+    pure def remove_many(m: SlotMap[k, v], s: Set[k]): SlotMap[k, v] = {
+        { ...m, map: s.foldl(m.map, (acc, key) => mapRemove(acc, key))}
+    }
+
     pure def insert(m: SlotMap[k, v], k: k, v: v): SlotMap[k, v] =
         { ...m, map: m.map.put(k, v) }
 
@@ -42,6 +48,7 @@ module slot_map {
 module processor {
     import common.*
     import slot_map
+    import basicSpells.* from "spells/basicSpells"
 
     type InboundTracker = {
         flushed: bool,
@@ -141,13 +148,42 @@ module processor {
     }
 
     action process_ack(b: Batch): bool = {
+        val p = apply_ack(proc, b)
+        val acks = collect_acks(p)
+        val inbound = slot_map::remove_many(p.inbound, acks)
         all {
-            proc' = {
-                ...proc
-            },
-            outbox' = outbox
+            proc' = { ...p, inbound: inbound },
+            outbox' = outbox.concat(acks.foldl(List(), (acc, b) => acc.append(NotifyAck(b))))
         }
     }
+
+    pure def apply_ack(p: Processor, b: Batch): Processor = {
+        if (not(p.outbound.map.has(b))) p
+        else {
+            val inbounds = p.outbound.map.get(b)
+            val new_inbound = inbounds.fold(p.inbound, (acc, i) => {
+                if (not(acc.map.has(i))) acc
+                else {
+                    val current = acc.map.get(i)
+                    slot_map::insert(acc, i, { ...current, pending: current.pending - 1 })
+                }
+            })
+
+            { 
+                ...p,
+                inbound: new_inbound,
+                outbound: {...p.outbound, map: p.outbound.map.mapRemove(b)}
+            }
+        }
+    }
+
+    pure def collect_acks(p: Processor): Set[Batch] = {
+        p.inbound.map.keys().filter(k => {
+            val tracker = p.inbound.map.get(k)
+            tracker.flushed == true and tracker.pending == 0
+        })
+    }
+
 
     action process_nack(b: Batch): bool = {
         all {
