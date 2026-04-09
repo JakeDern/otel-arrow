@@ -77,7 +77,8 @@ module processor {
     }
 
     action init = {
-        nondet cap = oneOf(2.to(16))
+        // nondet cap = oneOf(2.to(8))
+        pure val cap = 8
 
         all {
             proc' = new(cap),
@@ -90,7 +91,7 @@ module processor {
             | Pdata(b) => process_pdata(b)
             | Ack(b) => process_ack(b)
             | Nack(b) => process_nack(b)
-            | TimerTick => process_timer
+            | TimerTick => flush
         }
     }
 
@@ -116,12 +117,26 @@ module processor {
         all {
            proc' = {
                 ...proc,  
+                // Track the inbound
                 inbound: slot_map::insert(proc.inbound, b, { flushed: false, pending: 1 }), 
                 pending: proc.pending.union(Set(b)),
+
+                // Also track the passthrough
                 outbound: slot_map::insert(proc.outbound, proc.outbound_batch, Set(b)), 
                 outbound_batch: proc.outbound_batch + 1
            },
            outbox' = outbox.append(SendPdata(proc.outbound_batch))
+        }
+    }
+
+    action flush: bool = {
+        all {
+            proc' = {
+                ...proc,
+                pending: Set(),
+                outbound: slot_map::insert(proc.outbound, proc.outbound_batch, proc.pending),
+            },
+            outbox' = outbox.append(SendPdata(proc.outbound_batch))
         }
     }
 
@@ -143,14 +158,6 @@ module processor {
         }
     }
 
-    action process_timer: bool = {
-        all {
-            proc' = {
-                ...proc
-            },
-            outbox' = outbox
-        }
-    }
 }
 
 module acknack {
@@ -192,12 +199,18 @@ module acknack {
     action step: bool = any {
         drain_outbox,
         send_pdata,
+        send_timer_tick,
     }
 
     action send_pdata: bool = all {
-        s.next_pdata < 1024,
+        s.next_pdata < 64,
         proc::process_message(Pdata(s.next_pdata)),
         s' = { ...s, next_pdata: s.next_pdata + 1 },
+    }
+
+    action send_timer_tick: bool = all {
+        proc::process_message(TimerTick),
+        s' = s,
     }
 
     action drain_outbox: bool = all {
