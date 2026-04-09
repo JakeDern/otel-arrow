@@ -80,7 +80,8 @@ module processor {
         nondet cap = oneOf(2.to(16))
 
         all {
-            proc' = new(cap)
+            proc' = new(cap),
+            outbox' = List(),
         }
     }
 
