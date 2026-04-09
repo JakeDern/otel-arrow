@@ -148,12 +148,12 @@ module processor {
                         slot_map::insert(acc, i, { flushed: true, pending: current.pending + 1 })
                     }
                 }),
+                outbound_batch: proc.outbound_batch + 1,
                 outbound: slot_map::insert(proc.outbound, proc.outbound_batch, proc.pending),
             },
             outbox' = outbox.append(SendPdata(proc.outbound_batch))
         }
     }
-
 
     action process_ack(b: Batch): bool = {
         val p = apply_ack(proc, b)
@@ -193,14 +193,17 @@ module processor {
     }
 
     action process_nack(b: Batch): bool = {
+        val nacks = if (not(proc.outbound.map.has(b))) Set()
+        else {
+            val inbounds = proc.outbound.map.get(b)
+            inbounds.filter(i => proc.inbound.map.has(i))
+        }
+
         all {
-            proc' = {
-                ...proc
-            },
-            outbox' = outbox
+            proc'   = { ...proc, inbound: slot_map::remove_many(proc.inbound, nacks) },
+            outbox' = outbox.concat(nacks.fold(List(), (acc, n) => acc.append(NotifyNack(n))))
         }
     }
-
 }
 
 module acknack {
@@ -245,21 +248,30 @@ module acknack {
     }
 
     action step: bool = {
-        nondet ack_nack_batch = s.received.oneOf() 
-
         any {
             drain_outbox,
             send_pdata,
             send_timer_tick,
-            send_ack(ack_nack_batch),
-            send_nack(ack_nack_batch)
+            ack_step,
+            nack_step
         }
     }
 
     action send_pdata: bool = all {
         s.next_pdata < 64,
+        proc::accept_pdata,
         proc::process_message(Pdata(s.next_pdata)),
         s' = { ...s, next_pdata: s.next_pdata + 1 },
+    }
+
+    action ack_step(): bool = {
+        nondet batch = s.received.oneOf()
+        send_ack(batch)
+    }
+
+    action nack_step(): bool = {
+        nondet batch = s.received.oneOf()
+        send_nack(batch)
     }
 
     action send_ack(batch: Batch): bool = all {
@@ -278,6 +290,7 @@ module acknack {
     }
 
     action drain_outbox: bool = all {
+        length(proc::outbox) > 0,
         proc::proc' = proc::proc,
         proc::outbox' = List(),
         s' = {
