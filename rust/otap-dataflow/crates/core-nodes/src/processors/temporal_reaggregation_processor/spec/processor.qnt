@@ -21,7 +21,7 @@ module slot_map {
 }
 
 module processor {
-    import slot_map.*
+    import slot_map
 
     type Batch = int
 
@@ -30,8 +30,8 @@ module processor {
         flushed: bool,
         tracker: bool,
     }
-    type InboundMap = SlotMap[Batch, InboundTracker]
-    type OutboundMap = SlotMap[Batch, Set[Batch]]
+    type InboundMap = slot_map::SlotMap[Batch, InboundTracker]
+    type OutboundMap = slot_map::SlotMap[Batch, Set[Batch]]
 
     type Processor = {
         inbound: InboundMap,
@@ -45,9 +45,10 @@ module processor {
 
     action init: bool = all {
         processor' = {
-            inbound: new(16),
+            // TODO: Figure out how to deal with this
+            inbound: slot_map::new(16),
             pending: Set(),
-            outbound: new(16)
+            outbound: slot_map::new(16)
         }
     }
 }
