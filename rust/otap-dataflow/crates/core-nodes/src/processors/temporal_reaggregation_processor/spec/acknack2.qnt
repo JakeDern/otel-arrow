@@ -59,7 +59,7 @@ module slot_map {
     }
 
     pure def count_free(m: SlotMap[t]): SlotKey = {
-        m.fold(0, (acc, s) => match s.data { | Some(_) => acc + 1 | None => acc })
+        m.fold(0, (acc, s) => match s.data { | None => acc + 1 | Some(_) => acc })
     }
 
     pure def alloc(m: SlotMap[t], v: t): (SlotMap[t], SlotKey) = {
@@ -68,7 +68,7 @@ module slot_map {
     }
 
     pure def update(m: SlotMap[t], k: SlotKey, fn: t => t): SlotMap[t] = {
-       m.map(s => if (s.id == k) { ...s, data: s.data.map(s.data) } else s)
+       m.map(s => if (s.id == k) { ...s, data: s.data.map_option(fn) } else s)
     }
 
     pure def free(m: SlotMap[t], k: SlotKey): SlotMap[t] = {
@@ -80,17 +80,35 @@ module slot_map {
     }
 
     // Apply the transform to occupied slots in the map which match the predicate
-    pure def map_some(m: SlotMap[t], pred: (t) => bool, transform: (t) => t): SlotMap[t] = {
+    pure def map_some(m: SlotMap[t], pred: (SlotKey, t) => bool, transform: (t) => t): SlotMap[t] = {
         m.map(s => {
             match s.data {
                 | None => s
-                | Some(t) => if (pred(t)) { ...s, data: Some(transform(t)) } else s
+                | Some(t) => if (pred(s.id, t)) { ...s, data: Some(transform(t)) } else s
                 }
         }) 
     }
+    
+    pure def find(m: SlotMap[t], pred: t => bool): Set[t] = {
+        m.fold(Set(), (acc, slot) => {
+            match slot.data {
+                    | None => acc
+                    | Some(d) => if (pred(d)) { acc.union(Set(d)) } else acc
+                }
+        })
+    }
 
-    pure def get_slot(m: SlotMap[t], k: SlotKey): Slot[t] = {
-        m.fold(None, (acc, s) => if (s.id == k) s else acc).unwrap()
+    pure def find_keys(m: SlotMap[t], pred: t => bool): Set[SlotKey] = {
+        m.fold(Set(), (acc, slot) => {
+            match slot.data {
+                    | None => acc
+                    | Some(d) => if (pred(d)) { acc.union(Set(slot.id)) } else acc
+                }
+        })
+    }
+
+    pure def must_get(m: SlotMap[t], k: SlotKey): t = {
+        m.get_data(k).unwrap()
     }
     
     pure def get_data(m: SlotMap[t], k: SlotKey): Option[t] = {
@@ -150,14 +168,16 @@ module processor {
     
     pure def flush(p: Processor): Set[Transition] = {
         val (outbound, key) = slot_map::alloc(p.outbound, p.pending)
-        val inbound = slot_map::map_some(p.inbound, p.pending.has, tr => { flushed: true, pending: tr.pending + 1})
+        val inbound = slot_map::map_some(
+            p.inbound,
+            (id, _) => p.pending.contains(id),
+            tr => { flushed: true, pending: tr.pending + 1}
+        )
         val transition = {
             proc: {
                 ...p,
                 pending: Set(),
-                inbound: slot_map::map_some(
-                    p.inbound, p.pending.has, tr => { flushed: true, pending: tr.pending + 1}
-                ),
+                inbound: inbound,
                 outbound: outbound
             },
             // TODO: We're casting SlotKey to Batch here, maybe it's time to model pdata properly
@@ -210,10 +230,10 @@ module processor {
 
     
     pure def process_nack(p: Processor, b: Batch): Set[Transition] = {
-        val nacks = if (not(p.outbound.map.has(b))) Set()
+        val nacks = if (not(slot_map::has_data(p.outbound, b))) Set()
         else {
-            val inbounds = p.outbound.map.get(b)
-            inbounds.filter(i => p.inbound.map.has(i))
+            val inbounds = slot_map::must_get(p.outbound, b)
+            inbounds.filter(i => slot_map::has_data(p.inbound, i))
         }
         
         val transition = {
@@ -243,12 +263,9 @@ module processor {
     pure def apply_ack(p: Processor, b: Batch): Processor = {
         if (not(slot_map::has_data(p.outbound, b))) p
         else {
-            val inbounds = slot_map::get_data(p.outbound, b)
-            val new_inbound = inbounds.fold(p.inbound, 
-            val new_inbound = slot_map::map_some(
-                p.inbound,
-                tr => inbounds.contains(tr.id),
-                tr => { ...tr, pending: tr.pending - 1}
+            val inbounds = slot_map::must_get(p.outbound, b)
+            val new_inbound = inbounds.fold(p.inbound,
+                (acc, key) => slot_map::update(acc, key, tr => {...tr, pending: tr.pending - 1})
             )
 
             { 
@@ -260,10 +277,7 @@ module processor {
     }
 
     pure def collect_acks(p: Processor): Set[Batch] = {
-        p.inbound.map.keys().filter(k => {
-            val tracker = p.inbound.map.get(k)
-            tracker.flushed == true and tracker.pending == 0
-        })
+        slot_map::find_keys(p.inbound, tr => and ( tr.flushed == true, tr.pending == 0))
     }
 }
 
