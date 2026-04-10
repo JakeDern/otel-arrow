@@ -18,37 +18,92 @@ module common {
 }
 
 module slot_map {
-    type SlotMap[k, v] = {
-        map: k -> v,
-        cap: int
+    type Option[t] = Some(t) | None
+
+    pure def unwrap(value: Option[t]): t = {
+        match value {
+        | None => Map().get(value)
+        | Some(x) => x
+        }
     }
 
-    pure def new(cap: int): SlotMap[k, v] = {
-        { map: Map(), cap: cap }
+    pure def map_option(o: Option[t], fn: a => a): Option[t] = {
+        match o {
+            | Some(v) => Some(fn(v))
+            | None => None
+        }
     }
 
-    pure def remaining_cap(m: SlotMap[k, v]): int =
-        m.cap - m.map.keys().size()
+    type Slot[t] = {
+        id: SlotKey,
+        data: Option[t], 
+    } 
 
-    pure def has_cap(m: SlotMap[k, v]): bool =
-        remaining_cap(m) > 0
+    type SlotMap[t] = Set[Slot[t]]
+    type SlotKey = int
 
-    pure def remove_many(m: SlotMap[k, v], s: Set[k]): SlotMap[k, v] = {
-        { ...m, map: s.fold(m.map, (acc, key) => map_remove(acc, key))}
+    pure def new(cap: int): SlotMap[t] = {
+        0.to(cap).map(x => { id: x, data: None })
     }
 
-    pure def map_remove(m: a -> b, key: a): a -> b = {
-        m.keys().set_remove(key).mapBy(k => m.get(k))
+    pure def find_free(m: SlotMap[t]): Slot[t] = {
+        m.fold(None, (acc, s) => {
+            match acc {
+                | Some(_) => acc
+                | None => match s.data {
+                    | Some(_) => None
+                    | None => Some(s)
+                    }
+                }
+            }).unwrap()
     }
 
-    pure def set_remove(s: Set[a], elem: a): Set[a] = {
-        s.exclude(Set(elem))
+    pure def count_free(m: SlotMap[t]): SlotKey = {
+        m.fold(0, (acc, s) => match s.data { | Some(_) => acc + 1 | None => acc })
     }
 
-    pure def insert(m: SlotMap[k, v], k: k, v: v): SlotMap[k, v] =
-        { ...m, map: m.map.put(k, v) }
+    pure def alloc(m: SlotMap[t], v: t): (SlotMap[t], SlotKey) = {
+        val slot = m.find_free()
+        (m.map(s => if (s.id == slot.id) { ...s, data: Some(v) } else s), slot.id) 
+    }
 
-    pure def size_less_than_cap(m: SlotMap[k, v]): bool = remaining_cap(m) >= 0
+    pure def update(m: SlotMap[t], k: SlotKey, fn: t => t): SlotMap[t] = {
+       m.map(s => if (s.id == k) { ...s, data: s.data.map(s.data) } else s)
+    }
+
+    pure def free(m: SlotMap[t], k: SlotKey): SlotMap[t] = {
+        m.map(s => if (s.id == k) { ...s, data: None } else s) 
+    }
+
+    pure def free_many(m: SlotMap[t], k: Set[SlotKey]): SlotMap[t] = {
+        k.fold(m, (acc, k) => free(acc, k))
+    }
+
+    // Apply the transform to occupied slots in the map which match the predicate
+    pure def map_some(m: SlotMap[t], pred: (t) => bool, transform: (t) => t): SlotMap[t] = {
+        m.map(s => {
+            match s.data {
+                | None => s
+                | Some(t) => if (pred(t)) { ...s, data: Some(transform(t)) } else s
+                }
+        }) 
+    }
+
+    pure def get_slot(m: SlotMap[t], k: SlotKey): Slot[t] = {
+        m.fold(None, (acc, s) => if (s.id == k) s else acc).unwrap()
+    }
+    
+    pure def get_data(m: SlotMap[t], k: SlotKey): Option[t] = {
+        m.fold(None, (acc, s) => if (s.id == k) s.data else acc)
+    }
+
+    pure def has_data(m: SlotMap[t], k: SlotKey): bool = {
+        match m.get_data(k) { | Some(_) => true | None => false }
+    }
+
+    pure def remaining_cap(m: SlotMap[t]): int = m.count_free()
+
+    pure def has_cap(m: SlotMap[t]): bool = m.count_free() > 0
 }
 
 module processor {
@@ -62,10 +117,9 @@ module processor {
     }
 
     type Processor = {
-        inbound: slot_map::SlotMap[Batch, InboundTracker],
-        pending: Set[Batch],
-        outbound: slot_map::SlotMap[Batch, Set[Batch]],
-        outbound_batch: Batch
+        inbound: slot_map::SlotMap[InboundTracker],
+        pending: Set[slot_map::SlotKey],
+        outbound: slot_map::SlotMap[Set[Batch]],
     }
 
     type Transition = {
@@ -75,10 +129,9 @@ module processor {
 
     pure def new_processor(cap: int): Processor = {
         {
-            inbound:        { map: Map(), cap: cap },
+            inbound:        slot_map::new(cap),
             pending:        Set(),
-            outbound:       { map: Map(), cap: cap },
-            outbound_batch: 0,
+            outbound:       slot_map::new(cap)
         }
     }
 
@@ -96,21 +149,20 @@ module processor {
     }
     
     pure def flush(p: Processor): Set[Transition] = {
+        val (outbound, key) = slot_map::alloc(p.outbound, p.pending)
+        val inbound = slot_map::map_some(p.inbound, p.pending.has, tr => { flushed: true, pending: tr.pending + 1})
         val transition = {
             proc: {
                 ...p,
                 pending: Set(),
-                inbound: p.pending.fold(p.inbound, (acc, i) => {
-                    if (not(acc.map.has(i))) acc
-                    else {
-                        val current = acc.map.get(i)
-                        slot_map::insert(acc, i, { flushed: true, pending: current.pending + 1 })
-                    }
-                }),
-                outbound_batch: p.outbound_batch + 1,
-                outbound: slot_map::insert(p.outbound, p.outbound_batch, p.pending),
+                inbound: slot_map::map_some(
+                    p.inbound, p.pending.has, tr => { flushed: true, pending: tr.pending + 1}
+                ),
+                outbound: outbound
             },
-            effects: Set(SendPdata(p.outbound_batch)),
+            // TODO: We're casting SlotKey to Batch here, maybe it's time to model pdata properly
+            // with calldata and batch
+            effects: Set(SendPdata(key)),
         }
 
         Set(transition)
@@ -121,13 +173,36 @@ module processor {
     }
 
     pure def process_pdata_full(p: Processor, b: Batch): Set[Transition] = {
+        val (inbound, key) = slot_map::alloc(p.inbound, {flushed: false, pending: 0})
         val transition = {
             proc: {
                ...p,
-               inbound: slot_map::insert(p.inbound, b, {flushed: false, pending: 0}),
-               pending: p.pending.union(Set(b))
+               inbound: inbound,
+               pending: p.pending.union(Set(key))
             },
             effects: Set()
+        }
+
+        Set(transition)
+    }
+
+    pure def process_pdata_partial(p: Processor, b: Batch): Set[Transition] = {
+        val (inbound, in_key) = slot_map::alloc(p.inbound, {flushed: false, pending: 1})
+        val (outbound, out_key) = slot_map::alloc(p.outbound, Set(in_key))
+        val transition = {
+            proc: {
+                ...p,
+
+                // Track the inbound
+                inbound: inbound,
+                pending: p.pending.union(Set(in_key)),
+                
+                // Also track the passthrough
+                outbound: outbound
+            },
+            // TODO: Same thing here, we're kind of casting Key to batch which
+            // is meh :(
+            effects: Set(SendPdata(out_key))
         }
 
         Set(transition)
@@ -144,7 +219,7 @@ module processor {
         val transition = {
             proc: {
                 ...p,
-                inbound: slot_map::remove_many(p.inbound, nacks)   
+                inbound: slot_map::free_many(p.inbound, nacks)   
             },
             effects: nacks.fold(Set(), (acc, b) => acc.union(Set(NotifyNack(b))))
         }
@@ -155,7 +230,7 @@ module processor {
     pure def process_ack(p: Processor, b: Batch): Set[Transition] = {
         val new_proc = apply_ack(p, b)
         val acks = collect_acks(new_proc)
-        val inbound = slot_map::remove_many(new_proc.inbound, acks)
+        val inbound = slot_map::free_many(new_proc.inbound, acks)
         val transition = {
             proc: { ...new_proc, inbound: inbound },
             effects: acks.fold(Set(), (acc, b) => acc.union(Set(NotifyAck(b))))
@@ -164,41 +239,22 @@ module processor {
         Set(transition)
     }
 
-    pure def process_pdata_partial(p: Processor, b: Batch): Set[Transition] = {
-        val transition = {
-            proc: {
-                ...p,
-
-                // Track the inbound
-                inbound: slot_map::insert(p.inbound, b, {flushed: false, pending: 1}),
-                pending: p.pending.union(Set(b)),
-                
-                // Also track the passthrough
-                outbound: slot_map::insert(p.outbound, p.outbound_batch, Set(b)), 
-                outbound_batch: p.outbound_batch + 1
-            },
-            effects: Set(SendPdata(p.outbound_batch))
-        }
-
-        Set(transition)
-    }
 
     pure def apply_ack(p: Processor, b: Batch): Processor = {
-        if (not(p.outbound.map.has(b))) p
+        if (not(slot_map::has_data(p.outbound, b))) p
         else {
-            val inbounds = p.outbound.map.get(b)
-            val new_inbound = inbounds.fold(p.inbound, (acc, i) => {
-                if (not(acc.map.has(i))) acc
-                else {
-                    val current = acc.map.get(i)
-                    slot_map::insert(acc, i, { ...current, pending: current.pending - 1 })
-                }
-            })
+            val inbounds = slot_map::get_data(p.outbound, b)
+            val new_inbound = inbounds.fold(p.inbound, 
+            val new_inbound = slot_map::map_some(
+                p.inbound,
+                tr => inbounds.contains(tr.id),
+                tr => { ...tr, pending: tr.pending - 1}
+            )
 
             { 
                 ...p,
                 inbound: new_inbound,
-                outbound: {...p.outbound, map: p.outbound.map.mapRemove(b)}
+                outbound: slot_map::free(p.outbound, b)
             }
         }
     }
