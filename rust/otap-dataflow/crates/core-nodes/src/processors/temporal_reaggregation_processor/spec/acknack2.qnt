@@ -34,13 +34,14 @@ module slot_map {
         }
     }
 
+    type SlotKey = int
+
     type Slot[t] = {
         id: SlotKey,
         data: Option[t], 
     } 
 
     type SlotMap[t] = Set[Slot[t]]
-    type SlotKey = int
 
     pure def new(cap: int): SlotMap[t] = {
         0.to(cap - 1).map(x => { id: x, data: None })
@@ -84,7 +85,7 @@ module slot_map {
         m.map(s => {
             match s.data {
                 | None => s
-                | Some(t) => if (pred(s.id, t)) { ...s, data: Some(transform(t)) } else s
+                | Some(t) => if (pred(s.id, t)) { id: s.id, data: Some(transform(t)) } else s
                 }
         }) 
     }
@@ -127,6 +128,7 @@ module slot_map {
 module processor {
     import common.*
     import slot_map
+    import slot_map.SlotKey
     import basicSpells.* from "spells/basicSpells"
 
     type InboundTracker = {
@@ -147,14 +149,14 @@ module processor {
 
     pure def new_processor(cap: int): Processor = {
         {
-            inbound:        slot_map::new(cap),
-            pending:        Set(),
-            outbound:       slot_map::new(cap)
+            inbound:  0.to(cap - 1).map(x => { id: x, data: None }),
+            pending:  Set(),
+            outbound: 0.to(cap - 1).map(x => { id: x, data: None }),
         }
     }
 
     pure def accept_pdata(p: Processor): bool = {
-        slot_map::has_cap(p.inbound) and slot_map::remaining_cap(p.outbound) >= 2
+        slot_map::has_cap(p.inbound) and slot_map::remaining_cap(p.outbound) >= 3
     }
 
     pure def process(p: Processor, m: Message): Set[Transition] = {
@@ -167,25 +169,29 @@ module processor {
     }
     
     pure def flush(p: Processor): Set[Transition] = {
-        val (outbound, key) = slot_map::alloc(p.outbound, p.pending)
-        val inbound = slot_map::map_some(
-            p.inbound,
-            (id, _) => p.pending.contains(id),
-            tr => { flushed: true, pending: tr.pending + 1}
-        )
-        val transition = {
-            proc: {
-                ...p,
-                pending: Set(),
-                inbound: inbound,
-                outbound: outbound
-            },
-            // TODO: We're casting SlotKey to Batch here, maybe it's time to model pdata properly
-            // with calldata and batch
-            effects: Set(SendPdata(key)),
-        }
+        if (p.pending.size() == 0) {
+            Set({ proc: p, effects: Set()})
+        } else {
+            val (outbound, key) = slot_map::alloc(p.outbound, p.pending)
+            val inbound = slot_map::map_some(
+                p.inbound,
+                (id, _) => p.pending.contains(id),
+                tr => { flushed: true, pending: tr.pending + 1}
+            )
+            val transition = {
+                proc: {
+                    ...p,
+                    pending: Set(),
+                    inbound: inbound,
+                    outbound: outbound
+                },
+                // TODO: We're casting SlotKey to Batch here, maybe it's time to model pdata properly
+                // with calldata and batch
+                effects: Set(SendPdata(key)),
+            }
 
-        Set(transition)
+            Set(transition)
+        }
     }
 
     pure def process_pdata(p: Processor, b: Batch): Set[Transition] = {
