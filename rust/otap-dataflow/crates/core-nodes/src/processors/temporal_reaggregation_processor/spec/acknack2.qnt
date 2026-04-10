@@ -85,12 +85,29 @@ module processor {
             | Pdata(b) => process_pdata(p, b)
             | Ack(b) => process_ack(p, b)
             | Nack(b) => process_nack(p, b)
-            | TimerTick => flush
+            | TimerTick => flush(p)
         }
     }
     
-    pure def flush: Set[Transition] = {
-        Set()
+    pure def flush(p: Processor): Set[Transition] = {
+        val transition = {
+            proc: {
+                ...p,
+                pending: Set(),
+                inbound: p.pending.fold(p.inbound, (acc, i) => {
+                    if (not(acc.map.has(i))) acc
+                    else {
+                        val current = acc.map.get(i)
+                        slot_map::insert(acc, i, { flushed: true, pending: current.pending + 1 })
+                    }
+                }),
+                outbound_batch: p.outbound_batch + 1,
+                outbound: slot_map::insert(p.outbound, p.outbound_batch, p.pending),
+            },
+            effects: List(SendPdata(p.outbound_batch)),
+        }
+
+        Set(transition)
     }
 
     pure def process_pdata(p: Processor, b: Batch): Set[Transition] = {
