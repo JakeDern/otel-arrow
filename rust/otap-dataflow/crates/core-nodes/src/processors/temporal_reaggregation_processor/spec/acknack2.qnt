@@ -70,7 +70,7 @@ module processor {
 
     type Transition = {
        proc: Processor,
-       effects: List[Effect]
+       effects: Set[Effect]
     }
 
     pure def new_processor(cap: int): Processor = {
@@ -110,14 +110,14 @@ module processor {
                 outbound_batch: p.outbound_batch + 1,
                 outbound: slot_map::insert(p.outbound, p.outbound_batch, p.pending),
             },
-            effects: List(SendPdata(p.outbound_batch)),
+            effects: Set(SendPdata(p.outbound_batch)),
         }
 
         Set(transition)
     }
 
     pure def process_pdata(p: Processor, b: Batch): Set[Transition] = {
-        Set(process_pdata_partial(p, b), process_pdata_full(p, b)).flatten()
+        process_pdata_partial(p, b).union(process_pdata_full(p, b))
     }
 
     pure def process_pdata_full(p: Processor, b: Batch): Set[Transition] = {
@@ -127,7 +127,7 @@ module processor {
                inbound: slot_map::insert(p.inbound, b, {flushed: false, pending: 0}),
                pending: p.pending.union(Set(b))
             },
-            effects: List()
+            effects: Set()
         }
 
         Set(transition)
@@ -146,7 +146,7 @@ module processor {
                 ...p,
                 inbound: slot_map::remove_many(p.inbound, nacks)   
             },
-            effects: nacks.fold(List(), (acc, b) => acc.append(NotifyNack(b)))
+            effects: nacks.fold(Set(), (acc, b) => acc.union(Set(NotifyNack(b))))
         }
 
         Set(transition)
@@ -158,7 +158,7 @@ module processor {
         val inbound = slot_map::remove_many(new_proc.inbound, acks)
         val transition = {
             proc: { ...new_proc, inbound: inbound },
-            effects: acks.fold(List(), (acc, b) => acc.append(NotifyAck(b)))
+            effects: acks.fold(Set(), (acc, b) => acc.union(Set(NotifyAck(b))))
         }
         
         Set(transition)
@@ -177,7 +177,7 @@ module processor {
                 outbound: slot_map::insert(p.outbound, p.outbound_batch, Set(b)), 
                 outbound_batch: p.outbound_batch + 1
             },
-            effects: List(SendPdata(p.outbound_batch))
+            effects: Set(SendPdata(p.outbound_batch))
         }
 
         Set(transition)
@@ -258,7 +258,7 @@ module acknack {
     }
 
     pure def apply_transition(s: AckNackState, t: Transition): AckNackState = {
-        val new_s = t.effects.foldl(s, (acc, e) =>
+        val new_s = t.effects.fold(s, (acc, e) =>
             match e {
             | SendPdata(b)  => { ...acc, received:    acc.received.union(Set(b))    }
             | NotifyAck(b)  => { ...acc, proc_acked:  acc.proc_acked.setByWithDefault(b, v => v + 1, 0)  }
