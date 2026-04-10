@@ -35,6 +35,7 @@ module slot_map {
 
     pure def alloc(m: SlotMap[v], v: v): (SlotMap[v], SlotKey) = {
         val k = m.free.fold(-1, (acc, x) => if (acc == -1) x else acc)
+        val _crash = if (k == -1) Map().get(0) else 0
         ({ map: m.map.put(k, v), free: m.free.exclude(Set(k)) }, k)
     }
 
