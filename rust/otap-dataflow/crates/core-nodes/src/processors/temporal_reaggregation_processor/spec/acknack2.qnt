@@ -18,8 +18,6 @@ module common {
 }
 
 module slot_map {
-    import basicSpells.* from "spells/basicSpells"
-
     type SlotMap[k, v] = {
         map: k -> v,
         cap: int
@@ -36,7 +34,15 @@ module slot_map {
         remaining_cap(m) > 0
 
     pure def remove_many(m: SlotMap[k, v], s: Set[k]): SlotMap[k, v] = {
-        { ...m, map: s.fold(m.map, (acc, key) => mapRemove(acc, key))}
+        { ...m, map: s.fold(m.map, (acc, key) => map_remove(acc, key))}
+    }
+
+    pure def map_remove(m: a -> b, key: a): a -> b = {
+        m.keys().set_remove(key).mapBy(k => m.get(k))
+    }
+
+    pure def set_remove(s: Set[a], elem: a): Set[a] = {
+        s.exclude(Set(elem))
     }
 
     pure def insert(m: SlotMap[k, v], k: k, v: v): SlotMap[k, v] =
@@ -69,10 +75,10 @@ module processor {
 
     pure def new_processor(cap: int): Processor = {
         {
-            inbound: slot_map::new(cap),
-            pending: Set(),
-            outbound: slot_map::new(cap),
-            outbound_batch: 0
+            inbound:        { map: Map(), cap: cap },
+            pending:        Set(),
+            outbound:       { map: Map(), cap: cap },
+            outbound_batch: 0,
         }
     }
 
