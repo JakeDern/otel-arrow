@@ -231,7 +231,7 @@ module processor {
     }
 }
 
-module acknack {
+module acknack3 {
     import common.*
     import slot_map
     import basicSpells.* from "spells/basicSpells"
@@ -247,9 +247,9 @@ module acknack {
         // The batches the processor has sent out.
         received: Set[Batch],
         // The number of times the processor has acked each batch.
-        proc_acked: Batch -> int,
+        proc_acked: Set[Batch],
         // The number of times the processor has nacked each batch.
-        proc_nacked: Batch -> int,
+        proc_nacked: Set[Batch],
         // The processor under test
         proc: Processor,
     }
@@ -258,13 +258,13 @@ module acknack {
 
     action init: bool = all {
         s' = {
-            proc: new_processor(4),
+            proc: new_processor(5),
             next_pdata:  0,
             received:    Set(),
             acked:       Set(),
             nacked:      Set(),
-            proc_acked:  Map(),
-            proc_nacked: Map(),
+            proc_acked:  Set(),
+            proc_nacked: Set()
         }
     }
 
@@ -281,8 +281,8 @@ module acknack {
         val new_s = t.effects.fold(s, (acc, e) =>
             match e {
             | SendPdata(b)  => { ...acc, received:    acc.received.union(Set(b))    }
-            | NotifyAck(b)  => { ...acc, proc_acked:  acc.proc_acked.setByWithDefault(b, v => v + 1, 0)  }
-            | NotifyNack(b) => { ...acc, proc_nacked: acc.proc_nacked.setByWithDefault(b, v => v + 1, 0) }
+            | NotifyAck(b)  => { ...acc, proc_acked:  acc.proc_acked.union(Set(b))  }
+            | NotifyNack(b) => { ...acc, proc_nacked: acc.proc_nacked.union(Set(b)) }
         })
         { ...new_s, proc: t.proc }
     }
@@ -293,7 +293,7 @@ module acknack {
         val new_s = apply_transition(s, transition)
 
         all {
-            s.next_pdata < 2,
+            s.next_pdata < 4,
             accept_pdata(s.proc),
             s' = { ...new_s, next_pdata: new_s.next_pdata + 1 }
         }

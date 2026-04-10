@@ -156,7 +156,7 @@ module processor {
     }
 
     pure def accept_pdata(p: Processor): bool = {
-        slot_map::has_cap(p.inbound) and slot_map::remaining_cap(p.outbound) >= 3
+        slot_map::has_cap(p.inbound) and slot_map::remaining_cap(p.outbound) >= 2
     }
 
     pure def process(p: Processor, m: Message): Set[Transition] = {
@@ -288,7 +288,7 @@ module processor {
     }
 }
 
-module acknack {
+module acknack2 {
     import common.*
     import slot_map
     import basicSpells.* from "spells/basicSpells"
@@ -315,7 +315,7 @@ module acknack {
 
     action init: bool = all {
         s' = {
-            proc: new_processor(8),
+            proc: new_processor(5),
             next_pdata:  0,
             received:    Set(),
             acked:       Set(),
@@ -350,7 +350,7 @@ module acknack {
         val new_s = apply_transition(s, transition)
 
         all {
-            s.next_pdata < 2,
+            s.next_pdata < 4,
             accept_pdata(s.proc),
             s' = { ...new_s, next_pdata: new_s.next_pdata + 1 }
         }
