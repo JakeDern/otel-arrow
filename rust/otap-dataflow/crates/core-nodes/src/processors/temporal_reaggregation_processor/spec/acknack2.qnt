@@ -27,7 +27,7 @@ module slot_map {
         }
     }
 
-    pure def map_option(o: Option[t], fn: a => a): Option[t] = {
+    pure def map_option(o: Option[t], fn: t => t): Option[t] = {
         match o {
             | Some(v) => Some(fn(v))
             | None => None
@@ -43,7 +43,7 @@ module slot_map {
     type SlotKey = int
 
     pure def new(cap: int): SlotMap[t] = {
-        0.to(cap).map(x => { id: x, data: None })
+        0.to(cap - 1).map(x => { id: x, data: None })
     }
 
     pure def find_free(m: SlotMap[t]): Slot[t] = {
@@ -239,7 +239,8 @@ module processor {
         val transition = {
             proc: {
                 ...p,
-                inbound: slot_map::free_many(p.inbound, nacks)   
+                inbound: slot_map::free_many(p.inbound, nacks),
+                outbound: slot_map::free(p.outbound, b)
             },
             effects: nacks.fold(Set(), (acc, b) => acc.union(Set(NotifyNack(b))))
         }
