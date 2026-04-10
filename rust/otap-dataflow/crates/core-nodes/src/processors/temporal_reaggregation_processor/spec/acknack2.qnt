@@ -238,8 +238,8 @@ module acknack {
         val new_s = t.effects.foldl(s, (acc, e) =>
             match e {
             | SendPdata(b)  => { ...acc, received:    acc.received.union(Set(b))    }
-            | NotifyAck(b)  => { ...acc, proc_acked:  acc.proc_acked.union(Set(b))  }
-            | NotifyNack(b) => { ...acc, proc_nacked: acc.proc_nacked.union(Set(b)) }
+            | NotifyAck(b)  => { ...acc, proc_acked:  acc.proc_acked.setByWithDefault(b, v => v + 1, 0)  }
+            | NotifyNack(b) => { ...acc, proc_nacked: acc.proc_nacked.setByWithDefault(b, v => v + 1, 0) }
         })
         { ...new_s, proc: t.proc }
     }
@@ -269,18 +269,18 @@ module acknack {
     action send_ack(b: Batch): bool = {
         val transitions = process(s.proc, Ack(b))
         nondet transition = transitions.oneOf()
-        apply_transition(s, transition)
+        s' = apply_transition(s, transition) 
     }
 
     action send_nack(b: Batch): bool = all {
         val transitions = process(s.proc, Nack(b))
         nondet transition = transitions.oneOf()
-        apply_transition(s, transition)
+        s' = apply_transition(s, transition)
     }
 
     action send_timer_tick: bool = all {
         val transitions = process(s.proc, TimerTick)
         nondet transition = transitions.oneOf()
-        apply_transition(s, transition)
+        s' = apply_transition(s, transition)
     }
 }
