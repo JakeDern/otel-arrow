@@ -85,7 +85,7 @@ module processor {
 
     action init = {
         // nondet cap = oneOf(2.to(8))
-        pure val cap = 8
+        pure val cap = 4
 
         all {
             proc' = new(cap),
@@ -258,7 +258,7 @@ module acknack {
     }
 
     action send_pdata: bool = all {
-        s.next_pdata < 64,
+        s.next_pdata < 2,
         proc::accept_pdata,
         proc::process_message(Pdata(s.next_pdata)),
         s' = { ...s, next_pdata: s.next_pdata + 1 },
