@@ -316,8 +316,8 @@ module acknack3 {
 
     var s: State
 
-    pure def MAX_DATAPOINTS = 4
-    pure def MAX_MAP_SIZE = 8 // Tuning this down really does not cut the state space at all
+    pure def MAX_DATAPOINTS = 7
+    pure def MAX_MAP_SIZE = 5 // Tuning this down really does not cut the state space at all
     pure def MAX_DATA_PER_BATCH = 3
     
     action init: bool = all {
@@ -359,7 +359,7 @@ module acknack3 {
     }
 
     action send_pdata: bool = {
-        nondet num_data = 1.to(s.remaining_data).oneOf()
+        nondet num_data = 1.to(min(s.remaining_data, MAX_DATA_PER_BATCH)).oneOf()
         nondet num_agg_data = 1.to(num_data).oneOf()
         val num_non_agg_data = num_data - num_agg_data
         val agg_data = 1.to(num_agg_data)
