@@ -93,8 +93,7 @@ module slot_map {
         m.map.keys().filter(k => pred(m.map.get(k)))
 
     pure def update(m: SlotMap[v], k: SlotKey, fn: v => v): SlotMap[v] =
-        if (m.map.keys().contains(k)) { ...m, map: m.map.put(k, fn(m.map.get(k))) }
-        else m
+         { ...m, map: m.map.set(k, fn(m.map.get(k))) }
 
     pure def map_some(m: SlotMap[v], pred: (SlotKey, v) => bool, transform: v => v): SlotMap[v] =
         m.map.keys().fold(m, (acc, k) => {
@@ -358,26 +357,26 @@ module acknack3 {
         { ...new_s, proc: t.proc }
     }
 
-    action send_pdata: bool = {
-        nondet num_data = 1.to(min(s.remaining_data, MAX_DATA_PER_BATCH)).oneOf()
-        nondet num_agg_data = 1.to(num_data).oneOf()
-        val num_non_agg_data = num_data - num_agg_data
-        val agg_data = 1.to(num_agg_data)
-        val non_agg_data = 1.to(num_non_agg_data).map(x => x + num_data)
-        val agg_chunks = agg_data.map(d => Aggregable(d))
-        val non_agg_chunks = non_agg_data.map(d => NotAggregable(d))
+    action send_pdata: bool = all {
+        bound_state,
+        accept_pdata(s.proc),
+        {
+            nondet num_data = 1.to(min(s.remaining_data, MAX_DATA_PER_BATCH)).oneOf()
+            nondet num_agg_data = 1.to(num_data).oneOf()
+            val num_non_agg_data = num_data - num_agg_data
+            val agg_data = 1.to(num_agg_data)
+            val non_agg_data = 1.to(num_non_agg_data).map(x => x + num_data)
+            val agg_chunks = agg_data.map(d => Aggregable(d))
+            val non_agg_chunks = non_agg_data.map(d => NotAggregable(d))
 
-        val payload = agg_chunks.union(non_agg_chunks)
-        val sent_data = agg_data.union(non_agg_data)
-        
-        val transitions = process(s.proc, PdataMessage({context: s.next_context, payload: payload}))
-        nondet transition = transitions.oneOf()
-        val new_s = apply_transition(s, transition)
+            val payload = agg_chunks.union(non_agg_chunks)
+            val sent_data = agg_data.union(non_agg_data)
 
-        all {
-            bound_state,
-            accept_pdata(s.proc),
-            s' = { 
+            val transitions = process(s.proc, PdataMessage({context: s.next_context, payload: payload}))
+            nondet transition = transitions.oneOf()
+            val new_s = apply_transition(s, transition)
+
+            s' = {
                 ...new_s,
                 remaining_data: s.remaining_data - num_data,
                 sent: s.sent.put(s.next_context, sent_data),
