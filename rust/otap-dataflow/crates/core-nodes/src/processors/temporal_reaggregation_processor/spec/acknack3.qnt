@@ -346,9 +346,9 @@ module acknack3 {
         // What data we've sent and all the associated contexts
         sent: Context -> Set[Data],
         // The data we have sent acks or nacks to the processor for.
-        acked: Set[Context],
+        acked: Set[Pdata],
         // The batches we have sent nacks to the processor for.
-        nacked: Set[Context],
+        nacked: Set[Pdata],
         // The data we've received
         received: Set[Pdata],
         // The number of times the processor has acked each batch.
@@ -433,30 +433,38 @@ module acknack3 {
     action ack_step(): bool = {
         // Consider excluding stuff we've already acked
         nondet pd = s.received.oneOf()
-        send_ack(pd.context)
+        send_ack(pd)
     }
 
     action nack_step(): bool = {
         // Consider excluding stuff we've already nacked
         nondet pd = s.received.oneOf()
-        send_nack(pd.context)
+        send_nack(pd)
     }
 
-    action send_ack(c: Context): bool = {
-        val transitions = process(s.proc, AckMessage(c))
+    action send_ack(pd: Pdata): bool = {
+        val transitions = process(s.proc, AckMessage(pd.context))
         nondet transition = transitions.oneOf()
         val new_s = apply_transition(s, transition) 
         all {
-            s' = { ...new_s, acked: s.acked.union(Set(c))}
+            s' = { 
+                ...new_s,
+                acked: s.acked.union(Set(pd)),
+                received: s.received.exclude(Set(pd)),
+            }
         }
     }
 
-    action send_nack(c: Context): bool = {
-        val transitions = process(s.proc, NackMessage(c))
+    action send_nack(pd: Pdata): bool = {
+        val transitions = process(s.proc, NackMessage(pd.context))
         nondet transition = transitions.oneOf()
-        val new_s = apply_transition(s, transition)
+        val new_s = apply_transition(s, transition) 
         all {
-            s' = { ...new_s, nacked: s.nacked.union(Set(c))}
+            s' = { 
+                ...new_s,
+                received: s.received.exclude(Set(pd)),
+                nacked: s.nacked.union(Set(pd)),
+            }
         }
     }
 
@@ -469,7 +477,4 @@ module acknack3 {
         }
     }
 
-    def acked_data: Set[Data] = {
-      s.received.filter(pd => s.acked.contains(pd.context)).map(extract_data).flatten()
-    }
 }
