@@ -18,6 +18,33 @@ module common {
         payload: Set[Chunk]
     }
 
+    pure def extract_data(pd: Pdata): Set[Data] = {
+        pd.payload.fold(Set(), (acc, chunk) => {
+            match (chunk){
+                | Aggregable(d) => d
+                | NotAggregable(d) => d
+            }
+        })
+    }
+
+    pure def extract_aggregable_data(pd: Pdata): Set[Data] = {
+        pd.payload.fold(Set(), (acc, chunk) => {
+            match (chunk){
+                | Aggregable(d) => acc.union(Set(d))
+                | NotAggregable(_) => acc
+            }
+        })
+    }
+
+    pure def extract_non_aggregable_chunks(pd: Pdata): Set[Data] = {
+        pd.payload.fold(Set(), (acc, chunk) => {
+            match (chunk){
+                | Aggregable(_) => acc
+                | NotAggregable(d) => acc.union(Set(NotAggregable(d)))
+            }
+        })
+    }
+
     type Context = int
     type Data = int
     type Chunk = Aggregable(Data) | NotAggregable(Data)
@@ -130,16 +157,8 @@ module processor {
     // TODO: Cap the amount of data in pending to 2 so we can model the case
     // where it's just too big
     pure def process_pdata(p: Processor, pd: Pdata): Set[Transition] = {
-        val aggregable_data = pd.payload.fold(Set(), (acc, chunk) => 
-            match (chunk) {
-                | Aggregable(d) => acc.union(Set(d))
-                | NotAggregable(_) => acc
-            })
-        val non_aggregable_chunks = pd.payload.fold(Set(), (acc, chunk) => 
-            match (chunk) {
-                | Aggregable(_) => acc
-                | NotAggregable(d) => acc.union(Set(NotAggregable(d)))
-            })
+        val aggregable_data = extract_aggregable_data(pd)
+        val non_aggregable_chunks = extract_non_aggregable_chunks(pd)
 
         val pending_acks = if (non_aggregable_chunks.size() > 0) 1 else 0
         val (inbound, in_key) = slot_map::alloc(p.inbound, {flushed: false, pending: pending_acks, context: pd.context})
@@ -275,32 +294,41 @@ module acknack3 {
     import basicSpells.* from "spells/basicSpells"
     import processor.*
 
-    type AckNackState = {
-        // The id of the next pdata to send.
-        next_pdata: Batch,
-        // The batches we have sent acks or nacks to the processor for.
-        acked: Set[Batch],
-        // The batches we have sent nacks to the processor for.
-        nacked: Set[Batch],
-        // The batches the processor has sent out.
-        received: Set[Batch],
-        // The number of times the processor has acked each batch.
-        proc_acked: Set[Batch],
-        // The number of times the processor has nacked each batch.
-        proc_nacked: Set[Batch],
+    type State = {
         // The processor under test
         proc: Processor,
+        // Id of the next context
+        next_context: int,
+        // Data that's still available to send
+        data: Set[Data],
+        // What data we've sent and all the associated contexts
+        sent: Context -> Set[Data],
+        // The data we have sent acks or nacks to the processor for.
+        acked: Set[Context],
+        // The batches we have sent nacks to the processor for.
+        nacked: Set[Context],
+        // The data we've received
+        received: Set[Data],
+        // The number of times the processor has acked each batch.
+        proc_acked: Set[Data],
+        // The number of times the processor has nacked each batch.
+        proc_nacked: Set[Data],
     }
 
-    var s: AckNackState
+    var s: State
 
+    pure def MAX_DATAPOINTS = 6
+    pure def MAX_MAP_SIZE = 8
+    pure def MAX_DATA_PER_BATCH = 3
+    
     action init: bool = all {
         s' = {
-            proc: new_processor(5),
-            next_pdata:  0,
-            received:    Set(),
+            proc: new_processor(MAX_MAP_SIZE),
+            next_context:  0,
+            sent: Map(),
             acked:       Set(),
             nacked:      Set(),
+            received:    Set(),
             proc_acked:  Set(),
             proc_nacked: Set()
         }
@@ -315,12 +343,16 @@ module acknack3 {
         }
     }
 
-    pure def apply_transition(s: AckNackState, t: Transition): AckNackState = {
+    action constrain_state: bool = all {
+        s.next_context <= MAX_DATAPOINTS
+    }
+
+    pure def apply_transition(s: State, t: Transition): State = {
         val new_s = t.effects.fold(s, (acc, e) =>
             match e {
-            | SendPdata(b)  => { ...acc, received:    acc.received.union(Set(b))    }
-            | NotifyAck(b)  => { ...acc, proc_acked:  acc.proc_acked.union(Set(b))  }
-            | NotifyNack(b) => { ...acc, proc_nacked: acc.proc_nacked.union(Set(b)) }
+            | SendPdata(pd)  => { ...acc, received:    acc.received.union(extract_data(pd))    }
+            | NotifyAck(c)  => { ...acc, proc_acked:  acc.proc_acked.union(Set(c))  }
+            | NotifyNack(c) => { ...acc, proc_nacked: acc.proc_nacked.union(Set(c)) }
         })
         { ...new_s, proc: t.proc }
     }
