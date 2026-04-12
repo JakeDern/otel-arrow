@@ -123,11 +123,15 @@ module slot_map {
             }
         })
     }
-
-    pure def update(m: SlotMap[v], k: SlotKey, fn: v => v): SlotMap[v] =
+    
+    // ISSUE: If we have no {} wrapping this body at all then the compiler doesn't even notice
+    pure def update(m: SlotMap[v], k: SlotKey, fn: v => v): SlotMap[v] = {
          val existing = m.slots[k].unwrap()
-         val new_val = fn(existing)
-         { ...m, slots: m.slots.replaceAt(k, Some(new_val)) }
+         val new_val = Some(fn(existing))
+         // ISSUE: If we do m.slots.replaceAt(k , Some(new_val)) instead then the compiler chokes
+         val new_slots = m.slots.replaceAt(k, new_val)
+         { ...m, slots: new_slots }
+    }
 
     pure def map_some(m: SlotMap[v], pred: (SlotKey, v) => bool, transform: v => v): SlotMap[v] = {
         val new_slots = m.slots.indices().fold(m.slots, (acc, i) => {
