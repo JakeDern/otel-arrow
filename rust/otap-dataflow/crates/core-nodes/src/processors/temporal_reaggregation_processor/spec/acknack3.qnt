@@ -360,8 +360,8 @@ module acknack3 {
     }
 
     action send_pdata: bool = {
-        nondet data_points = s.data.powerset().filter(subset => subset.size() > 0 and subset.size() < MAX_DATA_PER_BATCH).oneOf()
-        nondet agg_data = data_points.powerset().exclude(Set()).oneOf()
+        nondet data_points = s.data.powerset().filter(sub => sub.size() > 0 and sub.size() < MAX_DATA_PER_BATCH).oneOf()
+        nondet agg_data = data_points.powerset().filter(sub => sub.size() > 0).oneOf()
         val non_agg_data = data_points.exclude(agg_data)
         val agg_chunks = agg_data.map(d => Aggregable(d))
         val non_agg_chunks = non_agg_data.map(d => NotAggregable(d))
