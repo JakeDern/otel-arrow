@@ -15,18 +15,12 @@ module common {
 
     type Pdata = {
         context: Context,
-        payload: Set[Data]
+        payload: Set[Chunk]
     }
 
     type Context = int
-    type Chunk = int
-
-    // We intentionally omit the not-aggregable case here because (1) it's trivial
-    // to implement and (2) it means we don't have to model the interests stack
-    // which allows ack/nack to skip over this component
-    type Data = 
-        PartiallyAggregable({agg: Chunk, not_agg: Chunk})
-        | FullyAggregable(Chunk)
+    type Data = int
+    type Chunk = Aggregable(Data) | NotAggregable(Data)
 }
 
 module slot_map {
@@ -95,9 +89,14 @@ module processor {
         pending: int,
     }
 
+    type PendingData = {
+        data: Set[Data],
+        in_keys: Set[slot_map::SlotKey]
+    }
+
     type Processor = {
         inbound: slot_map::SlotMap[InboundTracker],
-        pending: Set[slot_map::SlotKey],
+        pending: PendingData,
         outbound: slot_map::SlotMap[Set[SlotKey]],
     }
 
@@ -122,82 +121,97 @@ module processor {
         // Type checker/LSP also doesn't catch wrong names in the patterns here
         match m {
             | PdataMessage(pd) => process_pdata(p, pd)
-            | AckMessage(pd) => process_ack(p, pd)
-            | NackMessage(pd) => process_nack(p, pd)
+            | AckMessage(c) => process_ack(p, c)
+            | NackMessage(c) => process_nack(p, c)
             | TimerTickMessage => flush(p)
         }
     }
-
+    
+    // TODO: Cap the amount of data in pending to 2 so we can model the case
+    // where it's just too big
     pure def process_pdata(p: Processor, pd: Pdata): Set[Transition] = {
-        match (pd.payload) {
-            | PartiallyAggregable(d) => process_pdata_partial(p, pd.context, d.agg, d.not_agg)
-            | FullyAggregable(d) => process_pdata_full(p, pd.context, d)
+        val aggregable_data = pd.payload.fold(Set(), (acc, chunk) => 
+            match (chunk) {
+                | Aggregable(d) => acc.union(Set(d))
+                | NotAggregable(_) => acc
+            })
+        val non_aggregable_data = pd.payload.fold(Set(), (acc, chunk) => 
+            match (chunk) {
+                | Aggregable(_) => acc
+                | NotAggregable(d) => acc.union(Set(d))
+            })
+
+        val pending_acks = if (non_aggregable_data.size() > 0) 1 else 0
+        val (inbound, in_key) = slot_map::alloc(p.inbound, {flushed: false, pending: pending_acks, context: pd.context})
+
+        val has_agg = aggregable_data.size() > 0
+        val has_non_agg = non_aggregable_data.size() > 0
+        if (has_agg and has_non_agg) {
+            // Both aggregable and not aggregable data
+            val (outbound, out_key) = slot_map::alloc(p.outbound, Set(in_key))
+            val transition = {
+                proc: {
+                    ...p,
+                    inbound: inbound,
+                    pending: {
+                        data: p.pending.union(aggregable_data),
+                        in_keys: p.pending.in_keys.union(Set(in_key))
+                    }, 
+                    outbound: outbound
+                },
+                effects: SendPdata({context: out_key, data: non_aggregable_data})
+            }
+            Set(transition)
+        } else if (has_agg and not(has_non_agg)) {
+            val transition = {
+                proc: {
+                    ...p,
+                    inbound: inbound,
+                    pending: {
+                        data: p.pending.union(aggregable_data),
+                        in_keys: p.pending.in_keys.union(Set(in_key))
+                    }
+                },
+                effects: Set() 
+            }
+
+            Set(transition)
+        } else if (not(has_agg) and has_non_agg) {
+            // Panic, we're not allowing for this case because we'd have to
+            // model the interests stack where acks can skip over this component.
+            // Maybe we could do that in the future
+            Map().get(1)
+        } else {
+            // Panic, should be unreachable. We're not testing with empty
+            // batches, but we could add that later.
+            Map().get(1)
         }
-    }
-
-    pure def process_pdata_full(p: Processor, c: Context, d: Data): Set[Transition] = {
-        // ISSUE: Typechecker does not check the type of what's being inserted into the
-        // slotmap here.
-        val (inbound, key) = slot_map::alloc(p.inbound, {flushed: false, pending: 0, context: c})
-        val transition = {
-            proc: {
-               ...p,
-               inbound: inbound,
-               pending: p.pending.union(Set(key))
-            },
-            effects: Set()
-        }
-
-        Set(transition)
-    }
-
-    pure def process_pdata_partial(p: Processor, c: Context, ad: Data, nad: Data): Set[Transition] = {
-        val (inbound, in_key) = slot_map::alloc(p.inbound, {flushed: false, pending: 1, context: c})
-        val (outbound, out_key) = slot_map::alloc(p.outbound, Set(in_key))
-        val transition = {
-            proc: {
-                ...p,
-
-                // Track the inbound
-                inbound: inbound,
-                pending: p.pending.union(Set(in_key)),
-                
-                // Also track the passthrough
-                outbound: outbound
-            },
-            effects: Set(SendPdata({context: out_key, payload: FullyAggregable(nad)}))
-        }
-
-        Set(transition)
     }
     
     pure def flush(p: Processor): Set[Transition] = {
-        if (p.pending.size() == 0) {
-            Set({ proc: p, effects: Set()})
-        } else {
-            val (outbound, out_key) = slot_map::alloc(p.outbound, p.pending)
+        if (p.pending.size() == 0) Set()
+        else {
+            val (outbound, out_key) = slot_map::alloc(p.outbound, p.pending.in_keys)
             val inbound = slot_map::map_some(
                 p.inbound,
                 (id, _) => p.pending.contains(id),
                 tr => { flushed: true, pending: tr.pending + 1}
             )
+            val out_data = p.pending.data.map(d => Aggregable(d))
             val transition = {
                 proc: {
                     ...p,
-                    pending: Set(),
+                    pending: {data: Set(), in_keys: Set()},
                     inbound: inbound,
                     outbound: outbound
                 },
-                // TODO: We have to put all of the input data into this thing :(
-                effects: Set(SendPdata(key)),
+                effects: Set(SendPdata({context: out_key, data: out_data})),
             }
 
             Set(transition)
         }
     }
-
-
-    
+ 
     pure def process_nack(p: Processor, c: Context): Set[Transition] = {
         val out_key = c;
         if (not(slot_map::has_data(p.outbound, out_key))) Set()
@@ -230,7 +244,6 @@ module processor {
                 })
             }
     }
-
 
     pure def apply_ack(p: Processor, out_key: slot_map::SlotKey): Processor = {
         if (not(slot_map::has_data(p.outbound, out_key))) p
