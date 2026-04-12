@@ -94,11 +94,11 @@ module slot_map {
     pure def has_cap(m: SlotMap[v]): bool = m.count_free() > 0
 
     pure def alloc(m: SlotMap[v], v: v): (SlotMap[v], SlotKey) = {
-        val idx = m.slots.indices().fold(-1, (acc, i) => {
-            if (acc != -1) acc
-            else match (m.slots[i]) { | None => i | Some(_) => acc} 
+        val res = m.slots.foldl({found: -1, i: 0}, (acc, s) => {
+            if (acc.found != -1) acc
+            else match (s) { | None => {...acc, found: acc.i} | Some(_) => {...acc, i: acc.i + 1} }
         })
-        ({ ...m, slots: m.slots.replaceAt(idx, Some(v))}, idx)
+        ({ ...m, slots: m.slots.replaceAt(res.found, Some(v))}, res.found)
     }
 
     pure def insert(m: SlotMap[v], k: SlotKey, v: v): SlotMap[v] =
