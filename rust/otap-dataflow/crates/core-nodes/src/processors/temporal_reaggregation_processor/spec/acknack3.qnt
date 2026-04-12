@@ -299,7 +299,7 @@ module acknack3 {
         // Id of the next context
         next_context: int,
         // Data that's still available to send
-        data: int,
+        remaining_data: int,
         // What data we've sent and all the associated contexts
         sent: Context -> Set[Data],
         // The data we have sent acks or nacks to the processor for.
@@ -324,7 +324,7 @@ module acknack3 {
         s' = {
             proc: new_processor(MAX_MAP_SIZE),
             next_context:  0,
-            data: MAX_DATAPOINTS,
+            remaining_data: MAX_DATAPOINTS,
             sent: Map(),
             acked:       Set(),
             nacked:      Set(),
@@ -359,7 +359,7 @@ module acknack3 {
     }
 
     action send_pdata: bool = {
-        nondet num_data = 1.to(s.data).oneOf()
+        nondet num_data = 1.to(s.remaining_data).oneOf()
         nondet num_agg_data = 1.to(num_data).oneOf()
         val num_non_agg_data = num_data - num_agg_data
         val agg_data = 1.to(num_agg_data)
@@ -379,7 +379,7 @@ module acknack3 {
             accept_pdata(s.proc),
             s' = { 
                 ...new_s,
-                data: s.data - num_data,
+                remaining_data: s.remaining_data - num_data,
                 sent: s.sent.put(s.next_context, sent_data),
                 next_context: new_s.next_context + 1,
             }
