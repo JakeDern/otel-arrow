@@ -364,8 +364,9 @@ module acknack3 {
             nondet num_data = 1.to(min(s.remaining_data, MAX_DATA_PER_BATCH)).oneOf()
             nondet num_agg_data = 1.to(num_data).oneOf()
             val num_non_agg_data = num_data - num_agg_data
-            val agg_data = 1.to(num_agg_data)
-            val non_agg_data = 1.to(num_non_agg_data).map(x => x + num_data)
+            val offset = s.remaining_data - num_data 
+            val agg_data = 1.to(num_agg_data).map(x => x + offset)
+            val non_agg_data = 1.to(num_non_agg_data).map(x => x + offset + num_agg_data )
             val agg_chunks = agg_data.map(d => Aggregable(d))
             val non_agg_chunks = non_agg_data.map(d => NotAggregable(d))
 
@@ -387,14 +388,19 @@ module acknack3 {
 
     action ack_step(): bool = {
         // Consider excluding stuff we've already acked
-        nondet pd = s.received.oneOf()
-        send_ack(pd.context)
+        nondet c = get_ack_nack_contexts.oneOf()
+        send_ack(c)
     }
 
     action nack_step(): bool = {
         // Consider excluding stuff we've already nacked
-        nondet pd = s.received.oneOf()
-        send_nack(pd.context)
+        nondet c = get_ack_nack_contexts.oneOf()
+        send_nack(c)
+    }
+
+    action get_ack_nack_contexts: Set[Context] = {
+        // s.received.map(x => x.context).exclude(s.nacked).exclude(s.acked)
+        s.received.map(x => x.context).exclude(s.nacked).exclude(s.acked).union(Set(-1))
     }
 
     action send_ack(c: Context): bool = {
