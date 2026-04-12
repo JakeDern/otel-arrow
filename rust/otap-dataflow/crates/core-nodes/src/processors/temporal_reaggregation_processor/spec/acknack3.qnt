@@ -126,7 +126,8 @@ module slot_map {
 
     pure def update(m: SlotMap[v], k: SlotKey, fn: v => v): SlotMap[v] =
          val existing = m.slots[k].unwrap()
-         { ...m, slots: m.slots.replaceAt(k, Some(fn(existing))) }
+         val new_val = fn(existing)
+         { ...m, slots: m.slots.replaceAt(k, Some(new_val)) }
 
     pure def map_some(m: SlotMap[v], pred: (SlotKey, v) => bool, transform: v => v): SlotMap[v] = {
         val new_slots = m.slots.indices().fold(m.slots, (acc, i) => {
