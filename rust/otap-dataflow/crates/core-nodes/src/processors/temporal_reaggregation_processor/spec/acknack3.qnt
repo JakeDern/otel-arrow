@@ -1,20 +1,32 @@
 module common {
-    // Batch is just an integer id representing a particular batch of pdata
-    type Batch = int
-
     // Types of messages the engine can send, for simplicity we don't distinguish
     // between control messages and pdata messages right now.
     type Message = 
-        Pdata(Batch)
-        |Ack(Batch)
-        |Nack(Batch)
-        |TimerTick
+        PdataMessage(Pdata)
+        | AckMessage(Context)
+        | NackMessage(Context)
+        | TimerTickMessage
 
     // Types of effects that a node can apply
     type Effect =
-        SendPdata(Batch)
-        | NotifyAck(Batch)
-        | NotifyNack(Batch)
+        SendPdata(Pdata)
+        | NotifyAck(Context)
+        | NotifyNack(Context)
+
+    type Pdata = {
+        context: Context,
+        payload: Set[Data]
+    }
+
+    type Context = int
+    type Chunk = int
+
+    // We intentionally omit the not-aggregable case here because (1) it's trivial
+    // to implement and (2) it means we don't have to model the interests stack
+    // which allows ack/nack to skip over this component
+    type Data = 
+        PartiallyAggregable({agg: Chunk, not_agg: Chunk})
+        | FullyAggregable(Chunk)
 }
 
 module slot_map {
@@ -78,14 +90,15 @@ module processor {
     import basicSpells.* from "spells/basicSpells"
 
     type InboundTracker = {
+        context: Context,
         flushed: bool,
-        pending: int
+        pending: int,
     }
 
     type Processor = {
         inbound: slot_map::SlotMap[InboundTracker],
         pending: Set[slot_map::SlotKey],
-        outbound: slot_map::SlotMap[Set[Batch]],
+        outbound: slot_map::SlotMap[Set[SlotKey]],
     }
 
     type Transition = {
@@ -106,46 +119,26 @@ module processor {
     }
 
     pure def process(p: Processor, m: Message): Set[Transition] = {
+        // Type checker/LSP also doesn't catch wrong names in the patterns here
         match m {
-            | Pdata(b) => process_pdata(p, b)
-            | Ack(b) => process_ack(p, b)
-            | Nack(b) => process_nack(p, b)
-            | TimerTick => flush(p)
-        }
-    }
-    
-    pure def flush(p: Processor): Set[Transition] = {
-        if (p.pending.size() == 0) {
-            Set({ proc: p, effects: Set()})
-        } else {
-            val (outbound, key) = slot_map::alloc(p.outbound, p.pending)
-            val inbound = slot_map::map_some(
-                p.inbound,
-                (id, _) => p.pending.contains(id),
-                tr => { flushed: true, pending: tr.pending + 1}
-            )
-            val transition = {
-                proc: {
-                    ...p,
-                    pending: Set(),
-                    inbound: inbound,
-                    outbound: outbound
-                },
-                // TODO: We're casting SlotKey to Batch here, maybe it's time to model pdata properly
-                // with calldata and batch
-                effects: Set(SendPdata(key)),
-            }
-
-            Set(transition)
+            | PdataMessage(pd) => process_pdata(p, pd)
+            | AckMessage(pd) => process_ack(p, pd)
+            | NackMessage(pd) => process_nack(p, pd)
+            | TimerTickMessage => flush(p)
         }
     }
 
-    pure def process_pdata(p: Processor, b: Batch): Set[Transition] = {
-        process_pdata_partial(p, b).union(process_pdata_full(p, b))
+    pure def process_pdata(p: Processor, pd: Pdata): Set[Transition] = {
+        match (pd.payload) {
+            | PartiallyAggregable(d) => process_pdata_partial(p, pd.context, d.agg, d.not_agg)
+            | FullyAggregable(d) => process_pdata_full(p, pd.context, d)
+        }
     }
 
-    pure def process_pdata_full(p: Processor, b: Batch): Set[Transition] = {
-        val (inbound, key) = slot_map::alloc(p.inbound, {flushed: false, pending: 0})
+    pure def process_pdata_full(p: Processor, c: Context, d: Data): Set[Transition] = {
+        // ISSUE: Typechecker does not check the type of what's being inserted into the
+        // slotmap here.
+        val (inbound, key) = slot_map::alloc(p.inbound, {flushed: false, pending: 0, context: c})
         val transition = {
             proc: {
                ...p,
@@ -158,8 +151,8 @@ module processor {
         Set(transition)
     }
 
-    pure def process_pdata_partial(p: Processor, b: Batch): Set[Transition] = {
-        val (inbound, in_key) = slot_map::alloc(p.inbound, {flushed: false, pending: 1})
+    pure def process_pdata_partial(p: Processor, c: Context, ad: Data, nad: Data): Set[Transition] = {
+        val (inbound, in_key) = slot_map::alloc(p.inbound, {flushed: false, pending: 1, context: c})
         val (outbound, out_key) = slot_map::alloc(p.outbound, Set(in_key))
         val transition = {
             proc: {
@@ -172,49 +165,77 @@ module processor {
                 // Also track the passthrough
                 outbound: outbound
             },
-            // TODO: Same thing here, we're kind of casting Key to batch which
-            // is meh :(
-            effects: Set(SendPdata(out_key))
+            effects: Set(SendPdata({context: out_key, payload: FullyAggregable(nad)}))
         }
 
         Set(transition)
     }
+    
+    pure def flush(p: Processor): Set[Transition] = {
+        if (p.pending.size() == 0) {
+            Set({ proc: p, effects: Set()})
+        } else {
+            val (outbound, out_key) = slot_map::alloc(p.outbound, p.pending)
+            val inbound = slot_map::map_some(
+                p.inbound,
+                (id, _) => p.pending.contains(id),
+                tr => { flushed: true, pending: tr.pending + 1}
+            )
+            val transition = {
+                proc: {
+                    ...p,
+                    pending: Set(),
+                    inbound: inbound,
+                    outbound: outbound
+                },
+                // TODO: We have to put all of the input data into this thing :(
+                effects: Set(SendPdata(key)),
+            }
+
+            Set(transition)
+        }
+    }
+
 
     
-    pure def process_nack(p: Processor, b: Batch): Set[Transition] = {
-        if (not(slot_map::has_data(p.outbound, b))) Set()
+    pure def process_nack(p: Processor, c: Context): Set[Transition] = {
+        val out_key = c;
+        if (not(slot_map::has_data(p.outbound, out_key))) Set()
         else {
-            val inbounds = slot_map::must_get(p.outbound, b)
-            val nacks = inbounds.filter(i => slot_map::has_data(p.inbound, i))
+            val inbounds = slot_map::must_get(p.outbound, out_key)
+            val nack_keys = inbounds.filter(in_key => slot_map::has_data(p.inbound, in_key))
+            val nack_contexts = nack_keys.map(in_key =>  slot_map::must_get(in_key).context)
             Set({
                 proc: {
                     ...p,
-                    inbound: slot_map::free_many(p.inbound, nacks),
-                    outbound: slot_map::free(p.outbound, b)
+                    inbound: slot_map::free_many(p.inbound, nack_keys),
+                    outbound: slot_map::free(p.outbound, out_key)
                 },
-                effects: nacks.fold(Set(), (acc, b) => acc.union(Set(NotifyNack(b))))
+                effects: nack_contexts.fold(Set(), (acc, c) => acc.union(Set(NotifyNack(c))))
             })
         }
     }
 
-    pure def process_ack(p: Processor, b: Batch): Set[Transition] = {
-        if (not(slot_map::has_data(p.outbound, b))) Set()
+    pure def process_ack(p: Processor, c: Context): Set[Transition] = {
+        val out_key = c;
+        if (not(slot_map::has_data(p.outbound, out_key))) Set()
             else {
-                val new_proc = apply_ack(p, b)
-                val acks = collect_acks(new_proc)
-                val inbound = slot_map::free_many(new_proc.inbound, acks)
+                val new_proc = apply_ack(p, out_key)
+                val in_keys = collect_acks(new_proc)
+                val ack_contexts = in_keys.map(in_key => slot_map::must_get(in_key).context)
+                val inbound = slot_map::free_many(new_proc.inbound, in_keys)
                 Set({
                     proc: { ...new_proc, inbound: inbound },
-                    effects: acks.fold(Set(), (acc, b) => acc.union(Set(NotifyAck(b))))
+                    effects: ack_contexts.fold(Set(), (acc, c) => acc.union(Set(NotifyAck(c))))
                 })
             }
     }
 
 
-    pure def apply_ack(p: Processor, b: Batch): Processor = {
-        if (not(slot_map::has_data(p.outbound, b))) p
+    pure def apply_ack(p: Processor, out_key: slot_map::SlotKey): Processor = {
+        if (not(slot_map::has_data(p.outbound, out_key))) p
         else {
-            val inbounds = slot_map::must_get(p.outbound, b)
+            val inbounds = slot_map::must_get(p.outbound, out_key)
             val new_inbound = inbounds.fold(p.inbound,
                 (acc, key) => slot_map::update(acc, key, tr => {...tr, pending: tr.pending - 1})
             )
@@ -222,12 +243,12 @@ module processor {
             { 
                 ...p,
                 inbound: new_inbound,
-                outbound: slot_map::free(p.outbound, b)
+                outbound: slot_map::free(p.outbound, out_key)
             }
         }
     }
 
-    pure def collect_acks(p: Processor): Set[Batch] = {
+    pure def collect_acks(p: Processor): Set[Context] = {
         slot_map::find_keys(p.inbound, tr => and ( tr.flushed == true, tr.pending == 0))
     }
 }
