@@ -316,7 +316,7 @@ module acknack3 {
 
     var s: State
 
-    pure def MAX_DATAPOINTS = 6
+    pure def MAX_DATAPOINTS = 5
     pure def MAX_MAP_SIZE = 8
     pure def MAX_DATA_PER_BATCH = 3
     
@@ -420,5 +420,9 @@ module acknack3 {
             s.proc.pending.data.size() > 0,
             s' = apply_transition(s, transition)
         }
+    }
+
+    def acked_data: Set[Data] = {
+      s.received.filter(pd => s.acked.contains(pd.context)).map(extract_data).flatten()
     }
 }
