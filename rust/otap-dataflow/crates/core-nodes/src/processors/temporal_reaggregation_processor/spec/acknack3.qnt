@@ -21,8 +21,8 @@ module common {
     pure def extract_data(pd: Pdata): Set[Data] = {
         pd.payload.fold(Set(), (acc, chunk) => {
             match (chunk){
-                | Aggregable(d) => d
-                | NotAggregable(d) => d
+                | Aggregable(d) => acc.union(Set(d))
+                | NotAggregable(d) => acc.union(Set(d))
             }
         })
     }
@@ -36,7 +36,7 @@ module common {
         })
     }
 
-    pure def extract_non_aggregable_chunks(pd: Pdata): Set[Data] = {
+    pure def extract_non_aggregable_chunks(pd: Pdata): Set[Chunk] = {
         pd.payload.fold(Set(), (acc, chunk) => {
             match (chunk){
                 | Aggregable(_) => acc
@@ -216,7 +216,7 @@ module processor {
             val inbound = slot_map::map_some(
                 p.inbound,
                 (key, _) => p.pending.in_keys.contains(key),
-                tr => { flushed: true, pending: tr.pending + 1}
+                tr => { ...tr, flushed: true, pending: tr.pending + 1}
             )
             val out_data = p.pending.data.map(d => Aggregable(d))
             val transition = {
@@ -308,11 +308,11 @@ module acknack3 {
         // The batches we have sent nacks to the processor for.
         nacked: Set[Context],
         // The data we've received
-        received: Set[Data],
+        received: Set[Pdata],
         // The number of times the processor has acked each batch.
-        proc_acked: Set[Data],
+        proc_acked: Set[Context],
         // The number of times the processor has nacked each batch.
-        proc_nacked: Set[Data],
+        proc_nacked: Set[Context],
     }
 
     var s: State
@@ -325,6 +325,7 @@ module acknack3 {
         s' = {
             proc: new_processor(MAX_MAP_SIZE),
             next_context:  0,
+            data: 1.to(MAX_DATAPOINTS),
             sent: Map(),
             acked:       Set(),
             nacked:      Set(),
@@ -343,14 +344,15 @@ module acknack3 {
         }
     }
 
-    action constrain_state: bool = all {
+    action bound_state: bool = all {
+        // Max datapoints automatically bounds the max number of pdata messages
         s.next_context <= MAX_DATAPOINTS
     }
 
     pure def apply_transition(s: State, t: Transition): State = {
         val new_s = t.effects.fold(s, (acc, e) =>
             match e {
-            | SendPdata(pd)  => { ...acc, received:    acc.received.union(extract_data(pd))    }
+            | SendPdata(pd)  => { ...acc, received:    acc.received.union(Set(pd))    }
             | NotifyAck(c)  => { ...acc, proc_acked:  acc.proc_acked.union(Set(c))  }
             | NotifyNack(c) => { ...acc, proc_nacked: acc.proc_nacked.union(Set(c)) }
         })
@@ -358,50 +360,65 @@ module acknack3 {
     }
 
     action send_pdata: bool = {
-        val transitions = process(s.proc, Pdata(s.next_pdata))
+        nondet data_points = s.data.powerset().filter(subset => subset.size() > 0 and subset.size() < MAX_DATA_PER_BATCH).oneOf()
+        nondet agg_data = data_points.powerset().exclude(Set()).oneOf()
+        val non_agg_data = data_points.exclude(agg_data)
+        val agg_chunks = agg_data.map(d => Aggregable(d))
+        val non_agg_chunks = non_agg_data.map(d => NotAggregable(d))
+        val payload = agg_chunks.union(non_agg_chunks)
+        val sent_data = agg_data.union(non_agg_data)
+        
+        val transitions = process(s.proc, PdataMessage({context: s.next_context, payload: payload}))
         nondet transition = transitions.oneOf()
         val new_s = apply_transition(s, transition)
 
         all {
-            s.next_pdata < 4,
+            bound_state,
             accept_pdata(s.proc),
-            s' = { ...new_s, next_pdata: new_s.next_pdata + 1 }
+            s' = { 
+                ...new_s,
+                data: s.data.exclude(sent_data),
+                sent: s.sent.put(s.next_context, sent_data),
+                next_context: new_s.next_context + 1,
+            }
         }
     }
 
     action ack_step(): bool = {
-        nondet batch = s.received.exclude(s.acked).oneOf()
-        send_ack(batch)
+        // Consider excluding stuff we've already acked
+        nondet pd = s.received.oneOf()
+        send_ack(pd.context)
     }
 
     action nack_step(): bool = {
-        nondet batch = s.received.exclude(s.nacked).oneOf()
-        send_nack(batch)
+        // Consider excluding stuff we've already nacked
+        nondet pd = s.received.oneOf()
+        send_nack(pd.context)
     }
 
-    action send_ack(b: Batch): bool = {
-        val transitions = process(s.proc, Ack(b))
+    action send_ack(c: Context): bool = {
+        val transitions = process(s.proc, AckMessage(c))
         nondet transition = transitions.oneOf()
         val new_s = apply_transition(s, transition) 
         all {
-            s' = { ...new_s, acked: s.acked.union(Set(b))}
+            s' = { ...new_s, acked: s.acked.union(Set(c))}
         }
     }
 
-    action send_nack(b: Batch): bool = {
-        val transitions = process(s.proc, Nack(b))
+    action send_nack(c: Context): bool = {
+        val transitions = process(s.proc, NackMessage(c))
         nondet transition = transitions.oneOf()
         val new_s = apply_transition(s, transition)
         all {
-            s' = { ...new_s, nacked: s.nacked.union(Set(b))}
+            s' = { ...new_s, nacked: s.nacked.union(Set(c))}
         }
     }
 
     action send_timer_tick: bool = {
-        val transitions = process(s.proc, TimerTick)
+        val transitions = process(s.proc, TimerTickMessage)
         nondet transition = transitions.oneOf()
         all {
-            s.proc.pending.size() > 0,
+            s.proc.pending.data.size() > 0,
             s' = apply_transition(s, transition)
         }
     }
