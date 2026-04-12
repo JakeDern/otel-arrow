@@ -108,7 +108,7 @@ module processor {
     pure def new_processor(cap: int): Processor = {
         {
             inbound:  { map: Map(), free: 0.to(cap - 1) },
-            pending:  Set(),
+            pending:  { data: Set(), in_keys: Set() },
             outbound:  { map: Map(), free: 0.to(cap - 1) },
         }
     }
@@ -154,12 +154,14 @@ module processor {
                     ...p,
                     inbound: inbound,
                     pending: {
-                        data: p.pending.union(aggregable_data),
+                        // ISSUE: Type checker doesn't catch stuff like p.pending.union() which doesn't exist
+                        data: p.pending.data.union(aggregable_data),
                         in_keys: p.pending.in_keys.union(Set(in_key))
                     }, 
                     outbound: outbound
                 },
-                effects: SendPdata({context: out_key, data: non_aggregable_data})
+                // ISSUE: Type checker doesn't catch a missing `Set()` wrapping this
+                effects: Set(SendPdata({context: out_key, payload: non_aggregable_data}))
             }
             Set(transition)
         } else if (has_agg and not(has_non_agg)) {
@@ -168,7 +170,7 @@ module processor {
                     ...p,
                     inbound: inbound,
                     pending: {
-                        data: p.pending.union(aggregable_data),
+                        payload: p.pending.union(aggregable_data),
                         in_keys: p.pending.in_keys.union(Set(in_key))
                     }
                 },
@@ -189,12 +191,12 @@ module processor {
     }
     
     pure def flush(p: Processor): Set[Transition] = {
-        if (p.pending.size() == 0) Set()
+        if (p.pending.data.size() == 0) Set()
         else {
             val (outbound, out_key) = slot_map::alloc(p.outbound, p.pending.in_keys)
             val inbound = slot_map::map_some(
                 p.inbound,
-                (id, _) => p.pending.contains(id),
+                (key, _) => p.pending.in_keys.contains(key),
                 tr => { flushed: true, pending: tr.pending + 1}
             )
             val out_data = p.pending.data.map(d => Aggregable(d))
@@ -205,7 +207,7 @@ module processor {
                     inbound: inbound,
                     outbound: outbound
                 },
-                effects: Set(SendPdata({context: out_key, data: out_data})),
+                effects: Set(SendPdata({context: out_key, payload: out_data})),
             }
 
             Set(transition)
@@ -218,7 +220,7 @@ module processor {
         else {
             val inbounds = slot_map::must_get(p.outbound, out_key)
             val nack_keys = inbounds.filter(in_key => slot_map::has_data(p.inbound, in_key))
-            val nack_contexts = nack_keys.map(in_key =>  slot_map::must_get(in_key).context)
+            val nack_contexts = nack_keys.map(in_key =>  slot_map::must_get(p.inbound, in_key).context)
             Set({
                 proc: {
                     ...p,
@@ -236,7 +238,7 @@ module processor {
             else {
                 val new_proc = apply_ack(p, out_key)
                 val in_keys = collect_acks(new_proc)
-                val ack_contexts = in_keys.map(in_key => slot_map::must_get(in_key).context)
+                val ack_contexts = in_keys.map(in_key => slot_map::must_get(p.inbound, in_key).context)
                 val inbound = slot_map::free_many(new_proc.inbound, in_keys)
                 Set({
                     proc: { ...new_proc, inbound: inbound },
@@ -262,7 +264,8 @@ module processor {
     }
 
     pure def collect_acks(p: Processor): Set[Context] = {
-        slot_map::find_keys(p.inbound, tr => and ( tr.flushed == true, tr.pending == 0))
+        val in_keys = slot_map::find_keys(p.inbound, tr => and (tr.flushed == true, tr.pending == 0))
+        in_keys.map(k => slot_map::must_get(p.inbound).context)
     }
 }
 
