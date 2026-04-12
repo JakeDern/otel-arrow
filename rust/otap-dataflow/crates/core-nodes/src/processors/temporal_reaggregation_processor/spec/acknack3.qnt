@@ -282,9 +282,8 @@ module processor {
         }
     }
 
-    pure def collect_acks(p: Processor): Set[Context] = {
-        val in_keys = slot_map::find_keys(p.inbound, tr => and (tr.flushed == true, tr.pending == 0))
-        in_keys.map(k => slot_map::must_get(p.inbound, k).context)
+    pure def collect_acks(p: Processor): Set[SlotKey] = {
+        slot_map::find_keys(p.inbound, tr => and (tr.flushed == true, tr.pending == 0))
     }
 }
 
