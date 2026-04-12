@@ -316,7 +316,7 @@ module acknack3 {
 
     var s: State
 
-    pure def MAX_DATAPOINTS = 7
+    pure def MAX_DATAPOINTS = 8
     pure def MAX_MAP_SIZE = 5 // Tuning this down really does not cut the state space at all
     pure def MAX_DATA_PER_BATCH = 3
     
