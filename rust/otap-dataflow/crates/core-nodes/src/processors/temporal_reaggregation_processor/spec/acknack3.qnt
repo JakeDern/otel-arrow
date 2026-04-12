@@ -299,7 +299,7 @@ module acknack3 {
         // Id of the next context
         next_context: int,
         // Data that's still available to send
-        data: Set[Data],
+        data: int,
         // What data we've sent and all the associated contexts
         sent: Context -> Set[Data],
         // The data we have sent acks or nacks to the processor for.
@@ -324,7 +324,7 @@ module acknack3 {
         s' = {
             proc: new_processor(MAX_MAP_SIZE),
             next_context:  0,
-            data: 1.to(MAX_DATAPOINTS),
+            data: MAX_DATAPOINTS,
             sent: Map(),
             acked:       Set(),
             nacked:      Set(),
@@ -359,11 +359,14 @@ module acknack3 {
     }
 
     action send_pdata: bool = {
-        nondet data_points = s.data.powerset().filter(sub => sub.size() > 0 and sub.size() < MAX_DATA_PER_BATCH).oneOf()
-        nondet agg_data = data_points.powerset().filter(sub => sub.size() > 0).oneOf()
-        val non_agg_data = data_points.exclude(agg_data)
+        nondet num_data = 1.to(s.data).oneOf()
+        nondet num_agg_data = 1.to(num_data).oneOf()
+        val num_non_agg_data = num_data - num_agg_data
+        val agg_data = 1.to(num_agg_data)
+        val non_agg_data = 1.to(num_non_agg_data).map(x => x + num_data)
         val agg_chunks = agg_data.map(d => Aggregable(d))
         val non_agg_chunks = non_agg_data.map(d => NotAggregable(d))
+
         val payload = agg_chunks.union(non_agg_chunks)
         val sent_data = agg_data.union(non_agg_data)
         
@@ -376,7 +379,7 @@ module acknack3 {
             accept_pdata(s.proc),
             s' = { 
                 ...new_s,
-                data: s.data.exclude(sent_data),
+                data: s.data - num_data,
                 sent: s.sent.put(s.next_context, sent_data),
                 next_context: new_s.next_context + 1,
             }
