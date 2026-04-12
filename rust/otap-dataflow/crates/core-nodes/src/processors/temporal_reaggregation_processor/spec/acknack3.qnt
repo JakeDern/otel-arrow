@@ -270,7 +270,9 @@ module processor {
         else {
             val inbounds = slot_map::must_get(p.outbound, out_key)
             val new_inbound = inbounds.fold(p.inbound,
-                (acc, key) => slot_map::update(acc, key, tr => {...tr, pending: tr.pending - 1})
+                (acc, key) => if (slot_map::has_data(acc, key)) {
+                    slot_map::update(acc, key, tr => {...tr, pending: tr.pending - 1})
+                } else acc
             )
 
             { 
@@ -388,19 +390,14 @@ module acknack3 {
 
     action ack_step(): bool = {
         // Consider excluding stuff we've already acked
-        nondet c = get_ack_nack_contexts.oneOf()
-        send_ack(c)
+        nondet pd = s.received.oneOf()
+        send_ack(pd.context)
     }
 
     action nack_step(): bool = {
         // Consider excluding stuff we've already nacked
-        nondet c = get_ack_nack_contexts.oneOf()
-        send_nack(c)
-    }
-
-    action get_ack_nack_contexts: Set[Context] = {
-        // s.received.map(x => x.context).exclude(s.nacked).exclude(s.acked)
-        s.received.map(x => x.context).exclude(s.nacked).exclude(s.acked).union(Set(-1))
+        nondet pd = s.received.oneOf()
+        send_nack(pd.context)
     }
 
     action send_ack(c: Context): bool = {
