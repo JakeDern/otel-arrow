@@ -53,54 +53,90 @@ module common {
 module slot_map {
     type SlotKey = int
 
+    type Option[t] = Some(t) | None
+
+    pure def unwrap(o: Option[t]): t = {
+        match (o) {
+        | Some(x) => x
+        | None => Map().get(o)
+        }
+    }
+
+    pure def is_none(o: Option[t]): bool = {
+        match (o) {
+        | Some(_) => false
+        | None => true
+        }
+    }
+
+    pure def is_some(o: Option[t]): bool = {
+        match (o) {
+        | Some(_) => true
+        | None => false
+        }
+    }
+
     type SlotMap[v] = {
-        map: SlotKey -> v,
-        free: Set[SlotKey]
+        slots: List[Option[v]],
+        cap: int
     }
 
     pure def new(cap: int): SlotMap[v] = {
-        { map: Map(), free: 0.to(cap - 1) }
+        val slots = 1.to(cap).fold(List(), (acc, _) => acc.append(None))
+        { slots: slots, cap: cap }
     }
 
-    pure def remaining_cap(m: SlotMap[v]): int = m.free.size()
+    pure def remaining_cap(m: SlotMap[v]): int = m.count_free()
 
-    pure def has_cap(m: SlotMap[v]): bool = m.free.size() > 0
+    pure def count_free(m: SlotMap[v]): int = 
+        m.slots.foldl(0, (acc, s) => match (s) { | None => acc + 1 | Some(_) => acc })
+
+    pure def has_cap(m: SlotMap[v]): bool = m.count_free() > 0
 
     pure def alloc(m: SlotMap[v], v: v): (SlotMap[v], SlotKey) = {
-        val k = m.free.fold(-1, (acc, x) => if (acc == -1) x else acc)
-        val _crash = if (k == -1) Map().get(0) else 0
-        ({ map: m.map.put(k, v), free: m.free.exclude(Set(k)) }, k)
+        val idx = m.slots.indices().fold(-1, (acc, i) => {
+            if (acc != -1) acc
+            else match (m.slots[i]) { | None => i | Some(_) => acc} 
+        })
+        ({ ...m, slots: m.slots.replaceAt(idx, Some(v))}, idx)
     }
 
     pure def insert(m: SlotMap[v], k: SlotKey, v: v): SlotMap[v] =
-        { ...m, map: m.map.put(k, v) }
+        { ...m, slots: m.slots.replaceAt(k, Some(v)) }
 
     pure def free(m: SlotMap[v], k: SlotKey): SlotMap[v] = {
-        val newMap = m.map.keys().fold(Map(), (acc, key) =>
-            if (key == k) acc else acc.put(key, m.map.get(key))
-        )
-        { map: newMap, free: m.free.union(Set(k)) }
+        { ...m, slots: m.slots.replaceAt(k, None) }
     }
 
     pure def free_many(m: SlotMap[v], ks: Set[SlotKey]): SlotMap[v] =
         ks.fold(m, (acc, k) => free(acc, k))
 
-    pure def must_get(m: SlotMap[v], k: SlotKey): v = m.map.get(k)
+    pure def must_get(m: SlotMap[v], k: SlotKey): v = m.slots[k].unwrap()
 
-    pure def has_data(m: SlotMap[v], k: SlotKey): bool = m.map.keys().contains(k)
+    pure def has_data(m: SlotMap[v], k: SlotKey): bool = m.slots[k].is_some()
 
-    pure def find_keys(m: SlotMap[v], pred: v => bool): Set[SlotKey] =
-        m.map.keys().filter(k => pred(m.map.get(k)))
+    pure def find_keys(m: SlotMap[v], pred: v => bool): Set[SlotKey] = {
+        m.slots.indices().filter((i) => {
+            match (m.slots[i]) {
+                | None => false
+                | Some(x) => pred(x)
+            }
+        })
+    }
 
     pure def update(m: SlotMap[v], k: SlotKey, fn: v => v): SlotMap[v] =
-         { ...m, map: m.map.set(k, fn(m.map.get(k))) }
+         val existing = m.slots[k].unwrap()
+         { ...m, slots: m.slots.replaceAt(k, Some(fn(existing))) }
 
-    pure def map_some(m: SlotMap[v], pred: (SlotKey, v) => bool, transform: v => v): SlotMap[v] =
-        m.map.keys().fold(m, (acc, k) => {
-            val v = acc.map.get(k)
-            if (pred(k, v)) { ...acc, map: acc.map.put(k, transform(v)) }
-            else acc
+    pure def map_some(m: SlotMap[v], pred: (SlotKey, v) => bool, transform: v => v): SlotMap[v] = {
+        val new_slots = m.slots.indices().fold(m.slots, (acc, i) => {
+            match (m.slots[i]) {
+                | None => acc
+                | Some(x) => if (pred(i, x)) acc.replaceAt(i, Some(transform(x))) else acc
+            }
         })
+        {...m, slots: new_slots }
+    }
 }
 
 module processor {
@@ -132,10 +168,11 @@ module processor {
     }
 
     pure def new_processor(cap: int): Processor = {
+        val slots = 1.to(cap).fold(List(), (acc, _) => acc.append(None))
         {
-            inbound:  { map: Map(), free: 0.to(cap - 1) },
+            inbound:  { slots: slots, cap: cap },
             pending:  { data: Set(), in_keys: Set() },
-            outbound:  { map: Map(), free: 0.to(cap - 1) },
+            outbound:  { slots: slots, cap: cap },
         }
     }
 
@@ -317,7 +354,7 @@ module acknack3 {
 
     var s: State
 
-    pure def MAX_DATAPOINTS = 8
+    pure def MAX_DATAPOINTS = 6
     pure def MAX_MAP_SIZE = 5 // Tuning this down really does not cut the state space at all
     pure def MAX_DATA_PER_BATCH = 3
     
