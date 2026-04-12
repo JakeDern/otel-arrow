@@ -135,17 +135,17 @@ module processor {
                 | Aggregable(d) => acc.union(Set(d))
                 | NotAggregable(_) => acc
             })
-        val non_aggregable_data = pd.payload.fold(Set(), (acc, chunk) => 
+        val non_aggregable_chunks = pd.payload.fold(Set(), (acc, chunk) => 
             match (chunk) {
                 | Aggregable(_) => acc
-                | NotAggregable(d) => acc.union(Set(d))
+                | NotAggregable(d) => acc.union(Set(NotAggregable(d)))
             })
 
-        val pending_acks = if (non_aggregable_data.size() > 0) 1 else 0
+        val pending_acks = if (non_aggregable_chunks.size() > 0) 1 else 0
         val (inbound, in_key) = slot_map::alloc(p.inbound, {flushed: false, pending: pending_acks, context: pd.context})
 
         val has_agg = aggregable_data.size() > 0
-        val has_non_agg = non_aggregable_data.size() > 0
+        val has_non_agg = non_aggregable_chunks.size() > 0
         if (has_agg and has_non_agg) {
             // Both aggregable and not aggregable data
             val (outbound, out_key) = slot_map::alloc(p.outbound, Set(in_key))
@@ -161,7 +161,7 @@ module processor {
                     outbound: outbound
                 },
                 // ISSUE: Type checker doesn't catch a missing `Set()` wrapping this
-                effects: Set(SendPdata({context: out_key, payload: non_aggregable_data}))
+                effects: Set(SendPdata({context: out_key, payload: non_aggregable_chunks}))
             }
             Set(transition)
         } else if (has_agg and not(has_non_agg)) {
@@ -170,7 +170,7 @@ module processor {
                     ...p,
                     inbound: inbound,
                     pending: {
-                        payload: p.pending.union(aggregable_data),
+                        data: p.pending.data.union(aggregable_data),
                         in_keys: p.pending.in_keys.union(Set(in_key))
                     }
                 },
@@ -238,7 +238,7 @@ module processor {
             else {
                 val new_proc = apply_ack(p, out_key)
                 val in_keys = collect_acks(new_proc)
-                val ack_contexts = in_keys.map(in_key => slot_map::must_get(p.inbound, in_key).context)
+                val ack_contexts = in_keys.map(in_key => slot_map::must_get(new_proc.inbound, in_key).context)
                 val inbound = slot_map::free_many(new_proc.inbound, in_keys)
                 Set({
                     proc: { ...new_proc, inbound: inbound },
@@ -265,7 +265,7 @@ module processor {
 
     pure def collect_acks(p: Processor): Set[Context] = {
         val in_keys = slot_map::find_keys(p.inbound, tr => and (tr.flushed == true, tr.pending == 0))
-        in_keys.map(k => slot_map::must_get(p.inbound).context)
+        in_keys.map(k => slot_map::must_get(p.inbound, k).context)
     }
 }
 
