@@ -267,41 +267,6 @@ module processor {
 
             Set(transition)
         }
-
-
-        // if (has_non_agg) {
-        //     // Both aggregable and not aggregable data
-        //     val (outbound, out_key) = slot_map::alloc(p.outbound, Set(in_key))
-        //     val transition = {
-        //         proc: {
-        //             ...p,
-        //             inbound: inbound,
-        //             pending: {
-        //                 // ISSUE: Type checker doesn't catch stuff like p.pending.union() which doesn't exist
-        //                 data: p.pending.data.union(aggregable_data),
-        //                 in_keys: p.pending.in_keys.union(Set(in_key))
-        //             }, 
-        //             outbound: outbound
-        //         },
-        //         // ISSUE: Type checker doesn't catch a missing `Set()` wrapping this
-        //         effects: Set(SendPdata({context: out_key, payload: non_aggregable_chunks}))
-        //     }
-        //     Set(transition)
-        // } else {
-        //     val transition = {
-        //         proc: {
-        //             ...p,
-        //             inbound: inbound,
-        //             pending: {
-        //                 data: p.pending.data.union(aggregable_data),
-        //                 in_keys: p.pending.in_keys.union(Set(in_key))
-        //             }
-        //         },
-        //         effects: Set() 
-        //     }
-        //
-        //     Set(transition)
-        // }
     }
 
     pure def process_timer_tick(p: Processor): Set[Transition] = {
