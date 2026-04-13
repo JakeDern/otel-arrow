@@ -203,10 +203,6 @@ module processor {
         val aggregable_data = extract_aggregable_data(pd)
         val non_aggregable_chunks = extract_non_aggregable_chunks(pd)
 
-        val pending_acks = if (non_aggregable_chunks.size() > 0) 1 else 0
-        val (inbound, in_key) = slot_map::alloc(p.inbound, {flushed: false, pending: pending_acks, context: pd.context})
-
-
         val has_agg = aggregable_data.size() > 0
         val has_non_agg = non_aggregable_chunks.size() > 0
 
@@ -215,39 +211,55 @@ module processor {
         // Maybe we could do that in the future.
         val _panic = if (not(has_agg)) Map().get(-1) else 0
 
-        // We need to apply a flush first
-        val base_transition = if (aggregable_data.size() + p.pending.data.size() <= MAX_AGGREGATE_SIZE) {
+        // We need to flush first because we're going to overflow
+        val base_t = if (aggregable_data.size() + p.pending.data.size() <= MAX_AGGREGATE_SIZE) {
             { proc: p, effects: Set() }
         } else {
             flush(p)
         }
 
-        if (has_non_agg) {
-            // Both aggregable and not aggregable data
-            val (outbound, out_key) = slot_map::alloc(p.outbound, Set(in_key))
+        val proc = base_t.proc
+        val effects = base_t.effects
+
+        val pending_acks = if (non_aggregable_chunks.size() > 0) 1 else 0
+        val (inbound, in_key) = slot_map::alloc(proc.inbound, {flushed: false, pending: pending_acks, context: pd.context})
+        
+        // Single batch which is too large, we actually just need to nack and move on
+        if (aggregable_data.size() + proc.pending.data.size() > MAX_AGGREGATE_SIZE) {
+            val transition = {
+                proc: proc,
+                effects: effects.union(Set(NotifyNack(pd.context)))
+            }
+
+            Set(transition)
+        } else if (has_non_agg) {
+            val (outbound, out_key) = slot_map::alloc(proc.outbound, Set(in_key))
             val transition = {
                 proc: {
-                    ...p,
+                    ...proc,
                     inbound: inbound,
                     pending: {
                         // ISSUE: Type checker doesn't catch stuff like p.pending.union() which doesn't exist
-                        data: p.pending.data.union(aggregable_data),
-                        in_keys: p.pending.in_keys.union(Set(in_key))
+                        ...proc.pending,
+                        data: proc.pending.data.union(aggregable_data),
+                        in_keys: proc.pending.in_keys.union(Set(in_key))
                     }, 
                     outbound: outbound
                 },
                 // ISSUE: Type checker doesn't catch a missing `Set()` wrapping this
-                effects: Set(SendPdata({context: out_key, payload: non_aggregable_chunks}))
+                effects: effects.union(Set(SendPdata({context: out_key, payload: non_aggregable_chunks})))
             }
+
             Set(transition)
         } else {
             val transition = {
                 proc: {
-                    ...p,
+                    ...proc,
                     inbound: inbound,
                     pending: {
-                        data: p.pending.data.union(aggregable_data),
-                        in_keys: p.pending.in_keys.union(Set(in_key))
+                        ...proc.pending,
+                        data: proc.pending.data.union(aggregable_data),
+                        in_keys: proc.pending.in_keys.union(Set(in_key))
                     }
                 },
                 effects: Set() 
@@ -255,6 +267,41 @@ module processor {
 
             Set(transition)
         }
+
+
+        // if (has_non_agg) {
+        //     // Both aggregable and not aggregable data
+        //     val (outbound, out_key) = slot_map::alloc(p.outbound, Set(in_key))
+        //     val transition = {
+        //         proc: {
+        //             ...p,
+        //             inbound: inbound,
+        //             pending: {
+        //                 // ISSUE: Type checker doesn't catch stuff like p.pending.union() which doesn't exist
+        //                 data: p.pending.data.union(aggregable_data),
+        //                 in_keys: p.pending.in_keys.union(Set(in_key))
+        //             }, 
+        //             outbound: outbound
+        //         },
+        //         // ISSUE: Type checker doesn't catch a missing `Set()` wrapping this
+        //         effects: Set(SendPdata({context: out_key, payload: non_aggregable_chunks}))
+        //     }
+        //     Set(transition)
+        // } else {
+        //     val transition = {
+        //         proc: {
+        //             ...p,
+        //             inbound: inbound,
+        //             pending: {
+        //                 data: p.pending.data.union(aggregable_data),
+        //                 in_keys: p.pending.in_keys.union(Set(in_key))
+        //             }
+        //         },
+        //         effects: Set() 
+        //     }
+        //
+        //     Set(transition)
+        // }
     }
 
     pure def process_timer_tick(p: Processor): Set[Transition] = {
