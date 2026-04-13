@@ -137,7 +137,14 @@ module slot_map {
         val new_slots = m.slots.indices().fold(m.slots, (acc, i) => {
             match (m.slots[i]) {
                 | None => acc
-                | Some(x) => if (pred(i, x)) acc.replaceAt(i, Some(transform(x))) else acc
+                | Some(x) => {
+                    if (pred(i, x)) { 
+                        val new_x = Some(transform(x))
+                        acc.replaceAt(i, new_x) 
+                    } else {
+                        acc
+                    }
+                }
             }
         })
         {...m, slots: new_slots }
@@ -379,7 +386,7 @@ module acknack3 {
     var s: State
 
     pure def MAX_DATAPOINTS = 6
-    pure def MAX_MAP_SIZE = 5 // Tuning this down really does not cut the state space at all
+    pure def MAX_MAP_SIZE = 4 // Tuning this down really does not cut the state space at all
     pure def MAX_DATA_PER_BATCH = 3
     
     action init: bool = all {
@@ -439,6 +446,8 @@ module acknack3 {
     }
 
     action send_pdata(pd: Pdata): bool = all {
+        bound_state,
+        accept_pdata(s.proc),
         {
             val transitions = process(s.proc, PdataMessage(pd))
             nondet transition = transitions.oneOf()
@@ -500,7 +509,12 @@ module acknack3 {
         }
     }
     
-    // run send_then_flush = {
-    //     init.then(    
-    // }
+    run send_then_flush = {
+        init.then(send_pdata({context: 0, payload: Set(NotAggregable(1))})) // 1
+            .then(send_pdata({context: 1, payload: Set(NotAggregable(2))})) // 2
+            .then(send_pdata({context: 2, payload: Set(NotAggregable(3))})) // 3
+            .then(send_pdata({context: 3, payload: Set(Aggregable(4))})) // 3
+            .then(send_pdata({context: 4, payload: Set(Aggregable(5), Aggregable(6), NotAggregable(7))})) // 3
+            .then(send_timer_tick)
+    }
 }
