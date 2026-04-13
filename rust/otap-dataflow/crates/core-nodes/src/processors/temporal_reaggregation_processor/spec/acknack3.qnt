@@ -398,7 +398,7 @@ module acknack3 {
 
     action step: bool = {
         any {
-            send_pdata,
+            send_pdata_step,
             send_timer_tick,
             ack_step,
             nack_step
@@ -420,7 +420,7 @@ module acknack3 {
         { ...new_s, proc: t.proc }
     }
 
-    action send_pdata: bool = all {
+    action send_pdata_step: bool = all {
         bound_state,
         accept_pdata(s.proc),
         {
@@ -434,16 +434,20 @@ module acknack3 {
             val non_agg_chunks = non_agg_data.map(d => NotAggregable(d))
 
             val payload = agg_chunks.union(non_agg_chunks)
-            val sent_data = agg_data.union(non_agg_data)
+            send_pdata({context: s.next_context, payload: payload}) 
+        }
+    }
 
-            val transitions = process(s.proc, PdataMessage({context: s.next_context, payload: payload}))
+    action send_pdata(pd: Pdata): bool = all {
+        {
+            val transitions = process(s.proc, PdataMessage(pd))
             nondet transition = transitions.oneOf()
             val new_s = apply_transition(s, transition)
 
             s' = {
                 ...new_s,
-                remaining_data: s.remaining_data - num_data,
-                sent: s.sent.put(s.next_context, sent_data),
+                remaining_data: s.remaining_data - pd.payload.size(),
+                sent: s.sent.put(s.next_context, extract_data(pd)),
                 next_context: new_s.next_context + 1,
             }
         }
@@ -495,5 +499,8 @@ module acknack3 {
             s' = apply_transition(s, transition)
         }
     }
-
+    
+    // run send_then_flush = {
+    //     init.then(    
+    // }
 }
