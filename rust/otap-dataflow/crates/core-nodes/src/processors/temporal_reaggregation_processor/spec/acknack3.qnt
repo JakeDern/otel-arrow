@@ -262,7 +262,7 @@ module processor {
                         in_keys: proc.pending.in_keys.union(Set(in_key))
                     }
                 },
-                effects: Set() 
+                effects: effects 
             }
 
             Set(transition)
