@@ -172,6 +172,8 @@ module processor {
        effects: Set[Effect]
     }
 
+    pure val MAX_AGGREGATE_SIZE = 2
+
     pure def new_processor(cap: int): Processor = {
         val slots = 1.to(cap).fold(List(), (acc, _) => acc.append(None))
         {
@@ -191,7 +193,7 @@ module processor {
             | PdataMessage(pd) => process_pdata(p, pd)
             | AckMessage(c) => process_ack(p, c)
             | NackMessage(c) => process_nack(p, c)
-            | TimerTickMessage => flush(p)
+            | TimerTickMessage => process_timer_tick(p)
         }
     }
     
@@ -204,9 +206,23 @@ module processor {
         val pending_acks = if (non_aggregable_chunks.size() > 0) 1 else 0
         val (inbound, in_key) = slot_map::alloc(p.inbound, {flushed: false, pending: pending_acks, context: pd.context})
 
+
         val has_agg = aggregable_data.size() > 0
         val has_non_agg = non_aggregable_chunks.size() > 0
-        if (has_agg and has_non_agg) {
+
+        // Panic, we're not allowing for these cases because we'd have to
+        // model the interests stack where acks can skip over this component.
+        // Maybe we could do that in the future.
+        val _panic = if (not(has_agg)) Map().get(-1) else 0
+
+        // We need to apply a flush first
+        val base_transition = if (aggregable_data.size() + p.pending.data.size() <= MAX_AGGREGATE_SIZE) {
+            { proc: p, effects: Set() }
+        } else {
+            flush(p)
+        }
+
+        if (has_non_agg) {
             // Both aggregable and not aggregable data
             val (outbound, out_key) = slot_map::alloc(p.outbound, Set(in_key))
             val transition = {
@@ -224,7 +240,7 @@ module processor {
                 effects: Set(SendPdata({context: out_key, payload: non_aggregable_chunks}))
             }
             Set(transition)
-        } else if (has_agg and not(has_non_agg)) {
+        } else {
             val transition = {
                 proc: {
                     ...p,
@@ -238,39 +254,30 @@ module processor {
             }
 
             Set(transition)
-        } else if (not(has_agg) and has_non_agg) {
-            // Panic, we're not allowing for this case because we'd have to
-            // model the interests stack where acks can skip over this component.
-            // Maybe we could do that in the future
-            Map().get(1)
-        } else {
-            // Panic, should be unreachable. We're not testing with empty
-            // batches, but we could add that later.
-            Map().get(1)
         }
     }
-    
-    pure def flush(p: Processor): Set[Transition] = {
-        if (p.pending.data.size() == 0) Set()
-        else {
-            val (outbound, out_key) = slot_map::alloc(p.outbound, p.pending.in_keys)
-            val inbound = slot_map::map_some(
-                p.inbound,
-                (key, _) => p.pending.in_keys.contains(key),
-                tr => { ...tr, flushed: true, pending: tr.pending + 1}
-            )
-            val out_data = p.pending.data.map(d => Aggregable(d))
-            val transition = {
-                proc: {
-                    ...p,
-                    pending: {data: Set(), in_keys: Set()},
-                    inbound: inbound,
-                    outbound: outbound
-                },
-                effects: Set(SendPdata({context: out_key, payload: out_data})),
-            }
 
-            Set(transition)
+    pure def process_timer_tick(p: Processor): Set[Transition] = {
+        if (p.pending.data.size() == 0) Set() else Set(flush(p))
+    }
+    
+    pure def flush(p: Processor): Transition = {
+        val (outbound, out_key) = slot_map::alloc(p.outbound, p.pending.in_keys)
+        val inbound = slot_map::map_some(
+            p.inbound,
+            (key, _) => p.pending.in_keys.contains(key),
+            tr => { ...tr, flushed: true, pending: tr.pending + 1}
+        )
+        val out_data = p.pending.data.map(d => Aggregable(d))
+
+        {
+            proc: {
+                ...p,
+                pending: {data: Set(), in_keys: Set()},
+                inbound: inbound,
+                outbound: outbound
+            },
+            effects: Set(SendPdata({context: out_key, payload: out_data})),
         }
     }
  
