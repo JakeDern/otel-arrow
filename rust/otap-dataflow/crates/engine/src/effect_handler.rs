@@ -113,6 +113,17 @@ impl<PData> EffectHandlerCore<PData> {
         self.local_scheduler = Some(local_scheduler);
     }
 
+    /// Test-only helper: latches shutdown on the processor-local scheduler,
+    /// mirroring the state `ProcessorInbox` enters when it observes a
+    /// `NodeControlMsg::Shutdown` (see `message.rs:607-620`). Used by tests
+    /// that drive `Processor::process` directly and need to reach the
+    /// post-latch state without a real inbox loop.
+    pub(crate) fn trigger_local_scheduler_shutdown(&self) {
+        if let Some(sched) = &self.local_scheduler {
+            sched.begin_shutdown();
+        }
+    }
+
     /// Returns outgoing messages source tagging mode.
     #[must_use]
     pub const fn source_tagging(&self) -> SourceTagging {

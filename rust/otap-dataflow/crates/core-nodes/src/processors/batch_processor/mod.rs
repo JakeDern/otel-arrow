@@ -2447,6 +2447,239 @@ mod tests {
             });
     }
 
+    // Regression: demonstrates that under the real engine processor run loop
+    // (`ProcessorWrapper::start`), pdata queued before a Shutdown control
+    // message is processed AFTER the inbox calls `local_scheduler.begin_shutdown`
+    // (`engine/src/message.rs:615-616`), which causes the processor's
+    // `set_arrival` -> `set_wakeup` to return `Err(WakeupError::ShuttingDown)`,
+    // which `set_arrival` maps to a fatal `EngineError::ProcessorError`. The
+    // processor task exits with Err and the buffered pdata is lost. No test
+    // hooks — this test drives the real inbox via real channels.
+    #[test]
+    fn real_engine_drain_phase_pdata_is_lost_to_wakeup_error() {
+        use otap_df_channel::mpsc as raw_mpsc;
+        use otap_df_engine::Interests;
+        use otap_df_engine::control::{
+            Controllable, pipeline_completion_msg_channel, runtime_ctrl_msg_channel,
+        };
+        use otap_df_engine::local::message::{LocalReceiver, LocalSender};
+        use otap_df_engine::message::{Receiver, Sender};
+        use otap_df_engine::node::{NodeWithPDataReceiver, NodeWithPDataSender};
+        use otap_df_engine::testing::setup_test_runtime;
+        use otap_df_telemetry::InternalTelemetrySystem;
+
+        // Build the real processor wrapper via the production factory.
+        let metrics_system = InternalTelemetrySystem::default();
+        let metrics_reporter = metrics_system.reporter();
+        let telemetry_registry = metrics_system.registry();
+        let controller = ControllerContext::new(telemetry_registry);
+        let pipeline_ctx = controller.pipeline_context_with(
+            PipelineGroupId::from("grp".to_string()),
+            PipelineId::from("pipe".to_string()),
+            0,
+            1,
+            0,
+        );
+        let node = test_node("batch-processor-real-inbox");
+        let mut node_config = NodeUserConfig::new_processor_config(OTAP_BATCH_PROCESSOR_URN);
+        node_config.config = json!({
+            "otap": {
+                "min_size": 10,
+                "max_size": 10,
+                "sizer": "items",
+            },
+            "max_batch_duration": "10s"
+        });
+        let proc_config = ProcessorConfig::new("batch");
+        let mut wrapper = create_otap_batch_processor(
+            pipeline_ctx,
+            node.clone(),
+            Arc::new(node_config),
+            &proc_config,
+        )
+        .expect("create processor");
+
+        // Wire real input pdata channel: test holds sender, wrapper holds receiver.
+        let (pdata_input_tx, pdata_input_rx) = raw_mpsc::Channel::<OtapPdata>::new(100);
+        wrapper
+            .set_pdata_receiver(
+                node.clone(),
+                Receiver::Local(LocalReceiver::mpsc(pdata_input_rx)),
+            )
+            .expect("set pdata receiver");
+
+        // Wire real output pdata channel: wrapper holds sender, test holds receiver.
+        let (output_tx, output_rx) = raw_mpsc::Channel::<OtapPdata>::new(100);
+        wrapper
+            .set_pdata_sender(
+                node.clone(),
+                "default".into(),
+                Sender::Local(LocalSender::mpsc(output_tx)),
+            )
+            .expect("set pdata sender");
+
+        // Clone the control sender before moving `wrapper` into `start()`.
+        let control_sender = wrapper.control_sender();
+
+        // Runtime control and pipeline completion channels required by `start()`.
+        let (runtime_ctrl_tx, _runtime_ctrl_rx) = runtime_ctrl_msg_channel::<OtapPdata>(10);
+        let (pipeline_completion_tx, _pipeline_completion_rx) =
+            pipeline_completion_msg_channel::<OtapPdata>(10);
+
+        // Build the input pdata outside the async block.
+        let mut datagen = DataGenerator::new(1);
+        let input_msg: OtlpProtoMessage = datagen.generate_logs().into();
+        let input_items = input_msg.num_items();
+        let rec = match &input_msg {
+            OtlpProtoMessage::Logs(l) => encode_logs_otap_batch(l).expect("encode logs"),
+            _ => unreachable!(),
+        };
+        let input_pdata = OtapPdata::new_default(rec.into());
+
+        // Drive the real processor on a LocalSet (the batch processor is !Send).
+        let (rt, local_tasks) = setup_test_runtime();
+        let (start_result, outputs) = rt.block_on(local_tasks.run_until(async move {
+            // 1. Queue the pdata. Sits in the pdata channel until the inbox
+            //    loop polls it.
+            pdata_input_tx
+                .send_async(input_pdata)
+                .await
+                .expect("send pdata input");
+
+            // 2. Close the pdata channel from the write side so the inbox
+            //    observes `RecvError::Closed` after draining the queued message
+            //    and exits the loop cleanly on the fix path.
+            drop(pdata_input_tx);
+
+            // 3. Queue the Shutdown control message. The inbox will pop this
+            //    first (the non-fairness control-first branch at
+            //    message.rs:595-621), call `local_scheduler.begin_shutdown()`,
+            //    and `continue` the loop. The next iteration delivers the
+            //    queued pdata to the processor, which calls `accept_payload`
+            //    on an empty buffer, which calls `set_arrival`, which calls
+            //    `set_wakeup`, which returns Err(WakeupError::ShuttingDown).
+            let deadline = Instant::now() + Duration::from_secs(5);
+            control_sender
+                .send(NodeControlMsg::Shutdown {
+                    deadline,
+                    reason: "real-inbox test shutdown".into(),
+                })
+                .await
+                .expect("send shutdown");
+
+            // 4. Run the real processor loop.
+            let start_result = wrapper
+                .start(
+                    runtime_ctrl_tx,
+                    pipeline_completion_tx,
+                    metrics_reporter,
+                    Interests::empty(),
+                )
+                .await;
+
+            // 5. Drain whatever actually made it to the downstream channel.
+            let mut outputs: Vec<OtapPdata> = Vec::new();
+            while let Ok(msg) = output_rx.try_recv() {
+                outputs.push(msg);
+            }
+            (start_result, outputs)
+        }));
+
+        let total_items: usize = outputs
+            .iter()
+            .map(|o| otap_pdata_to_message(o).num_items())
+            .sum();
+
+        // Pre-fix: `start_result` is `Err(ProcessorError { error: "could not
+        // set wakeup", .. })` and `total_items == 0`.
+        // Post-fix: `start_result` is `Ok(())` and `total_items == input_items`.
+        assert!(
+            start_result.is_ok(),
+            "real engine processor task returned Err: {:?}",
+            start_result.err()
+        );
+        assert_eq!(
+            total_items, input_items,
+            "real engine path dropped {} pdata items",
+            input_items - total_items
+        );
+    }
+
+    // Regression: once the node-local scheduler latches shutdown, pdata arriving
+    // during the inbox drain phase (`engine/src/message.rs:607-620`) must not be
+    // dropped. Specifically covers `accept_payload` at `mod.rs:882-890`: when
+    // the buffer is empty it calls `set_arrival` -> `set_wakeup`, which after
+    // the latch returns `Err(WakeupError::ShuttingDown)`. Pre-fix, `set_arrival`
+    // maps that to a fatal `EngineError::ProcessorError` that unwinds BEFORE
+    // the incoming payload is buffered (line 893), silently losing the pdata.
+    #[test]
+    fn drain_phase_pdata_after_local_scheduler_shutdown_is_not_dropped() {
+        // min/max above per-message item count (3) ensures the pdata below
+        // would buffer rather than flush on size, so `accept_payload` goes
+        // through the `set_arrival` path. max_batch_duration non-zero keeps
+        // the timer path active.
+        let (_telemetry_registry, _metrics_reporter, phase) = setup_test_runtime(json!({
+            "otap": {
+                "min_size": 10,
+                "max_size": 10,
+                "sizer": "items",
+            },
+            "max_batch_duration": "10s"
+        }));
+
+        phase
+            .run_test(move |mut ctx| async move {
+                let mut datagen = DataGenerator::new(1);
+                let input_msg: OtlpProtoMessage = datagen.generate_logs().into();
+                let input_items = input_msg.num_items();
+
+                // Simulate the inbox latching shutdown on the local scheduler
+                // while the processor's buffer is still empty. In production
+                // this happens inside `ProcessorInbox` the moment a
+                // `NodeControlMsg::Shutdown` is observed, well before the
+                // Shutdown message itself is delivered to `Processor::process`.
+                ctx.latch_local_scheduler_shutdown();
+
+                // Drain-phase pdata arriving after the latch. The buffer is
+                // empty so `accept_payload` takes the `is_empty()` branch and
+                // calls `set_arrival`. Pre-fix: `set_wakeup` returns
+                // `Err(WakeupError::ShuttingDown)`, `set_arrival` maps it to a
+                // fatal `EngineError`, and the `?` unwinds before the payload
+                // is accepted into the buffer at line 893.
+                let rec = match &input_msg {
+                    OtlpProtoMessage::Logs(l) => encode_logs_otap_batch(l).expect("encode logs"),
+                    _ => unreachable!(),
+                };
+                ctx.process(Message::PData(OtapPdata::new_default(rec.into())))
+                    .await
+                    .expect("drain-phase pdata must not crash the processor");
+
+                // Drive Shutdown so flush_shutdown gets a chance to flush any
+                // residue still in the buffer.
+                ctx.process(Message::Control(NodeControlMsg::Shutdown {
+                    deadline: Instant::now() + Duration::from_secs(1),
+                    reason: "test shutdown".into(),
+                }))
+                .await
+                .expect("process shutdown");
+
+                // Post-fix: the payload flows downstream. Pre-fix: the payload
+                // was dropped in accept_payload before being buffered, so the
+                // emitted item count is 0 (or the `process()` assertion above
+                // already failed with an EngineError).
+                let outputs = ctx.drain_pdata().await;
+                let total_items: usize = outputs
+                    .iter()
+                    .map(|o| otap_pdata_to_message(o).num_items())
+                    .sum();
+                assert_eq!(
+                    total_items, input_items,
+                    "drain-phase pdata must not be dropped"
+                );
+            })
+            .validate(|_| async move {});
+    }
+
     // Subscribed requests consume bounded inbound slots until downstream outcomes
     // release them. Hitting the slot cap should return an explicit Nack instead
     // of stalling the event loop or surfacing as an engine error.

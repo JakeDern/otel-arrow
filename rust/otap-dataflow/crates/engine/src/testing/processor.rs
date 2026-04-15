@@ -123,6 +123,23 @@ impl<PData> TestContext<PData> {
         }
     }
 
+    /// Test-only helper: latches shutdown on the processor's node-local
+    /// scheduler, mirroring the state `ProcessorInbox` enters when it observes
+    /// a `NodeControlMsg::Shutdown`. Because `TestContext::process` drives
+    /// `Processor::process` directly (bypassing the real inbox), there is no
+    /// other way from test code to reach the post-latch state where
+    /// `set_wakeup` returns `Err(WakeupError::ShuttingDown)`.
+    pub fn latch_local_scheduler_shutdown(&self) {
+        match &self.runtime {
+            ProcessorWrapperRuntime::Local { effect_handler, .. } => {
+                effect_handler.core.trigger_local_scheduler_shutdown();
+            }
+            ProcessorWrapperRuntime::Shared { effect_handler, .. } => {
+                effect_handler.core.trigger_local_scheduler_shutdown();
+            }
+        }
+    }
+
     /// Sets the pipeline-completion message sender on the effect handler.
     /// This is needed for processor ACK/NACK handling.
     pub fn set_pipeline_completion_sender(
