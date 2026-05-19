@@ -1,6 +1,6 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1779064920332,
-  "repoUrl": "https://github.com/open-telemetry/otel-arrow",
+  "lastUpdate": 1779153245001,
+  "repoUrl": "https://github.com/JakeDern/otel-arrow",
   "entries": {
     "Benchmark": [
       {
@@ -4236,6 +4236,38 @@ window.BENCHMARK_DATA = {
           {
             "name": "linux-amd64-binary-size",
             "value": 108.86,
+            "unit": "MB"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "name": "Will Butler",
+            "username": "wbutler",
+            "email": "wbutler@microsoft.com"
+          },
+          "committer": {
+            "name": "GitHub",
+            "username": "web-flow",
+            "email": "noreply@github.com"
+          },
+          "id": "f89428238800fc80fe7929104a2a300d26963202",
+          "message": "Better config-time validation for overlapping flow metrics configuration (#2983)\n\nCloses #2784.\n\nThis change implements a BFS walk of the processor pipeline at\nconstruction time to validate that flow metrics do not collide.\n\n- In `runtime_pipeline.rs`, introduce a helper func to capture a flat\nedge list vector of pipeline connections and pass the result as a new\nparam on `build_flow_metric_state`. Saves us from having to pass in some\npart of `_config` into that function and keeps data types better\nseparated.\n- In `flow_metrics.rs`:\n- In `build_flow_metric_state`, add a new data structure that captures\nstart\\end pairs for registered flow metrics.\n  - at the end of the main loop, iff the count of flow metrics > 1\n- convert the list of edges into a one-to-many adjacency data structure\n    - for each flow metric\n      - do a BFS to find all the nodes between the start and the end\n- check for nodes in this set that also appear as a start node in the\ndata structure above.\n      - If found, throw an error, halting pipeline construction.\n\n## Tests\n\nWithin `flow_metrics.rs`, this change adds 10 unit tests, as follows:\n- 7 tests exercise the interleaving detection logic on synthetically\ncreated pipeline topologies.\n  - Three expected-pass tests include:\n    - Linear topology with disjoint ranges\n    - Branching topology with disjoint ranges\n    - Linear topology with a single flow metric\n  - Four expected-reject tests include:\n    - Linear topology with interleaving\n    - Linear topology with interleaving, reverse declaration order\n    - Diamond topology with interleaving\n    - Linear topology with fully nested ranges\n- 3 tests exercise a helper function directly.\n\n## Validation\n\nThe following commands pass cleanly:\n\n`cargo check -p otap-df-engine`\n`cargo test -p otap-df-engine` (contains new tests)\n`cargo clippy -p otap-df-engine --all-targets -- -D warnings`\n`cargo fmt --all -- --check`\n`cargo xtask quick-check`",
+          "timestamp": "2026-05-18T23:21:18Z",
+          "url": "https://github.com/JakeDern/otel-arrow/commit/f89428238800fc80fe7929104a2a300d26963202"
+        },
+        "date": 1779153235852,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "linux-amd64-binary-size",
+            "value": 109.96,
+            "unit": "MB"
+          },
+          {
+            "name": "linux-arm64-binary-size",
+            "value": 97.53,
             "unit": "MB"
           }
         ]
