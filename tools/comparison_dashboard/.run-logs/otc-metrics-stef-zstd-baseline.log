@@ -1,0 +1,1103 @@
+Resolved 1 suite(s):
+  - /home/jakedern/repos/otel-arrow/tools/comparison_dashboard/suites/otc/otc-metrics-stef-zstd-baseline.yaml
+Publishing to: /home/jakedern/repos/otel-arrow/tools/comparison_dashboard/.site/data
+
+
+############################################################
+# [1/1] otc-metrics-stef-zstd-baseline
+############################################################
+
+Suite:    OTC STEF Baseline w/ Zstd (Metrics)
+Slug:     otc_metrics_stef_zstd_baseline
+Binary:   otc
+File:     /home/jakedern/repos/otel-arrow/tools/comparison_dashboard/suites/otc/otc-metrics-stef-zstd-baseline.yaml
+Template: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/orchestrator/otc-single-core-multi-rate.yaml
+Staging:  .data/otc_metrics_stef_zstd_baseline/20260519_231017
+
+Rendering orchestrator config...
+  Generated .data/otc_metrics_stef_zstd_baseline/20260519_231017/orchestrator.yaml
+
+============================================================
+Running: /home/jakedern/repos/otel-arrow/.venv/bin/python ../pipeline_perf_test/orchestrator/run_orchestrator.py --config .data/otc_metrics_stef_zstd_baseline/20260519_231017/orchestrator.yaml --tests 100k,400k,600k,700k
+Log:     .data/otc_metrics_stef_zstd_baseline/20260519_231017/orchestrator.log
+============================================================
+
+[2026-05-19 23:10:18] INFO | ctx.type=- ctx.name=- | Starting Test: 100k
+[2026-05-19 23:10:18] INFO | ctx.type=ScenarioContext ctx.name=100k | Running 11 test steps...
+[2026-05-19 23:10:18] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/otc_metrics_stef_zstd_baseline/20260519_231017/tests/100k/backend-config.rendered.yaml
+[2026-05-19 23:10:18] INFO | ctx.type=StepContext ctx.name=Deploy Backend Engine | Executing main step action...
+[2026-05-19 23:10:19] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 23:10:19] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/otc_metrics_stef_zstd_baseline/20260519_231017/tests/100k/otelcol-config.rendered.yaml
+[2026-05-19 23:10:19] INFO | ctx.type=StepContext ctx.name=Deploy Go Collector | Executing main step action...
+[2026-05-19 23:10:21] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 23:10:21] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/otc_metrics_stef_zstd_baseline/20260519_231017/tests/100k/loadgen-config.rendered.yaml
+[2026-05-19 23:10:21] INFO | ctx.type=StepContext ctx.name=Deploy Load Generator | Executing main step action...
+[2026-05-19 23:10:22] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 23:10:22] INFO | ctx.type=StepContext ctx.name=Monitor All | Executing main step action...
+[2026-05-19 23:10:22] INFO | ctx.type=StepContext ctx.name=Wait for data | Executing main step action...
+[2026-05-19 23:10:27] INFO | ctx.type=StepContext ctx.name=Observe Load | Executing main step action...
+[2026-05-19 23:10:47] INFO | ctx.type=StepContext ctx.name=Stop Load Generator | Executing main step action...
+[2026-05-19 23:10:47] INFO | ctx.type=StepContext ctx.name=Stop Backend | Executing main step action...
+[2026-05-19 23:10:47] INFO | ctx.type=StepContext ctx.name=Stop Monitoring All | Executing main step action...
+[2026-05-19 23:10:52] INFO | ctx.type=StepContext ctx.name=Destroy All | Executing main step action...
+[2026-05-19 23:11:14] INFO | ctx.type=StepContext ctx.name=Run Report | Executing main step action...
+
+================================================================================
+DOCKER CONTAINER LOGS
+================================================================================
+
+================================================================================
+Component: load-generator
+Container ID: e52c276f9d88b8be09b11a44168d36cf07b1e161d49e9af6722275c96eb552ae
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 112.88 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:stef, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:stef, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T23:10:21.412Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=1, core_allocation=2]
+[2m2026-05-19T23:10:21.414Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://go-collector:4320, stef_compression=Zstd][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEFAJI4N2DDCRCHBVONZFCHU host.id=e52c276f9d88 container.id=[0m
+[2m2026-05-19T23:10:21.414Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+[2m2026-05-19T23:10:47.398Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T23:10:47.398Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T23:10:47.398Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=2, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T23:10:47.398Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEFAJI4N2DDCRCHBVONZFCHU host.id=e52c276f9d88 container.id=[0m
+[2m2026-05-19T23:10:47.691Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEFAJI4N2DDCRCHBVONZFCHU host.id=e52c276f9d88 container.id=[0m
+[2m2026-05-19T23:10:47.702Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=303][35m[0m
+[2m2026-05-19T23:10:47.703Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T23:10:47.703Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T23:10:47.703Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=0][35m[0m
+
+================================================================================
+Component: go-collector
+Container ID: 4ca6c587bfe18f98753d0a01d40c4e1b36805b9cd37949b680f08364b3fc8f02
+================================================================================
+2026-05-19T23:10:20.158Z	info	otelconftelemetry/tracer.go:47	Internal trace telemetry disabled	{"resource": {"service.instance.id": "370cf808-a6e6-47a8-92e0-154b2f99b519", "service.name": "otelcol-contrib", "service.version": "0.152.0"}}
+2026-05-19T23:10:20.159Z	info	service@v0.152.0/service.go:241	Starting otelcol-contrib...	{"resource": {"service.instance.id": "370cf808-a6e6-47a8-92e0-154b2f99b519", "service.name": "otelcol-contrib", "service.version": "0.152.0"}, "Version": "0.152.0", "NumCPU": 32}
+2026-05-19T23:10:20.159Z	info	extensions/extensions.go:41	Starting extensions...	{"resource": {"service.instance.id": "370cf808-a6e6-47a8-92e0-154b2f99b519", "service.name": "otelcol-contrib", "service.version": "0.152.0"}}
+2026-05-19T23:10:20.160Z	info	stefreceiver@v0.152.0/stef.go:50	Starting GRPC server	{"resource": {"service.instance.id": "370cf808-a6e6-47a8-92e0-154b2f99b519", "service.name": "otelcol-contrib", "service.version": "0.152.0"}, "otelcol.component.id": "stef", "otelcol.component.kind": "receiver", "otelcol.signal": "metrics", "endpoint": "0.0.0.0:4320"}
+2026-05-19T23:10:20.160Z	info	service@v0.152.0/service.go:264	Everything is ready. Begin running and processing data.	{"resource": {"service.instance.id": "370cf808-a6e6-47a8-92e0-154b2f99b519", "service.name": "otelcol-contrib", "service.version": "0.152.0"}}
+2026-05-19T23:10:47.691Z	error	stefreceiver@v0.152.0/stef.go:152	Cannot read from STEF/gRPC connection	{"resource": {"service.instance.id": "370cf808-a6e6-47a8-92e0-154b2f99b519", "service.name": "otelcol-contrib", "service.version": "0.152.0"}, "otelcol.component.id": "stef", "otelcol.component.kind": "receiver", "otelcol.signal": "metrics", "error": "EOF"}
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver.(*stefReceiver).onStream
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver@v0.152.0/stef.go:152
+github.com/splunk/stef/go/grpc.(*StreamServer).Stream
+	github.com/splunk/stef/go/grpc@v0.1.1/server.go:235
+github.com/splunk/stef/go/grpc/stef_proto._STEFDestination_Stream_Handler
+	github.com/splunk/stef/go/grpc@v0.1.1/stef_proto/destination_grpc.pb.go:116
+go.opentelemetry.io/collector/config/configgrpc.(*ServerConfig).getGrpcServerOptions.enhanceStreamWithClientInformation.func8
+	go.opentelemetry.io/collector/config/configgrpc@v0.152.0/configgrpc.go:675
+google.golang.org/grpc.(*Server).processStreamingRPC
+	google.golang.org/grpc@v1.81.0/server.go:1723
+google.golang.org/grpc.(*Server).handleStream
+	google.golang.org/grpc@v1.81.0/server.go:1860
+google.golang.org/grpc.(*Server).serveStreams.func2.1
+	google.golang.org/grpc@v1.81.0/server.go:1065
+
+================================================================================
+Component: backend-service
+Container ID: 0ba32e7301254b878cd1095dc4e8fd7df80a7d374592262b3d87467fe28be171
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 112.99 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:stef, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:stef, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T23:10:18.851Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=1, core_allocation=1]
+[2m2026-05-19T23:10:18.853Z[0m  [32mINFO [0m [1motap-df-core-nodes::perf_exporter.start[0m: Starting Perf Exporter [frequency_ms=500][35m entity/node.attrs: node.id=perf node.urn=urn:otel:exporter:perf node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=1 numa.node.id=0 process.instance.id=AGPEFAI64J5FBHPDEJ3FKFX6VA host.id=0ba32e730125 container.id=[0m
+[2m2026-05-19T23:10:18.853Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.receiver.grpc.start[0m: Starting STEF gRPC receiver [endpoint=0.0.0.0:1235][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:stef node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=1 numa.node.id=0 process.instance.id=AGPEFAI64J5FBHPDEJ3FKFX6VA host.id=0ba32e730125 container.id=[0m
+[2m2026-05-19T23:10:18.853Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+
+================================================================================
+END OF CONTAINER LOGS
+================================================================================
+[2026-05-19 23:11:14] INFO | ctx.type=- ctx.name=- | Starting Test: 400k
+[2026-05-19 23:11:14] INFO | ctx.type=ScenarioContext ctx.name=400k | Running 11 test steps...
+[2026-05-19 23:11:14] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/otc_metrics_stef_zstd_baseline/20260519_231017/tests/400k/backend-config.rendered.yaml
+[2026-05-19 23:11:14] INFO | ctx.type=StepContext ctx.name=Deploy Backend Engine | Executing main step action...
+[2026-05-19 23:11:15] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 23:11:15] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/otc_metrics_stef_zstd_baseline/20260519_231017/tests/400k/otelcol-config.rendered.yaml
+[2026-05-19 23:11:15] INFO | ctx.type=StepContext ctx.name=Deploy Go Collector | Executing main step action...
+[2026-05-19 23:11:17] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 23:11:17] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/otc_metrics_stef_zstd_baseline/20260519_231017/tests/400k/loadgen-config.rendered.yaml
+[2026-05-19 23:11:17] INFO | ctx.type=StepContext ctx.name=Deploy Load Generator | Executing main step action...
+[2026-05-19 23:11:18] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 23:11:18] INFO | ctx.type=StepContext ctx.name=Monitor All | Executing main step action...
+[2026-05-19 23:11:18] INFO | ctx.type=StepContext ctx.name=Wait for data | Executing main step action...
+[2026-05-19 23:11:23] INFO | ctx.type=StepContext ctx.name=Observe Load | Executing main step action...
+[2026-05-19 23:11:44] INFO | ctx.type=StepContext ctx.name=Stop Load Generator | Executing main step action...
+[2026-05-19 23:11:44] INFO | ctx.type=StepContext ctx.name=Stop Backend | Executing main step action...
+[2026-05-19 23:11:44] INFO | ctx.type=StepContext ctx.name=Stop Monitoring All | Executing main step action...
+[2026-05-19 23:11:49] INFO | ctx.type=StepContext ctx.name=Destroy All | Executing main step action...
+[2026-05-19 23:12:10] INFO | ctx.type=StepContext ctx.name=Run Report | Executing main step action...
+
+# OTel Collector 100k - OTC STEF Baseline w/ Zstd (Metrics)
+
+## Table: metadata_filtered
+  
+**Description**: Information about the test suite and report.
+  
+| Attribute        | Value                                                     |
+|:-----------------|:----------------------------------------------------------|
+| test.suite.start | 2026-05-19T23:10:18.526467+00:00                          |
+| test.suite       | OTC STEF Baseline w/ Zstd (Metrics)                       |
+| test.step        | Run Report                                                |
+| test.start       | 2026-05-19T23:10:18.527277+00:00                          |
+| test.name        | 100k                                                      |
+| report.type      | sql_report                                                |
+| report.time      | 2026-05-19T23:11:14.012966+00:00                          |
+| report.name      | OTel Collector 100k - OTC STEF Baseline w/ Zstd (Metrics) |
+| code.sha         | 6eafd2676d480c0c3d2671aafbb0fb44f5b2a587                  |
+| code.dirty       | True                                                      |
+| code.branch      | stef-benchmarks                                           |
+
+
+## Table: send_receive_rates_by_core
+  
+**Description**: Core Specific increase and average rate of various send / receive metrics
+  
+| component_name   | metric_name      |   core_id |   total_increase |   average_rate |
+|:-----------------|:-----------------|----------:|-----------------:|---------------:|
+| backend-service  | metrics          |         1 |      1.62736e+06 |        85078   |
+| load-generator   | metrics_produced |         2 |      1.64817e+06 |        90097.8 |
+
+
+## Table: aggregate_send_receive_rates
+  
+**Description**: Cumulative increase and average rate of various send / receive metrics
+  
+| component_name   | metric_name      |   total_increase |   average_rate |
+|:-----------------|:-----------------|-----------------:|---------------:|
+| backend-service  | metrics          |      1.62736e+06 |        85078   |
+| load-generator   | metrics_produced |      1.64817e+06 |        90097.8 |
+
+
+## Table: component_resource_metrics
+  
+**Description**: CPU and Memory metrics for the components in the Test Suite during the test.
+  
+| component_name   | metric_name            |   min_value |   avg_value |   max_value |
+|:-----------------|:-----------------------|------------:|------------:|------------:|
+| load-generator   | container.cpu.usage    | 0.0695265   | 0.0761674   | 0.0795047   |
+| load-generator   | container.memory.usage | 1.19882e+08 | 1.20638e+08 | 1.22229e+08 |
+| go-collector     | container.memory.usage | 2.78159e+08 | 5.80192e+08 | 8.49457e+08 |
+| go-collector     | container.cpu.usage    | 0.0922195   | 0.136181    | 0.264847    |
+| backend-service  | container.cpu.usage    | 0.0430833   | 0.0442989   | 0.045785    |
+| backend-service  | container.memory.usage | 5.08928e+07 | 5.4381e+07  | 5.53288e+07 |
+
+
+## Table: metric_loss
+  
+**Description**: Lost metrics (failed or sent but not received) total and as a percentage
+  
+|   metrics_lost |   metrics_lost_pct |
+|---------------:|-------------------:|
+|          20808 |          0.0126249 |
+
+
+## Table: metric_throughput_rates
+  
+**Description**: Metric throughput rates (metrics/sec) calculated from total counts and observation window duration
+  
+| metric_name      |   total_increase |   metrics_per_second |
+|:-----------------|-----------------:|---------------------:|
+| metrics          |      1.62736e+06 |              85068.7 |
+| metrics_produced |      1.64817e+06 |              85704.8 |
+
+
+## Table: gh_actions_benchmark
+  
+**Description**: The final metrics used with gh_actions_benchmark.
+  
+| name                          | unit        |       value | extra                                                          |
+|:------------------------------|:------------|------------:|:---------------------------------------------------------------|
+| dropped_metrics_percentage    | %           |     1.26249 | OTC STEF Baseline w/ Zstd (Metrics)/100k - Dropped Metrics %   |
+| cpu_percentage_normalized_avg | %           |    13.6181  | OTC STEF Baseline w/ Zstd (Metrics)/100k - CPU % (Normalized)  |
+| cpu_percentage_normalized_max | %           |    26.4847  | OTC STEF Baseline w/ Zstd (Metrics)/100k - CPU % (Normalized)  |
+| ram_mib_avg                   | MiB         |   553.314   | OTC STEF Baseline w/ Zstd (Metrics)/100k - RAM (MiB)           |
+| ram_mib_max                   | MiB         |   810.105   | OTC STEF Baseline w/ Zstd (Metrics)/100k - RAM (MiB)           |
+| metrics_produced_rate         | metrics/sec | 85704.8     | OTC STEF Baseline w/ Zstd (Metrics)/100k - Metric Throughput   |
+| metrics_received_rate         | metrics/sec | 85068.7     | OTC STEF Baseline w/ Zstd (Metrics)/100k - Metric Throughput   |
+| test_duration                 | seconds     |    20.0007  | OTC STEF Baseline w/ Zstd (Metrics)/100k - Test Duration       |
+| network_tx_bytes_rate_avg     | bytes/sec   | 27815.6     | OTC STEF Baseline w/ Zstd (Metrics)/100k - Network Utilization |
+| network_rx_bytes_rate_avg     | bytes/sec   | 20318.7     | OTC STEF Baseline w/ Zstd (Metrics)/100k - Network Utilization |
+
+
+
+
+================================================================================
+DOCKER CONTAINER LOGS
+================================================================================
+
+================================================================================
+Component: load-generator
+Container ID: bf9debf140626f4dfeaf29eb12c604933cd10c71e7cca3c8e2faa4df6bee17a2
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 112.81 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:stef, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:stef, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T23:11:17.590Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=4, core_allocation=2-5]
+[2m2026-05-19T23:11:17.594Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://go-collector:4320, stef_compression=Zstd][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEFAQEKV6LHATJV3LGL2G3IM host.id=bf9debf14062 container.id=[0m
+[2m2026-05-19T23:11:17.594Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://go-collector:4320, stef_compression=Zstd][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEFAQEKV6LHATJV3LGL2G3IM host.id=bf9debf14062 container.id=[0m
+[2m2026-05-19T23:11:17.595Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://go-collector:4320, stef_compression=Zstd][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEFAQEKV6LHATJV3LGL2G3IM host.id=bf9debf14062 container.id=[0m
+[2m2026-05-19T23:11:17.595Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://go-collector:4320, stef_compression=Zstd][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEFAQEKV6LHATJV3LGL2G3IM host.id=bf9debf14062 container.id=[0m
+[2m2026-05-19T23:11:17.595Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+[2m2026-05-19T23:11:43.569Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T23:11:43.569Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T23:11:43.569Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=2, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T23:11:43.569Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=4, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T23:11:43.569Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=5, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T23:11:43.569Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=3, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T23:11:43.569Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEFAQEKV6LHATJV3LGL2G3IM host.id=bf9debf14062 container.id=[0m
+[2m2026-05-19T23:11:43.569Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEFAQEKV6LHATJV3LGL2G3IM host.id=bf9debf14062 container.id=[0m
+[2m2026-05-19T23:11:43.569Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEFAQEKV6LHATJV3LGL2G3IM host.id=bf9debf14062 container.id=[0m
+[2m2026-05-19T23:11:43.569Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEFAQEKV6LHATJV3LGL2G3IM host.id=bf9debf14062 container.id=[0m
+[2m2026-05-19T23:11:44.350Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEFAQEKV6LHATJV3LGL2G3IM host.id=bf9debf14062 container.id=[0m
+[2m2026-05-19T23:11:44.781Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEFAQEKV6LHATJV3LGL2G3IM host.id=bf9debf14062 container.id=[0m
+[2m2026-05-19T23:11:44.797Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEFAQEKV6LHATJV3LGL2G3IM host.id=bf9debf14062 container.id=[0m
+[2m2026-05-19T23:11:44.887Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEFAQEKV6LHATJV3LGL2G3IM host.id=bf9debf14062 container.id=[0m
+[2m2026-05-19T23:11:44.984Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=1414][35m[0m
+[2m2026-05-19T23:11:44.986Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T23:11:44.986Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T23:11:44.986Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=0][35m[0m
+
+================================================================================
+Component: go-collector
+Container ID: 95c050afcd1674f92229f7c60037369152d77a89940c1860388c63106ae7b587
+================================================================================
+2026-05-19T23:11:16.333Z	info	otelconftelemetry/tracer.go:47	Internal trace telemetry disabled	{"resource": {"service.instance.id": "895226e1-66ac-4d4b-8773-6acd1eae8168", "service.name": "otelcol-contrib", "service.version": "0.152.0"}}
+2026-05-19T23:11:16.334Z	info	service@v0.152.0/service.go:241	Starting otelcol-contrib...	{"resource": {"service.instance.id": "895226e1-66ac-4d4b-8773-6acd1eae8168", "service.name": "otelcol-contrib", "service.version": "0.152.0"}, "Version": "0.152.0", "NumCPU": 32}
+2026-05-19T23:11:16.334Z	info	extensions/extensions.go:41	Starting extensions...	{"resource": {"service.instance.id": "895226e1-66ac-4d4b-8773-6acd1eae8168", "service.name": "otelcol-contrib", "service.version": "0.152.0"}}
+2026-05-19T23:11:16.335Z	info	stefreceiver@v0.152.0/stef.go:50	Starting GRPC server	{"resource": {"service.instance.id": "895226e1-66ac-4d4b-8773-6acd1eae8168", "service.name": "otelcol-contrib", "service.version": "0.152.0"}, "otelcol.component.id": "stef", "otelcol.component.kind": "receiver", "otelcol.signal": "metrics", "endpoint": "0.0.0.0:4320"}
+2026-05-19T23:11:16.335Z	info	service@v0.152.0/service.go:264	Everything is ready. Begin running and processing data.	{"resource": {"service.instance.id": "895226e1-66ac-4d4b-8773-6acd1eae8168", "service.name": "otelcol-contrib", "service.version": "0.152.0"}}
+2026-05-19T23:11:44.350Z	error	stefreceiver@v0.152.0/stef.go:152	Cannot read from STEF/gRPC connection	{"resource": {"service.instance.id": "895226e1-66ac-4d4b-8773-6acd1eae8168", "service.name": "otelcol-contrib", "service.version": "0.152.0"}, "otelcol.component.id": "stef", "otelcol.component.kind": "receiver", "otelcol.signal": "metrics", "error": "EOF"}
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver.(*stefReceiver).onStream
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver@v0.152.0/stef.go:152
+github.com/splunk/stef/go/grpc.(*StreamServer).Stream
+	github.com/splunk/stef/go/grpc@v0.1.1/server.go:235
+github.com/splunk/stef/go/grpc/stef_proto._STEFDestination_Stream_Handler
+	github.com/splunk/stef/go/grpc@v0.1.1/stef_proto/destination_grpc.pb.go:116
+go.opentelemetry.io/collector/config/configgrpc.(*ServerConfig).getGrpcServerOptions.enhanceStreamWithClientInformation.func8
+	go.opentelemetry.io/collector/config/configgrpc@v0.152.0/configgrpc.go:675
+google.golang.org/grpc.(*Server).processStreamingRPC
+	google.golang.org/grpc@v1.81.0/server.go:1723
+google.golang.org/grpc.(*Server).handleStream
+	google.golang.org/grpc@v1.81.0/server.go:1860
+google.golang.org/grpc.(*Server).serveStreams.func2.1
+	google.golang.org/grpc@v1.81.0/server.go:1065
+2026-05-19T23:11:44.781Z	error	stefreceiver@v0.152.0/stef.go:152	Cannot read from STEF/gRPC connection	{"resource": {"service.instance.id": "895226e1-66ac-4d4b-8773-6acd1eae8168", "service.name": "otelcol-contrib", "service.version": "0.152.0"}, "otelcol.component.id": "stef", "otelcol.component.kind": "receiver", "otelcol.signal": "metrics", "error": "EOF"}
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver.(*stefReceiver).onStream
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver@v0.152.0/stef.go:152
+github.com/splunk/stef/go/grpc.(*StreamServer).Stream
+	github.com/splunk/stef/go/grpc@v0.1.1/server.go:235
+github.com/splunk/stef/go/grpc/stef_proto._STEFDestination_Stream_Handler
+	github.com/splunk/stef/go/grpc@v0.1.1/stef_proto/destination_grpc.pb.go:116
+go.opentelemetry.io/collector/config/configgrpc.(*ServerConfig).getGrpcServerOptions.enhanceStreamWithClientInformation.func8
+	go.opentelemetry.io/collector/config/configgrpc@v0.152.0/configgrpc.go:675
+google.golang.org/grpc.(*Server).processStreamingRPC
+	google.golang.org/grpc@v1.81.0/server.go:1723
+google.golang.org/grpc.(*Server).handleStream
+	google.golang.org/grpc@v1.81.0/server.go:1860
+google.golang.org/grpc.(*Server).serveStreams.func2.1
+	google.golang.org/grpc@v1.81.0/server.go:1065
+2026-05-19T23:11:44.797Z	error	stefreceiver@v0.152.0/stef.go:152	Cannot read from STEF/gRPC connection	{"resource": {"service.instance.id": "895226e1-66ac-4d4b-8773-6acd1eae8168", "service.name": "otelcol-contrib", "service.version": "0.152.0"}, "otelcol.component.id": "stef", "otelcol.component.kind": "receiver", "otelcol.signal": "metrics", "error": "EOF"}
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver.(*stefReceiver).onStream
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver@v0.152.0/stef.go:152
+github.com/splunk/stef/go/grpc.(*StreamServer).Stream
+	github.com/splunk/stef/go/grpc@v0.1.1/server.go:235
+github.com/splunk/stef/go/grpc/stef_proto._STEFDestination_Stream_Handler
+	github.com/splunk/stef/go/grpc@v0.1.1/stef_proto/destination_grpc.pb.go:116
+go.opentelemetry.io/collector/config/configgrpc.(*ServerConfig).getGrpcServerOptions.enhanceStreamWithClientInformation.func8
+	go.opentelemetry.io/collector/config/configgrpc@v0.152.0/configgrpc.go:675
+google.golang.org/grpc.(*Server).processStreamingRPC
+	google.golang.org/grpc@v1.81.0/server.go:1723
+google.golang.org/grpc.(*Server).handleStream
+	google.golang.org/grpc@v1.81.0/server.go:1860
+google.golang.org/grpc.(*Server).serveStreams.func2.1
+	google.golang.org/grpc@v1.81.0/server.go:1065
+2026-05-19T23:11:44.887Z	error	stefreceiver@v0.152.0/stef.go:152	Cannot read from STEF/gRPC connection	{"resource": {"service.instance.id": "895226e1-66ac-4d4b-8773-6acd1eae8168", "service.name": "otelcol-contrib", "service.version": "0.152.0"}, "otelcol.component.id": "stef", "otelcol.component.kind": "receiver", "otelcol.signal": "metrics", "error": "EOF"}
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver.(*stefReceiver).onStream
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver@v0.152.0/stef.go:152
+github.com/splunk/stef/go/grpc.(*StreamServer).Stream
+	github.com/splunk/stef/go/grpc@v0.1.1/server.go:235
+github.com/splunk/stef/go/grpc/stef_proto._STEFDestination_Stream_Handler
+	github.com/splunk/stef/go/grpc@v0.1.1/stef_proto/destination_grpc.pb.go:116
+go.opentelemetry.io/collector/config/configgrpc.(*ServerConfig).getGrpcServerOptions.enhanceStreamWithClientInformation.func8
+	go.opentelemetry.io/collector/config/configgrpc@v0.152.0/configgrpc.go:675
+google.golang.org/grpc.(*Server).processStreamingRPC
+	google.golang.org/grpc@v1.81.0/server.go:1723
+google.golang.org/grpc.(*Server).handleStream
+	google.golang.org/grpc@v1.81.0/server.go:1860
+google.golang.org/grpc.(*Server).serveStreams.func2.1
+	google.golang.org/grpc@v1.81.0/server.go:1065
+
+================================================================================
+Component: backend-service
+Container ID: 7668a6b21bb693bceddc2321dde1e0add61cb437c6f4ec97e38978252d706926
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 112.86 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:stef, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:stef, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T23:11:15.024Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=1, core_allocation=1]
+[2m2026-05-19T23:11:15.027Z[0m  [32mINFO [0m [1motap-df-core-nodes::perf_exporter.start[0m: Starting Perf Exporter [frequency_ms=500][35m entity/node.attrs: node.id=perf node.urn=urn:otel:exporter:perf node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=1 numa.node.id=0 process.instance.id=AGPEFAP2KB7KHPLITTS7DDRSNU host.id=7668a6b21bb6 container.id=[0m
+[2m2026-05-19T23:11:15.027Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.receiver.grpc.start[0m: Starting STEF gRPC receiver [endpoint=0.0.0.0:1235][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:stef node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=1 numa.node.id=0 process.instance.id=AGPEFAP2KB7KHPLITTS7DDRSNU host.id=7668a6b21bb6 container.id=[0m
+[2m2026-05-19T23:11:15.028Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+
+================================================================================
+END OF CONTAINER LOGS
+================================================================================
+[2026-05-19 23:12:11] INFO | ctx.type=- ctx.name=- | Starting Test: 600k
+[2026-05-19 23:12:11] INFO | ctx.type=ScenarioContext ctx.name=600k | Running 11 test steps...
+[2026-05-19 23:12:11] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/otc_metrics_stef_zstd_baseline/20260519_231017/tests/600k/backend-config.rendered.yaml
+[2026-05-19 23:12:11] INFO | ctx.type=StepContext ctx.name=Deploy Backend Engine | Executing main step action...
+[2026-05-19 23:12:13] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 23:12:13] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/otc_metrics_stef_zstd_baseline/20260519_231017/tests/600k/otelcol-config.rendered.yaml
+[2026-05-19 23:12:13] INFO | ctx.type=StepContext ctx.name=Deploy Go Collector | Executing main step action...
+[2026-05-19 23:12:14] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 23:12:14] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/otc_metrics_stef_zstd_baseline/20260519_231017/tests/600k/loadgen-config.rendered.yaml
+[2026-05-19 23:12:14] INFO | ctx.type=StepContext ctx.name=Deploy Load Generator | Executing main step action...
+[2026-05-19 23:12:15] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 23:12:15] INFO | ctx.type=StepContext ctx.name=Monitor All | Executing main step action...
+[2026-05-19 23:12:15] INFO | ctx.type=StepContext ctx.name=Wait for data | Executing main step action...
+[2026-05-19 23:12:20] INFO | ctx.type=StepContext ctx.name=Observe Load | Executing main step action...
+[2026-05-19 23:12:41] INFO | ctx.type=StepContext ctx.name=Stop Load Generator | Executing main step action...
+[2026-05-19 23:12:41] INFO | ctx.type=StepContext ctx.name=Stop Backend | Executing main step action...
+[2026-05-19 23:12:41] INFO | ctx.type=StepContext ctx.name=Stop Monitoring All | Executing main step action...
+[2026-05-19 23:12:46] INFO | ctx.type=StepContext ctx.name=Destroy All | Executing main step action...
+[2026-05-19 23:13:07] INFO | ctx.type=StepContext ctx.name=Run Report | Executing main step action...
+
+# OTel Collector 400k - OTC STEF Baseline w/ Zstd (Metrics)
+
+## Table: metadata_filtered
+  
+**Description**: Information about the test suite and report.
+  
+| Attribute        | Value                                                     |
+|:-----------------|:----------------------------------------------------------|
+| test.suite.start | 2026-05-19T23:10:18.526467+00:00                          |
+| test.suite       | OTC STEF Baseline w/ Zstd (Metrics)                       |
+| test.step        | Run Report                                                |
+| test.start       | 2026-05-19T23:11:14.708412+00:00                          |
+| test.name        | 400k                                                      |
+| report.type      | sql_report                                                |
+| report.time      | 2026-05-19T23:12:10.187614+00:00                          |
+| report.name      | OTel Collector 400k - OTC STEF Baseline w/ Zstd (Metrics) |
+| code.sha         | 6eafd2676d480c0c3d2671aafbb0fb44f5b2a587                  |
+| code.dirty       | True                                                      |
+| code.branch      | stef-benchmarks                                           |
+
+
+## Table: send_receive_rates_by_core
+  
+**Description**: Core Specific increase and average rate of various send / receive metrics
+  
+| component_name   | metric_name      |   core_id |   total_increase |   average_rate |
+|:-----------------|:-----------------|----------:|-----------------:|---------------:|
+| backend-service  | metrics          |         1 |      6.54412e+06 |       333052   |
+| load-generator   | metrics_produced |         2 |      1.61435e+06 |        82885.8 |
+| load-generator   | metrics_produced |         3 |      1.63169e+06 |        83708.9 |
+| load-generator   | metrics_produced |         4 |      1.70972e+06 |        87581.3 |
+| load-generator   | metrics_produced |         5 |      1.6473e+06  |        84482.7 |
+
+
+## Table: aggregate_send_receive_rates
+  
+**Description**: Cumulative increase and average rate of various send / receive metrics
+  
+| component_name   | metric_name      |   total_increase |   average_rate |
+|:-----------------|:-----------------|-----------------:|---------------:|
+| load-generator   | metrics_produced |      6.60307e+06 |         338659 |
+| backend-service  | metrics          |      6.54412e+06 |         333052 |
+
+
+## Table: component_resource_metrics
+  
+**Description**: CPU and Memory metrics for the components in the Test Suite during the test.
+  
+| component_name   | metric_name            |   min_value |   avg_value |   max_value |
+|:-----------------|:-----------------------|------------:|------------:|------------:|
+| load-generator   | container.cpu.usage    | 0.235869    | 0.317943    | 0.339725    |
+| load-generator   | container.memory.usage | 3.36544e+08 | 3.37978e+08 | 3.43376e+08 |
+| go-collector     | container.memory.usage | 8.68098e+08 | 2.0976e+09  | 3.45768e+09 |
+| go-collector     | container.cpu.usage    | 0.396481    | 0.477622    | 0.835427    |
+| backend-service  | container.cpu.usage    | 0.135337    | 0.168917    | 0.180664    |
+| backend-service  | container.memory.usage | 6.61135e+07 | 7.13814e+07 | 7.41212e+07 |
+
+
+## Table: metric_loss
+  
+**Description**: Lost metrics (failed or sent but not received) total and as a percentage
+  
+|   metrics_lost |   metrics_lost_pct |
+|---------------:|-------------------:|
+|          58956 |         0.00892857 |
+
+
+## Table: metric_throughput_rates
+  
+**Description**: Metric throughput rates (metrics/sec) calculated from total counts and observation window duration
+  
+| metric_name      |   total_increase |   metrics_per_second |
+|:-----------------|-----------------:|---------------------:|
+| metrics_produced |      6.60307e+06 |               337752 |
+| metrics          |      6.54412e+06 |               334737 |
+
+
+## Table: gh_actions_benchmark
+  
+**Description**: The final metrics used with gh_actions_benchmark.
+  
+| name                          | unit        |         value | extra                                                          |
+|:------------------------------|:------------|--------------:|:---------------------------------------------------------------|
+| dropped_metrics_percentage    | %           |      0.892857 | OTC STEF Baseline w/ Zstd (Metrics)/400k - Dropped Metrics %   |
+| cpu_percentage_normalized_avg | %           |     47.7622   | OTC STEF Baseline w/ Zstd (Metrics)/400k - CPU % (Normalized)  |
+| cpu_percentage_normalized_max | %           |     83.5427   | OTC STEF Baseline w/ Zstd (Metrics)/400k - CPU % (Normalized)  |
+| ram_mib_avg                   | MiB         |   2000.42     | OTC STEF Baseline w/ Zstd (Metrics)/400k - RAM (MiB)           |
+| ram_mib_max                   | MiB         |   3297.5      | OTC STEF Baseline w/ Zstd (Metrics)/400k - RAM (MiB)           |
+| metrics_produced_rate         | metrics/sec | 337752        | OTC STEF Baseline w/ Zstd (Metrics)/400k - Metric Throughput   |
+| metrics_received_rate         | metrics/sec | 334737        | OTC STEF Baseline w/ Zstd (Metrics)/400k - Metric Throughput   |
+| test_duration                 | seconds     |     20.0009   | OTC STEF Baseline w/ Zstd (Metrics)/400k - Test Duration       |
+| network_tx_bytes_rate_avg     | bytes/sec   | 234417        | OTC STEF Baseline w/ Zstd (Metrics)/400k - Network Utilization |
+| network_rx_bytes_rate_avg     | bytes/sec   | 106083        | OTC STEF Baseline w/ Zstd (Metrics)/400k - Network Utilization |
+
+
+
+
+================================================================================
+DOCKER CONTAINER LOGS
+================================================================================
+
+================================================================================
+Component: load-generator
+Container ID: 8e5c6c59f7495b232e340fb4b1029055873c2bf0ad2d886606cf7d6ecc40ce37
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 112.72 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:stef, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:stef, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T23:12:14.805Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=6, core_allocation=2-7]
+[2m2026-05-19T23:12:14.811Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://go-collector:4320, stef_compression=Zstd][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEFAXD2V3DDJFQTM5EUHNWSM host.id=8e5c6c59f749 container.id=[0m
+[2m2026-05-19T23:12:14.811Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://go-collector:4320, stef_compression=Zstd][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEFAXD2V3DDJFQTM5EUHNWSM host.id=8e5c6c59f749 container.id=[0m
+[2m2026-05-19T23:12:14.811Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://go-collector:4320, stef_compression=Zstd][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEFAXD2V3DDJFQTM5EUHNWSM host.id=8e5c6c59f749 container.id=[0m
+[2m2026-05-19T23:12:14.811Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://go-collector:4320, stef_compression=Zstd][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEFAXD2V3DDJFQTM5EUHNWSM host.id=8e5c6c59f749 container.id=[0m
+[2m2026-05-19T23:12:14.812Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://go-collector:4320, stef_compression=Zstd][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEFAXD2V3DDJFQTM5EUHNWSM host.id=8e5c6c59f749 container.id=[0m
+[2m2026-05-19T23:12:14.812Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://go-collector:4320, stef_compression=Zstd][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEFAXD2V3DDJFQTM5EUHNWSM host.id=8e5c6c59f749 container.id=[0m
+[2m2026-05-19T23:12:14.812Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+[2m2026-05-19T23:12:40.789Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T23:12:40.789Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T23:12:40.789Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=3, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T23:12:40.789Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=2, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T23:12:40.789Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=4, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T23:12:40.789Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=7, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T23:12:40.789Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEFAXD2V3DDJFQTM5EUHNWSM host.id=8e5c6c59f749 container.id=[0m
+[2m2026-05-19T23:12:40.789Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEFAXD2V3DDJFQTM5EUHNWSM host.id=8e5c6c59f749 container.id=[0m
+[2m2026-05-19T23:12:40.789Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEFAXD2V3DDJFQTM5EUHNWSM host.id=8e5c6c59f749 container.id=[0m
+[2m2026-05-19T23:12:40.789Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEFAXD2V3DDJFQTM5EUHNWSM host.id=8e5c6c59f749 container.id=[0m
+[2m2026-05-19T23:12:40.789Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=5, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T23:12:40.789Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEFAXD2V3DDJFQTM5EUHNWSM host.id=8e5c6c59f749 container.id=[0m
+[2m2026-05-19T23:12:40.790Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=6, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T23:12:40.790Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEFAXD2V3DDJFQTM5EUHNWSM host.id=8e5c6c59f749 container.id=[0m
+[2m2026-05-19T23:12:41.121Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEFAXD2V3DDJFQTM5EUHNWSM host.id=8e5c6c59f749 container.id=[0m
+[2m2026-05-19T23:12:41.307Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEFAXD2V3DDJFQTM5EUHNWSM host.id=8e5c6c59f749 container.id=[0m
+[2m2026-05-19T23:12:41.646Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEFAXD2V3DDJFQTM5EUHNWSM host.id=8e5c6c59f749 container.id=[0m
+[2m2026-05-19T23:12:41.686Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEFAXD2V3DDJFQTM5EUHNWSM host.id=8e5c6c59f749 container.id=[0m
+[2m2026-05-19T23:12:41.691Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEFAXD2V3DDJFQTM5EUHNWSM host.id=8e5c6c59f749 container.id=[0m
+[2m2026-05-19T23:12:41.790Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEFAXD2V3DDJFQTM5EUHNWSM host.id=8e5c6c59f749 container.id=[0m
+[2m2026-05-19T23:12:41.801Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=1011][35m[0m
+[2m2026-05-19T23:12:41.803Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T23:12:41.803Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T23:12:41.803Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=0][35m[0m
+
+================================================================================
+Component: go-collector
+Container ID: 4e82f8791938845649e361ddc075ff667c7bc52069e4711f1a049d3535c2c03f
+================================================================================
+2026-05-19T23:12:13.540Z	info	otelconftelemetry/tracer.go:47	Internal trace telemetry disabled	{"resource": {"service.instance.id": "59676be8-e8e8-4fd5-8f93-d4a8e78a222a", "service.name": "otelcol-contrib", "service.version": "0.152.0"}}
+2026-05-19T23:12:13.541Z	info	service@v0.152.0/service.go:241	Starting otelcol-contrib...	{"resource": {"service.instance.id": "59676be8-e8e8-4fd5-8f93-d4a8e78a222a", "service.name": "otelcol-contrib", "service.version": "0.152.0"}, "Version": "0.152.0", "NumCPU": 32}
+2026-05-19T23:12:13.541Z	info	extensions/extensions.go:41	Starting extensions...	{"resource": {"service.instance.id": "59676be8-e8e8-4fd5-8f93-d4a8e78a222a", "service.name": "otelcol-contrib", "service.version": "0.152.0"}}
+2026-05-19T23:12:13.542Z	info	stefreceiver@v0.152.0/stef.go:50	Starting GRPC server	{"resource": {"service.instance.id": "59676be8-e8e8-4fd5-8f93-d4a8e78a222a", "service.name": "otelcol-contrib", "service.version": "0.152.0"}, "otelcol.component.id": "stef", "otelcol.component.kind": "receiver", "otelcol.signal": "metrics", "endpoint": "0.0.0.0:4320"}
+2026-05-19T23:12:13.543Z	info	service@v0.152.0/service.go:264	Everything is ready. Begin running and processing data.	{"resource": {"service.instance.id": "59676be8-e8e8-4fd5-8f93-d4a8e78a222a", "service.name": "otelcol-contrib", "service.version": "0.152.0"}}
+2026-05-19T23:12:41.121Z	error	stefreceiver@v0.152.0/stef.go:152	Cannot read from STEF/gRPC connection	{"resource": {"service.instance.id": "59676be8-e8e8-4fd5-8f93-d4a8e78a222a", "service.name": "otelcol-contrib", "service.version": "0.152.0"}, "otelcol.component.id": "stef", "otelcol.component.kind": "receiver", "otelcol.signal": "metrics", "error": "EOF"}
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver.(*stefReceiver).onStream
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver@v0.152.0/stef.go:152
+github.com/splunk/stef/go/grpc.(*StreamServer).Stream
+	github.com/splunk/stef/go/grpc@v0.1.1/server.go:235
+github.com/splunk/stef/go/grpc/stef_proto._STEFDestination_Stream_Handler
+	github.com/splunk/stef/go/grpc@v0.1.1/stef_proto/destination_grpc.pb.go:116
+go.opentelemetry.io/collector/config/configgrpc.(*ServerConfig).getGrpcServerOptions.enhanceStreamWithClientInformation.func8
+	go.opentelemetry.io/collector/config/configgrpc@v0.152.0/configgrpc.go:675
+google.golang.org/grpc.(*Server).processStreamingRPC
+	google.golang.org/grpc@v1.81.0/server.go:1723
+google.golang.org/grpc.(*Server).handleStream
+	google.golang.org/grpc@v1.81.0/server.go:1860
+google.golang.org/grpc.(*Server).serveStreams.func2.1
+	google.golang.org/grpc@v1.81.0/server.go:1065
+2026-05-19T23:12:41.307Z	error	stefreceiver@v0.152.0/stef.go:152	Cannot read from STEF/gRPC connection	{"resource": {"service.instance.id": "59676be8-e8e8-4fd5-8f93-d4a8e78a222a", "service.name": "otelcol-contrib", "service.version": "0.152.0"}, "otelcol.component.id": "stef", "otelcol.component.kind": "receiver", "otelcol.signal": "metrics", "error": "EOF"}
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver.(*stefReceiver).onStream
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver@v0.152.0/stef.go:152
+github.com/splunk/stef/go/grpc.(*StreamServer).Stream
+	github.com/splunk/stef/go/grpc@v0.1.1/server.go:235
+github.com/splunk/stef/go/grpc/stef_proto._STEFDestination_Stream_Handler
+	github.com/splunk/stef/go/grpc@v0.1.1/stef_proto/destination_grpc.pb.go:116
+go.opentelemetry.io/collector/config/configgrpc.(*ServerConfig).getGrpcServerOptions.enhanceStreamWithClientInformation.func8
+	go.opentelemetry.io/collector/config/configgrpc@v0.152.0/configgrpc.go:675
+google.golang.org/grpc.(*Server).processStreamingRPC
+	google.golang.org/grpc@v1.81.0/server.go:1723
+google.golang.org/grpc.(*Server).handleStream
+	google.golang.org/grpc@v1.81.0/server.go:1860
+google.golang.org/grpc.(*Server).serveStreams.func2.1
+	google.golang.org/grpc@v1.81.0/server.go:1065
+2026-05-19T23:12:41.646Z	error	stefreceiver@v0.152.0/stef.go:152	Cannot read from STEF/gRPC connection	{"resource": {"service.instance.id": "59676be8-e8e8-4fd5-8f93-d4a8e78a222a", "service.name": "otelcol-contrib", "service.version": "0.152.0"}, "otelcol.component.id": "stef", "otelcol.component.kind": "receiver", "otelcol.signal": "metrics", "error": "EOF"}
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver.(*stefReceiver).onStream
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver@v0.152.0/stef.go:152
+github.com/splunk/stef/go/grpc.(*StreamServer).Stream
+	github.com/splunk/stef/go/grpc@v0.1.1/server.go:235
+github.com/splunk/stef/go/grpc/stef_proto._STEFDestination_Stream_Handler
+	github.com/splunk/stef/go/grpc@v0.1.1/stef_proto/destination_grpc.pb.go:116
+go.opentelemetry.io/collector/config/configgrpc.(*ServerConfig).getGrpcServerOptions.enhanceStreamWithClientInformation.func8
+	go.opentelemetry.io/collector/config/configgrpc@v0.152.0/configgrpc.go:675
+google.golang.org/grpc.(*Server).processStreamingRPC
+	google.golang.org/grpc@v1.81.0/server.go:1723
+google.golang.org/grpc.(*Server).handleStream
+	google.golang.org/grpc@v1.81.0/server.go:1860
+google.golang.org/grpc.(*Server).serveStreams.func2.1
+	google.golang.org/grpc@v1.81.0/server.go:1065
+2026-05-19T23:12:41.686Z	error	stefreceiver@v0.152.0/stef.go:152	Cannot read from STEF/gRPC connection	{"resource": {"service.instance.id": "59676be8-e8e8-4fd5-8f93-d4a8e78a222a", "service.name": "otelcol-contrib", "service.version": "0.152.0"}, "otelcol.component.id": "stef", "otelcol.component.kind": "receiver", "otelcol.signal": "metrics", "error": "EOF"}
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver.(*stefReceiver).onStream
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver@v0.152.0/stef.go:152
+github.com/splunk/stef/go/grpc.(*StreamServer).Stream
+	github.com/splunk/stef/go/grpc@v0.1.1/server.go:235
+github.com/splunk/stef/go/grpc/stef_proto._STEFDestination_Stream_Handler
+	github.com/splunk/stef/go/grpc@v0.1.1/stef_proto/destination_grpc.pb.go:116
+go.opentelemetry.io/collector/config/configgrpc.(*ServerConfig).getGrpcServerOptions.enhanceStreamWithClientInformation.func8
+	go.opentelemetry.io/collector/config/configgrpc@v0.152.0/configgrpc.go:675
+google.golang.org/grpc.(*Server).processStreamingRPC
+	google.golang.org/grpc@v1.81.0/server.go:1723
+google.golang.org/grpc.(*Server).handleStream
+	google.golang.org/grpc@v1.81.0/server.go:1860
+google.golang.org/grpc.(*Server).serveStreams.func2.1
+	google.golang.org/grpc@v1.81.0/server.go:1065
+2026-05-19T23:12:41.691Z	error	stefreceiver@v0.152.0/stef.go:152	Cannot read from STEF/gRPC connection	{"resource": {"service.instance.id": "59676be8-e8e8-4fd5-8f93-d4a8e78a222a", "service.name": "otelcol-contrib", "service.version": "0.152.0"}, "otelcol.component.id": "stef", "otelcol.component.kind": "receiver", "otelcol.signal": "metrics", "error": "EOF"}
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver.(*stefReceiver).onStream
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver@v0.152.0/stef.go:152
+github.com/splunk/stef/go/grpc.(*StreamServer).Stream
+	github.com/splunk/stef/go/grpc@v0.1.1/server.go:235
+github.com/splunk/stef/go/grpc/stef_proto._STEFDestination_Stream_Handler
+	github.com/splunk/stef/go/grpc@v0.1.1/stef_proto/destination_grpc.pb.go:116
+go.opentelemetry.io/collector/config/configgrpc.(*ServerConfig).getGrpcServerOptions.enhanceStreamWithClientInformation.func8
+	go.opentelemetry.io/collector/config/configgrpc@v0.152.0/configgrpc.go:675
+google.golang.org/grpc.(*Server).processStreamingRPC
+	google.golang.org/grpc@v1.81.0/server.go:1723
+google.golang.org/grpc.(*Server).handleStream
+	google.golang.org/grpc@v1.81.0/server.go:1860
+google.golang.org/grpc.(*Server).serveStreams.func2.1
+	google.golang.org/grpc@v1.81.0/server.go:1065
+2026-05-19T23:12:41.790Z	error	stefreceiver@v0.152.0/stef.go:152	Cannot read from STEF/gRPC connection	{"resource": {"service.instance.id": "59676be8-e8e8-4fd5-8f93-d4a8e78a222a", "service.name": "otelcol-contrib", "service.version": "0.152.0"}, "otelcol.component.id": "stef", "otelcol.component.kind": "receiver", "otelcol.signal": "metrics", "error": "EOF"}
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver.(*stefReceiver).onStream
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver@v0.152.0/stef.go:152
+github.com/splunk/stef/go/grpc.(*StreamServer).Stream
+	github.com/splunk/stef/go/grpc@v0.1.1/server.go:235
+github.com/splunk/stef/go/grpc/stef_proto._STEFDestination_Stream_Handler
+	github.com/splunk/stef/go/grpc@v0.1.1/stef_proto/destination_grpc.pb.go:116
+go.opentelemetry.io/collector/config/configgrpc.(*ServerConfig).getGrpcServerOptions.enhanceStreamWithClientInformation.func8
+	go.opentelemetry.io/collector/config/configgrpc@v0.152.0/configgrpc.go:675
+google.golang.org/grpc.(*Server).processStreamingRPC
+	google.golang.org/grpc@v1.81.0/server.go:1723
+google.golang.org/grpc.(*Server).handleStream
+	google.golang.org/grpc@v1.81.0/server.go:1860
+google.golang.org/grpc.(*Server).serveStreams.func2.1
+	google.golang.org/grpc@v1.81.0/server.go:1065
+
+================================================================================
+Component: backend-service
+Container ID: 1c15f8b013dd131313116163de9dfb1f9d5bbf1f0a633908d5ebcd3565e9b68a
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 112.78 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:stef, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:stef, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T23:12:12.215Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=1, core_allocation=1]
+[2m2026-05-19T23:12:12.217Z[0m  [32mINFO [0m [1motap-df-core-nodes::perf_exporter.start[0m: Starting Perf Exporter [frequency_ms=500][35m entity/node.attrs: node.id=perf node.urn=urn:otel:exporter:perf node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=1 numa.node.id=0 process.instance.id=AGPEFAWZWZ7SFI2B6E4C2QIEZI host.id=1c15f8b013dd container.id=[0m
+[2m2026-05-19T23:12:12.217Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.receiver.grpc.start[0m: Starting STEF gRPC receiver [endpoint=0.0.0.0:1235][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:stef node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=1 numa.node.id=0 process.instance.id=AGPEFAWZWZ7SFI2B6E4C2QIEZI host.id=1c15f8b013dd container.id=[0m
+[2m2026-05-19T23:12:12.217Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+
+================================================================================
+END OF CONTAINER LOGS
+================================================================================
+[2026-05-19 23:13:10] INFO | ctx.type=- ctx.name=- | Starting Test: 700k
+[2026-05-19 23:13:10] INFO | ctx.type=ScenarioContext ctx.name=700k | Running 11 test steps...
+[2026-05-19 23:13:10] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/otc_metrics_stef_zstd_baseline/20260519_231017/tests/700k/backend-config.rendered.yaml
+[2026-05-19 23:13:10] INFO | ctx.type=StepContext ctx.name=Deploy Backend Engine | Executing main step action...
+[2026-05-19 23:13:11] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 23:13:11] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/otc_metrics_stef_zstd_baseline/20260519_231017/tests/700k/otelcol-config.rendered.yaml
+[2026-05-19 23:13:11] INFO | ctx.type=StepContext ctx.name=Deploy Go Collector | Executing main step action...
+[2026-05-19 23:13:12] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 23:13:12] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/otc_metrics_stef_zstd_baseline/20260519_231017/tests/700k/loadgen-config.rendered.yaml
+[2026-05-19 23:13:12] INFO | ctx.type=StepContext ctx.name=Deploy Load Generator | Executing main step action...
+[2026-05-19 23:13:13] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 23:13:13] INFO | ctx.type=StepContext ctx.name=Monitor All | Executing main step action...
+[2026-05-19 23:13:13] INFO | ctx.type=StepContext ctx.name=Wait for data | Executing main step action...
+[2026-05-19 23:13:18] INFO | ctx.type=StepContext ctx.name=Observe Load | Executing main step action...
+[2026-05-19 23:13:39] INFO | ctx.type=StepContext ctx.name=Stop Load Generator | Executing main step action...
+[2026-05-19 23:13:39] INFO | ctx.type=StepContext ctx.name=Stop Backend | Executing main step action...
+[2026-05-19 23:13:39] INFO | ctx.type=StepContext ctx.name=Stop Monitoring All | Executing main step action...
+[2026-05-19 23:13:44] INFO | ctx.type=StepContext ctx.name=Destroy All | Executing main step action...
+[2026-05-19 23:14:05] INFO | ctx.type=StepContext ctx.name=Run Report | Executing main step action...
+
+# OTel Collector 600k - OTC STEF Baseline w/ Zstd (Metrics)
+
+## Table: metadata_filtered
+  
+**Description**: Information about the test suite and report.
+  
+| Attribute        | Value                                                     |
+|:-----------------|:----------------------------------------------------------|
+| test.suite.start | 2026-05-19T23:10:18.526467+00:00                          |
+| test.suite       | OTC STEF Baseline w/ Zstd (Metrics)                       |
+| test.step        | Run Report                                                |
+| test.start       | 2026-05-19T23:12:11.906354+00:00                          |
+| test.name        | 600k                                                      |
+| report.type      | sql_report                                                |
+| report.time      | 2026-05-19T23:13:07.232691+00:00                          |
+| report.name      | OTel Collector 600k - OTC STEF Baseline w/ Zstd (Metrics) |
+| code.sha         | 6eafd2676d480c0c3d2671aafbb0fb44f5b2a587                  |
+| code.dirty       | True                                                      |
+| code.branch      | stef-benchmarks                                           |
+
+
+## Table: send_receive_rates_by_core
+  
+**Description**: Core Specific increase and average rate of various send / receive metrics
+  
+| component_name   | metric_name      |   core_id |   total_increase |   average_rate |
+|:-----------------|:-----------------|----------:|-----------------:|---------------:|
+| backend-service  | metrics          |         1 |      8.64052e+06 |       453049   |
+| load-generator   | metrics_produced |         2 |      1.54846e+06 |        78780.3 |
+| load-generator   | metrics_produced |         3 |      1.55973e+06 |        79090.6 |
+| load-generator   | metrics_produced |         4 |      1.50598e+06 |        77028.6 |
+| load-generator   | metrics_produced |         5 |      1.52419e+06 |        77797.5 |
+| load-generator   | metrics_produced |         6 |      1.57707e+06 |        80283   |
+| load-generator   | metrics_produced |         7 |      1.55453e+06 |        79073.5 |
+
+
+## Table: aggregate_send_receive_rates
+  
+**Description**: Cumulative increase and average rate of various send / receive metrics
+  
+| component_name   | metric_name      |   total_increase |   average_rate |
+|:-----------------|:-----------------|-----------------:|---------------:|
+| load-generator   | metrics_produced |      9.26996e+06 |         472053 |
+| backend-service  | metrics          |      8.64052e+06 |         453049 |
+
+
+## Table: component_resource_metrics
+  
+**Description**: CPU and Memory metrics for the components in the Test Suite during the test.
+  
+| component_name   | metric_name            |   min_value |   avg_value |   max_value |
+|:-----------------|:-----------------------|------------:|------------:|------------:|
+| load-generator   | container.memory.usage | 4.71548e+08 | 4.74089e+08 | 4.8205e+08  |
+| load-generator   | container.cpu.usage    | 0.384571    | 0.475888    | 0.540429    |
+| go-collector     | container.memory.usage | 1.19824e+09 | 3.11644e+09 | 5.2285e+09  |
+| go-collector     | container.cpu.usage    | 0.583564    | 0.767567    | 1.00662     |
+| backend-service  | container.memory.usage | 6.96033e+07 | 7.29436e+07 | 7.63904e+07 |
+| backend-service  | container.cpu.usage    | 0.188374    | 0.229571    | 0.26798     |
+
+
+## Table: metric_loss
+  
+**Description**: Lost metrics (failed or sent but not received) total and as a percentage
+  
+|   metrics_lost |   metrics_lost_pct |
+|---------------:|-------------------:|
+|         629442 |          0.0679012 |
+
+
+## Table: metric_throughput_rates
+  
+**Description**: Metric throughput rates (metrics/sec) calculated from total counts and observation window duration
+  
+| metric_name      |   total_increase |   metrics_per_second |
+|:-----------------|-----------------:|---------------------:|
+| metrics_produced |      9.26996e+06 |               469023 |
+| metrics          |      8.64052e+06 |               450920 |
+
+
+## Table: gh_actions_benchmark
+  
+**Description**: The final metrics used with gh_actions_benchmark.
+  
+| name                          | unit        |        value | extra                                                          |
+|:------------------------------|:------------|-------------:|:---------------------------------------------------------------|
+| dropped_metrics_percentage    | %           |      6.79012 | OTC STEF Baseline w/ Zstd (Metrics)/600k - Dropped Metrics %   |
+| cpu_percentage_normalized_avg | %           |     76.7567  | OTC STEF Baseline w/ Zstd (Metrics)/600k - CPU % (Normalized)  |
+| cpu_percentage_normalized_max | %           |    100.662   | OTC STEF Baseline w/ Zstd (Metrics)/600k - CPU % (Normalized)  |
+| ram_mib_avg                   | MiB         |   2972.07    | OTC STEF Baseline w/ Zstd (Metrics)/600k - RAM (MiB)           |
+| ram_mib_max                   | MiB         |   4986.29    | OTC STEF Baseline w/ Zstd (Metrics)/600k - RAM (MiB)           |
+| metrics_produced_rate         | metrics/sec | 469023       | OTC STEF Baseline w/ Zstd (Metrics)/600k - Metric Throughput   |
+| metrics_received_rate         | metrics/sec | 450920       | OTC STEF Baseline w/ Zstd (Metrics)/600k - Metric Throughput   |
+| test_duration                 | seconds     |     20.0006  | OTC STEF Baseline w/ Zstd (Metrics)/600k - Test Duration       |
+| network_tx_bytes_rate_avg     | bytes/sec   | 420171       | OTC STEF Baseline w/ Zstd (Metrics)/600k - Network Utilization |
+| network_rx_bytes_rate_avg     | bytes/sec   | 177246       | OTC STEF Baseline w/ Zstd (Metrics)/600k - Network Utilization |
+
+
+
+
+================================================================================
+DOCKER CONTAINER LOGS
+================================================================================
+
+================================================================================
+Component: load-generator
+Container ID: a4fb9f6fedef25ddbd0087b9413895429c38a62bf309f0ffadd5aae2c6d47a26
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 112.63 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:stef, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:stef, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T23:13:12.919Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=7, core_allocation=2-8]
+[2m2026-05-19T23:13:12.922Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://go-collector:4320, stef_compression=Zstd][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47U2ZWKYBQA host.id=a4fb9f6fedef container.id=[0m
+[2m2026-05-19T23:13:12.925Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://go-collector:4320, stef_compression=Zstd][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47U2ZWKYBQA host.id=a4fb9f6fedef container.id=[0m
+[2m2026-05-19T23:13:12.925Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://go-collector:4320, stef_compression=Zstd][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47U2ZWKYBQA host.id=a4fb9f6fedef container.id=[0m
+[2m2026-05-19T23:13:12.925Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://go-collector:4320, stef_compression=Zstd][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47U2ZWKYBQA host.id=a4fb9f6fedef container.id=[0m
+[2m2026-05-19T23:13:12.926Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://go-collector:4320, stef_compression=Zstd][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47U2ZWKYBQA host.id=a4fb9f6fedef container.id=[0m
+[2m2026-05-19T23:13:12.927Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://go-collector:4320, stef_compression=Zstd][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47U2ZWKYBQA host.id=a4fb9f6fedef container.id=[0m
+[2m2026-05-19T23:13:12.927Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+[2m2026-05-19T23:13:12.927Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://go-collector:4320, stef_compression=Zstd][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47U2ZWKYBQA host.id=a4fb9f6fedef container.id=[0m
+[2m2026-05-19T23:13:15.023Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=1, remaining_items=867][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47U[2m2026-05-19T23:13:20.219Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=8, remaining_items=6936][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47[2m2026-05-19T23:13:21.003Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=2, remaining_items=1734][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47[2m2026-05-19T23:13:21.024Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=6, remaining_items=5202][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47[2m2026-05-19T23:13:21.056Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=3, remaining_items=2601][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47[2m2026-05-19T23:13:22.055Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=1, remaining_items=867][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47U[2m2026-05-19T23:13:22.179Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=4, remaining_items=3468][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47[2m2026-05-19T23:13:22.257Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=2, remaining_items=1734][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47[2m2026-05-19T23:13:23.007Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=32, remaining_items=27744][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ[2m2026-05-19T23:13:23.028Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=35, remaining_items=30345][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ[2m2026-05-19T23:13:23.131Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=31, remaining_items=26877][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ[2m2026-05-19T23:13:23.183Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=31, remaining_items=26877][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ[2m2026-05-19T23:13:23.260Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=29, remaining_items=25143][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ[2m2026-05-19T23:13:24.026Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=20, remaining_items=17340][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ[2m2026-05-19T23:13:24.128Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=12, remaining_items=10404][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ[2m2026-05-19T23:13:24.258Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=8, remaining_items=6936][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47[2m2026-05-19T23:13:25.257Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=1, remaining_items=867][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47U[2m2026-05-19T23:13:27.026Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=27, remaining_items=23409][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ[2m2026-05-19T23:13:27.130Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=28, remaining_items=24276][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ[2m2026-05-19T23:13:27.260Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=31, remaining_items=26877][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ[2m2026-05-19T23:13:28.004Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=13, remaining_items=11271][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ[2m2026-05-19T23:13:28.027Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=33, remaining_items=28611][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ[2m2026-05-19T23:13:28.057Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=11, remaining_items=9537][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ4[2m2026-05-19T23:13:28.131Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=35, remaining_items=30345][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ[2m2026-05-19T23:13:28.179Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=4, remaining_items=3468][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47[2m2026-05-19T23:13:28.222Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=24, remaining_items=20808][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ[2m2026-05-19T23:13:29.026Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=23, remaining_items=19941][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ[2m2026-05-19T23:13:29.220Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=17, remaining_items=14739][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ[2m2026-05-19T23:13:33.025Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=10, remaining_items=8670][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ4[2m2026-05-19T23:13:33.221Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=17, remaining_items=14739][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ[2m2026-05-19T23:13:33.257Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=3, remaining_items=2601][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47[2m2026-05-19T23:13:34.127Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=3, remaining_items=2601][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47[2m2026-05-19T23:13:38.907Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T23:13:38.907Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T23:13:38.907Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=2, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T23:13:38.907Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=3, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T23:13:38.907Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=5, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T23:13:38.907Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=8, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T23:13:38.907Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=4, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T23:13:38.907Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47U2ZWKYBQA host.id=a4fb9f6fedef container.id=[0m
+[2m2026-05-19T23:13:38.907Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47U2ZWKYBQA host.id=a4fb9f6fedef container.id=[0m
+[2m2026-05-19T23:13:38.907Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47U2ZWKYBQA host.id=a4fb9f6fedef container.id=[0m
+[2m2026-05-19T23:13:38.907Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47U2ZWKYBQA host.id=a4fb9f6fedef container.id=[0m
+[2m2026-05-19T23:13:38.907Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47U2ZWKYBQA host.id=a4fb9f6fedef container.id=[0m
+[2m2026-05-19T23:13:38.907Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=7, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T23:13:38.907Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47U2ZWKYBQA host.id=a4fb9f6fedef container.id=[0m
+[2m2026-05-19T23:13:38.908Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=6, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T23:13:38.908Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47U2ZWKYBQA host.id=a4fb9f6fedef container.id=[0m
+[2m2026-05-19T23:13:39.354Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47U2ZWKYBQA host.id=a4fb9f6fedef container.id=[0m
+[2m2026-05-19T23:13:39.639Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47U2ZWKYBQA host.id=a4fb9f6fedef container.id=[0m
+[2m2026-05-19T23:13:39.903Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47U2ZWKYBQA host.id=a4fb9f6fedef container.id=[0m
+[2m2026-05-19T23:13:39.905Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47U2ZWKYBQA host.id=a4fb9f6fedef container.id=[0m
+[2m2026-05-19T23:13:39.905Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47U2ZWKYBQA host.id=a4fb9f6fedef container.id=[0m
+[2m2026-05-19T23:13:39.907Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47U2ZWKYBQA host.id=a4fb9f6fedef container.id=[0m
+[2m2026-05-19T23:13:39.910Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEFA6G2Z3JFLQ47U2ZWKYBQA host.id=a4fb9f6fedef container.id=[0m
+[2m2026-05-19T23:13:39.918Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=1010][35m[0m
+[2m2026-05-19T23:13:39.919Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T23:13:39.919Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T23:13:39.919Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=0][35m[0m
+
+================================================================================
+Component: go-collector
+Container ID: 306b77a4960e1b13e958ab5a2d67c9dc0148d0e06ec0d55798a61fec6803830d
+================================================================================
+2026-05-19T23:13:11.668Z	info	otelconftelemetry/tracer.go:47	Internal trace telemetry disabled	{"resource": {"service.instance.id": "c68244db-1f07-497c-95e1-8ef6987c6d07", "service.name": "otelcol-contrib", "service.version": "0.152.0"}}
+2026-05-19T23:13:11.669Z	info	service@v0.152.0/service.go:241	Starting otelcol-contrib...	{"resource": {"service.instance.id": "c68244db-1f07-497c-95e1-8ef6987c6d07", "service.name": "otelcol-contrib", "service.version": "0.152.0"}, "Version": "0.152.0", "NumCPU": 32}
+2026-05-19T23:13:11.669Z	info	extensions/extensions.go:41	Starting extensions...	{"resource": {"service.instance.id": "c68244db-1f07-497c-95e1-8ef6987c6d07", "service.name": "otelcol-contrib", "service.version": "0.152.0"}}
+2026-05-19T23:13:11.669Z	info	stefreceiver@v0.152.0/stef.go:50	Starting GRPC server	{"resource": {"service.instance.id": "c68244db-1f07-497c-95e1-8ef6987c6d07", "service.name": "otelcol-contrib", "service.version": "0.152.0"}, "otelcol.component.id": "stef", "otelcol.component.kind": "receiver", "otelcol.signal": "metrics", "endpoint": "0.0.0.0:4320"}
+2026-05-19T23:13:11.670Z	info	service@v0.152.0/service.go:264	Everything is ready. Begin running and processing data.	{"resource": {"service.instance.id": "c68244db-1f07-497c-95e1-8ef6987c6d07", "service.name": "otelcol-contrib", "service.version": "0.152.0"}}
+2026-05-19T23:13:39.354Z	error	stefreceiver@v0.152.0/stef.go:152	Cannot read from STEF/gRPC connection	{"resource": {"service.instance.id": "c68244db-1f07-497c-95e1-8ef6987c6d07", "service.name": "otelcol-contrib", "service.version": "0.152.0"}, "otelcol.component.id": "stef", "otelcol.component.kind": "receiver", "otelcol.signal": "metrics", "error": "EOF"}
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver.(*stefReceiver).onStream
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver@v0.152.0/stef.go:152
+github.com/splunk/stef/go/grpc.(*StreamServer).Stream
+	github.com/splunk/stef/go/grpc@v0.1.1/server.go:235
+github.com/splunk/stef/go/grpc/stef_proto._STEFDestination_Stream_Handler
+	github.com/splunk/stef/go/grpc@v0.1.1/stef_proto/destination_grpc.pb.go:116
+go.opentelemetry.io/collector/config/configgrpc.(*ServerConfig).getGrpcServerOptions.enhanceStreamWithClientInformation.func8
+	go.opentelemetry.io/collector/config/configgrpc@v0.152.0/configgrpc.go:675
+google.golang.org/grpc.(*Server).processStreamingRPC
+	google.golang.org/grpc@v1.81.0/server.go:1723
+google.golang.org/grpc.(*Server).handleStream
+	google.golang.org/grpc@v1.81.0/server.go:1860
+google.golang.org/grpc.(*Server).serveStreams.func2.1
+	google.golang.org/grpc@v1.81.0/server.go:1065
+2026-05-19T23:13:39.639Z	error	stefreceiver@v0.152.0/stef.go:152	Cannot read from STEF/gRPC connection	{"resource": {"service.instance.id": "c68244db-1f07-497c-95e1-8ef6987c6d07", "service.name": "otelcol-contrib", "service.version": "0.152.0"}, "otelcol.component.id": "stef", "otelcol.component.kind": "receiver", "otelcol.signal": "metrics", "error": "EOF"}
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver.(*stefReceiver).onStream
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver@v0.152.0/stef.go:152
+github.com/splunk/stef/go/grpc.(*StreamServer).Stream
+	github.com/splunk/stef/go/grpc@v0.1.1/server.go:235
+github.com/splunk/stef/go/grpc/stef_proto._STEFDestination_Stream_Handler
+	github.com/splunk/stef/go/grpc@v0.1.1/stef_proto/destination_grpc.pb.go:116
+go.opentelemetry.io/collector/config/configgrpc.(*ServerConfig).getGrpcServerOptions.enhanceStreamWithClientInformation.func8
+	go.opentelemetry.io/collector/config/configgrpc@v0.152.0/configgrpc.go:675
+google.golang.org/grpc.(*Server).processStreamingRPC
+	google.golang.org/grpc@v1.81.0/server.go:1723
+google.golang.org/grpc.(*Server).handleStream
+	google.golang.org/grpc@v1.81.0/server.go:1860
+google.golang.org/grpc.(*Server).serveStreams.func2.1
+	google.golang.org/grpc@v1.81.0/server.go:1065
+2026-05-19T23:13:39.904Z	error	stefreceiver@v0.152.0/stef.go:152	Cannot read from STEF/gRPC connection	{"resource": {"service.instance.id": "c68244db-1f07-497c-95e1-8ef6987c6d07", "service.name": "otelcol-contrib", "service.version": "0.152.0"}, "otelcol.component.id": "stef", "otelcol.component.kind": "receiver", "otelcol.signal": "metrics", "error": "EOF"}
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver.(*stefReceiver).onStream
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver@v0.152.0/stef.go:152
+github.com/splunk/stef/go/grpc.(*StreamServer).Stream
+	github.com/splunk/stef/go/grpc@v0.1.1/server.go:235
+github.com/splunk/stef/go/grpc/stef_proto._STEFDestination_Stream_Handler
+	github.com/splunk/stef/go/grpc@v0.1.1/stef_proto/destination_grpc.pb.go:116
+go.opentelemetry.io/collector/config/configgrpc.(*ServerConfig).getGrpcServerOptions.enhanceStreamWithClientInformation.func8
+	go.opentelemetry.io/collector/config/configgrpc@v0.152.0/configgrpc.go:675
+google.golang.org/grpc.(*Server).processStreamingRPC
+	google.golang.org/grpc@v1.81.0/server.go:1723
+google.golang.org/grpc.(*Server).handleStream
+	google.golang.org/grpc@v1.81.0/server.go:1860
+google.golang.org/grpc.(*Server).serveStreams.func2.1
+	google.golang.org/grpc@v1.81.0/server.go:1065
+2026-05-19T23:13:39.905Z	error	stefreceiver@v0.152.0/stef.go:152	Cannot read from STEF/gRPC connection	{"resource": {"service.instance.id": "c68244db-1f07-497c-95e1-8ef6987c6d07", "service.name": "otelcol-contrib", "service.version": "0.152.0"}, "otelcol.component.id": "stef", "otelcol.component.kind": "receiver", "otelcol.signal": "metrics", "error": "EOF"}
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver.(*stefReceiver).onStream
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver@v0.152.0/stef.go:152
+github.com/splunk/stef/go/grpc.(*StreamServer).Stream
+	github.com/splunk/stef/go/grpc@v0.1.1/server.go:235
+github.com/splunk/stef/go/grpc/stef_proto._STEFDestination_Stream_Handler
+	github.com/splunk/stef/go/grpc@v0.1.1/stef_proto/destination_grpc.pb.go:116
+go.opentelemetry.io/collector/config/configgrpc.(*ServerConfig).getGrpcServerOptions.enhanceStreamWithClientInformation.func8
+	go.opentelemetry.io/collector/config/configgrpc@v0.152.0/configgrpc.go:675
+google.golang.org/grpc.(*Server).processStreamingRPC
+	google.golang.org/grpc@v1.81.0/server.go:1723
+google.golang.org/grpc.(*Server).handleStream
+	google.golang.org/grpc@v1.81.0/server.go:1860
+google.golang.org/grpc.(*Server).serveStreams.func2.1
+	google.golang.org/grpc@v1.81.0/server.go:1065
+2026-05-19T23:13:39.906Z	error	stefreceiver@v0.152.0/stef.go:152	Cannot read from STEF/gRPC connection	{"resource": {"service.instance.id": "c68244db-1f07-497c-95e1-8ef6987c6d07", "service.name": "otelcol-contrib", "service.version": "0.152.0"}, "otelcol.component.id": "stef", "otelcol.component.kind": "receiver", "otelcol.signal": "metrics", "error": "EOF"}
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver.(*stefReceiver).onStream
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver@v0.152.0/stef.go:152
+github.com/splunk/stef/go/grpc.(*StreamServer).Stream
+	github.com/splunk/stef/go/grpc@v0.1.1/server.go:235
+github.com/splunk/stef/go/grpc/stef_proto._STEFDestination_Stream_Handler
+	github.com/splunk/stef/go/grpc@v0.1.1/stef_proto/destination_grpc.pb.go:116
+go.opentelemetry.io/collector/config/configgrpc.(*ServerConfig).getGrpcServerOptions.enhanceStreamWithClientInformation.func8
+	go.opentelemetry.io/collector/config/configgrpc@v0.152.0/configgrpc.go:675
+google.golang.org/grpc.(*Server).processStreamingRPC
+	google.golang.org/grpc@v1.81.0/server.go:1723
+google.golang.org/grpc.(*Server).handleStream
+	google.golang.org/grpc@v1.81.0/server.go:1860
+google.golang.org/grpc.(*Server).serveStreams.func2.1
+	google.golang.org/grpc@v1.81.0/server.go:1065
+2026-05-19T23:13:39.907Z	error	stefreceiver@v0.152.0/stef.go:152	Cannot read from STEF/gRPC connection	{"resource": {"service.instance.id": "c68244db-1f07-497c-95e1-8ef6987c6d07", "service.name": "otelcol-contrib", "service.version": "0.152.0"}, "otelcol.component.id": "stef", "otelcol.component.kind": "receiver", "otelcol.signal": "metrics", "error": "EOF"}
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver.(*stefReceiver).onStream
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver@v0.152.0/stef.go:152
+github.com/splunk/stef/go/grpc.(*StreamServer).Stream
+	github.com/splunk/stef/go/grpc@v0.1.1/server.go:235
+github.com/splunk/stef/go/grpc/stef_proto._STEFDestination_Stream_Handler
+	github.com/splunk/stef/go/grpc@v0.1.1/stef_proto/destination_grpc.pb.go:116
+go.opentelemetry.io/collector/config/configgrpc.(*ServerConfig).getGrpcServerOptions.enhanceStreamWithClientInformation.func8
+	go.opentelemetry.io/collector/config/configgrpc@v0.152.0/configgrpc.go:675
+google.golang.org/grpc.(*Server).processStreamingRPC
+	google.golang.org/grpc@v1.81.0/server.go:1723
+google.golang.org/grpc.(*Server).handleStream
+	google.golang.org/grpc@v1.81.0/server.go:1860
+google.golang.org/grpc.(*Server).serveStreams.func2.1
+	google.golang.org/grpc@v1.81.0/server.go:1065
+2026-05-19T23:13:39.911Z	error	stefreceiver@v0.152.0/stef.go:152	Cannot read from STEF/gRPC connection	{"resource": {"service.instance.id": "c68244db-1f07-497c-95e1-8ef6987c6d07", "service.name": "otelcol-contrib", "service.version": "0.152.0"}, "otelcol.component.id": "stef", "otelcol.component.kind": "receiver", "otelcol.signal": "metrics", "error": "EOF"}
+github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver.(*stefReceiver).onStream
+	github.com/open-telemetry/opentelemetry-collector-contrib/receiver/stefreceiver@v0.152.0/stef.go:152
+github.com/splunk/stef/go/grpc.(*StreamServer).Stream
+	github.com/splunk/stef/go/grpc@v0.1.1/server.go:235
+github.com/splunk/stef/go/grpc/stef_proto._STEFDestination_Stream_Handler
+	github.com/splunk/stef/go/grpc@v0.1.1/stef_proto/destination_grpc.pb.go:116
+go.opentelemetry.io/collector/config/configgrpc.(*ServerConfig).getGrpcServerOptions.enhanceStreamWithClientInformation.func8
+	go.opentelemetry.io/collector/config/configgrpc@v0.152.0/configgrpc.go:675
+google.golang.org/grpc.(*Server).processStreamingRPC
+	google.golang.org/grpc@v1.81.0/server.go:1723
+google.golang.org/grpc.(*Server).handleStream
+	google.golang.org/grpc@v1.81.0/server.go:1860
+google.golang.org/grpc.(*Server).serveStreams.func2.1
+	google.golang.org/grpc@v1.81.0/server.go:1065
+
+================================================================================
+Component: backend-service
+Container ID: 19c42fa1ec5104c2bf62092014b8ac828353c2e3ed9a72d21666a0a6346cdcd6
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 112.66 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:stef, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:stef, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T23:13:10.360Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=1, core_allocation=1]
+[2m2026-05-19T23:13:10.363Z[0m  [32mINFO [0m [1motap-df-core-nodes::perf_exporter.start[0m: Starting Perf Exporter [frequency_ms=500][35m entity/node.attrs: node.id=perf node.urn=urn:otel:exporter:perf node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=1 numa.node.id=0 process.instance.id=AGPEFA543BZRFKISOBCKRKBAOA host.id=19c42fa1ec51 container.id=[0m
+[2m2026-05-19T23:13:10.363Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.receiver.grpc.start[0m: Starting STEF gRPC receiver [endpoint=0.0.0.0:1235][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:stef node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=1 numa.node.id=0 process.instance.id=AGPEFA543BZRFKISOBCKRKBAOA host.id=19c42fa1ec51 container.id=[0m
+[2m2026-05-19T23:13:10.363Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+
+================================================================================
+END OF CONTAINER LOGS
+================================================================================
+
+# OTel Collector 700k - OTC STEF Baseline w/ Zstd (Metrics)
+
+## Table: metadata_filtered
+  
+**Description**: Information about the test suite and report.
+  
+| Attribute        | Value                                                     |
+|:-----------------|:----------------------------------------------------------|
+| test.suite.start | 2026-05-19T23:10:18.526467+00:00                          |
+| test.suite       | OTC STEF Baseline w/ Zstd (Metrics)                       |
+| test.step        | Run Report                                                |
+| test.start       | 2026-05-19T23:13:10.058805+00:00                          |
+| test.name        | 700k                                                      |
+| report.type      | sql_report                                                |
+| report.time      | 2026-05-19T23:14:05.430351+00:00                          |
+| report.name      | OTel Collector 700k - OTC STEF Baseline w/ Zstd (Metrics) |
+| code.sha         | 6eafd2676d480c0c3d2671aafbb0fb44f5b2a587                  |
+| code.dirty       | True                                                      |
+| code.branch      | stef-benchmarks                                           |
+
+
+## Table: send_receive_rates_by_core
+  
+**Description**: Core Specific increase and average rate of various send / receive metrics
+  
+| component_name   | metric_name      |   core_id |   total_increase |   average_rate |
+|:-----------------|:-----------------|----------:|-----------------:|---------------:|
+| backend-service  | metrics          |         1 |      9.71387e+06 |       504968   |
+| load-generator   | metrics_produced |         2 |      1.3794e+06  |        74058.2 |
+| load-generator   | metrics_produced |         3 |      1.29877e+06 |        69752.1 |
+| load-generator   | metrics_produced |         4 |      1.32218e+06 |        70781.6 |
+| load-generator   | metrics_produced |         5 |      1.40541e+06 |        75119.4 |
+| load-generator   | metrics_produced |         6 |      1.32218e+06 |        70972.8 |
+| load-generator   | metrics_produced |         7 |      1.43749e+06 |        76808.8 |
+| load-generator   | metrics_produced |         8 |      1.43055e+06 |        76220.6 |
+
+
+## Table: aggregate_send_receive_rates
+  
+**Description**: Cumulative increase and average rate of various send / receive metrics
+  
+| component_name   | metric_name      |   total_increase |   average_rate |
+|:-----------------|:-----------------|-----------------:|---------------:|
+| backend-service  | metrics          |      9.71387e+06 |         504968 |
+| load-generator   | metrics_produced |      9.59596e+06 |         513714 |
+
+
+## Table: component_resource_metrics
+  
+**Description**: CPU and Memory metrics for the components in the Test Suite during the test.
+  
+| component_name   | metric_name            |   min_value |   avg_value |   max_value |
+|:-----------------|:-----------------------|------------:|------------:|------------:|
+| load-generator   | container.cpu.usage    | 0.405439    | 0.508798    | 0.585145    |
+| load-generator   | container.memory.usage | 5.55545e+08 | 5.59754e+08 | 5.68472e+08 |
+| go-collector     | container.memory.usage | 1.55674e+09 | 3.67586e+09 | 5.65089e+09 |
+| go-collector     | container.cpu.usage    | 0.649727    | 0.811968    | 1.00428     |
+| backend-service  | container.cpu.usage    | 0.19424     | 0.250554    | 0.292244    |
+| backend-service  | container.memory.usage | 7.31955e+07 | 7.5416e+07  | 7.78527e+07 |
+
+
+## Table: metric_loss
+  
+**Description**: Lost metrics (failed or sent but not received) total and as a percentage
+  
+|   metrics_lost |   metrics_lost_pct |
+|---------------:|-------------------:|
+|        -117912 |         -0.0122877 |
+
+
+## Table: metric_throughput_rates
+  
+**Description**: Metric throughput rates (metrics/sec) calculated from total counts and observation window duration
+  
+| metric_name      |   total_increase |   metrics_per_second |
+|:-----------------|-----------------:|---------------------:|
+| metrics          |      9.71387e+06 |               506639 |
+| metrics_produced |      9.59596e+06 |               508624 |
+
+
+## Table: gh_actions_benchmark
+  
+**Description**: The final metrics used with gh_actions_benchmark.
+  
+| name                          | unit        |        value | extra                                                          |
+|:------------------------------|:------------|-------------:|:---------------------------------------------------------------|
+| dropped_metrics_percentage    | %           |     -1.22877 | OTC STEF Baseline w/ Zstd (Metrics)/700k - Dropped Metrics %   |
+| cpu_percentage_normalized_avg | %           |     81.1968  | OTC STEF Baseline w/ Zstd (Metrics)/700k - CPU % (Normalized)  |
+| cpu_percentage_normalized_max | %           |    100.428   | OTC STEF Baseline w/ Zstd (Metrics)/700k - CPU % (Normalized)  |
+| ram_mib_avg                   | MiB         |   3505.57    | OTC STEF Baseline w/ Zstd (Metrics)/700k - RAM (MiB)           |
+| ram_mib_max                   | MiB         |   5389.11    | OTC STEF Baseline w/ Zstd (Metrics)/700k - RAM (MiB)           |
+| metrics_produced_rate         | metrics/sec | 508624       | OTC STEF Baseline w/ Zstd (Metrics)/700k - Metric Throughput   |
+| metrics_received_rate         | metrics/sec | 506639       | OTC STEF Baseline w/ Zstd (Metrics)/700k - Metric Throughput   |
+| test_duration                 | seconds     |     20.0006  | OTC STEF Baseline w/ Zstd (Metrics)/700k - Test Duration       |
+| network_tx_bytes_rate_avg     | bytes/sec   | 491809       | OTC STEF Baseline w/ Zstd (Metrics)/700k - Network Utilization |
+| network_rx_bytes_rate_avg     | bytes/sec   | 250117       | OTC STEF Baseline w/ Zstd (Metrics)/700k - Network Utilization |
+
+
+
+  Captured run env: .data/otc_metrics_stef_zstd_baseline/20260519_231017/run_env.json
+  Environment:      INTEL(R) XEON(R) PLATINUM 8581C CPU @ 2.30GHz / x86_64 / 16 cores / 118 GiB / Debian GNU/Linux 12
+
+Publishing results...
+  Updated /home/jakedern/repos/otel-arrow/tools/comparison_dashboard/.site/data/suite/otc_metrics_stef_zstd_baseline/suite.yaml
+  Updated /home/jakedern/repos/otel-arrow/tools/comparison_dashboard/.site/data/suite/otc_metrics_stef_zstd_baseline/run_env.json
+  100k: metrics.json from sql_report-otel_collector_100k_otc_stef_baseline_w_zstd_metri-20260519_231114.json
+  100k: 5 files published
+  400k: metrics.json from sql_report-otel_collector_400k_otc_stef_baseline_w_zstd_metri-20260519_231210.json
+  400k: 5 files published
+  600k: metrics.json from sql_report-otel_collector_600k_otc_stef_baseline_w_zstd_metri-20260519_231307.json
+  600k: 5 files published
+  700k: metrics.json from sql_report-otel_collector_700k_otc_stef_baseline_w_zstd_metri-20260519_231405.json
+  700k: 5 files published
+  Published to /home/jakedern/repos/otel-arrow/tools/comparison_dashboard/.site/data/suite/otc_metrics_stef_zstd_baseline

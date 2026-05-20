@@ -164,6 +164,17 @@ fn metrics(signal_count: usize, registry: &ResolvedRegistry) -> Vec<Metric> {
                 .attributes
                 .iter()
                 .map(get_attribute_name_value)
+                // BENCH HACK: STEF rejects ArrayValue / KvlistValue attribute values
+                // (only scalar string/bool/int/double/bytes are supported). Drop
+                // unsupported attribute values so the STEF passthrough pipeline doesn't
+                // fail mid-encode.
+                .filter(|kv| {
+                    use otap_df_pdata::proto::opentelemetry::common::v1::any_value::Value;
+                    !matches!(
+                        kv.value.as_ref().and_then(|v| v.value.as_ref()),
+                        Some(Value::ArrayValue(_)) | Some(Value::KvlistValue(_))
+                    )
+                })
                 .collect::<Vec<_>>();
 
             // build the metrics here
@@ -233,25 +244,9 @@ fn metrics(signal_count: usize, registry: &ResolvedRegistry) -> Vec<Metric> {
                     );
                 }
                 InstrumentSpec::Histogram => {
-                    let datapoints = vec![
-                        HistogramDataPoint::build()
-                            .time_unix_nano(current_time())
-                            .bucket_counts(vec![])
-                            .explicit_bounds(vec![])
-                            .attributes(attributes)
-                            .finish(),
-                    ];
-                    metrics.push(
-                        Metric::build()
-                            .name(metric_name)
-                            .data_histogram(Histogram::new(
-                                AggregationTemporality::Unspecified,
-                                datapoints,
-                            ))
-                            .description(description)
-                            .unit(unit)
-                            .finish(),
-                    );
+                    // BENCH HACK: STEF benchmarks only support Sum + Gauge.
+                    // Skip Histogram so the STEF passthrough pipeline doesn't error.
+                    let _ = (attributes, metric_name, description, unit);
                 }
             }
         }

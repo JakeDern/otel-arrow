@@ -1,0 +1,25 @@
+name: OTC STEF Baseline (Metrics)
+slug: otc_metrics_stef_none_baseline
+description: OpenTelemetry Collector baseline for STEF metrics with no compression
+orchestrator_template: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/orchestrator/otc-single-core-multi-rate.yaml
+
+meta:
+  binary: otc
+  protocols: [stef]
+  signals: [metrics]
+  compression: none
+
+variables:
+  report: ../pipeline_perf_test/test_suites/comparison_dashboard/reports/report_metrics.yaml
+  collector_config: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/otelcol/stef-stef.yaml.j2
+  loadgen_config: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/loadgen/stef.yaml.j2
+  backend_config: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/backend/stef.yaml.j2
+  protocol: stef
+  signal: metrics
+  loadgen_max_batch_size: 1000
+  compression_method: none
+  exporter_port: 4320
+  otelcol_gomaxprocs: 1
+  stef_num_consumers: 128
+  stef_queue_size: 20000
+  stef_ack_interval: 10ms

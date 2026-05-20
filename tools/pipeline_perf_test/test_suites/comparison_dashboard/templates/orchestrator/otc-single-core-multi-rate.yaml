@@ -154,6 +154,57 @@ tests:
         loadgen_core_start: 2
         loadgen_core_end: 5
 
+  - name: 450k
+    from_template:
+      path: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/steps/otelcol.yaml
+      variables:{{ forward_variables() }}
+        data_dir: {{data_dir}}
+        test_dir: {{data_dir}}/tests/450k
+        report_name: "OTel Collector 450k - {{suite_name}}"
+        observation_interval: {{observation_interval}}
+        signals_per_second: 90000
+        log_weight: {{log_weight}}
+        metric_weight: {{metric_weight}}
+        trace_weight: {{trace_weight}}
+        backend_core_start: 1
+        backend_core_end: 1
+        loadgen_core_start: 2
+        loadgen_core_end: 6
+
+  - name: 475k
+    from_template:
+      path: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/steps/otelcol.yaml
+      variables:{{ forward_variables() }}
+        data_dir: {{data_dir}}
+        test_dir: {{data_dir}}/tests/475k
+        report_name: "OTel Collector 475k - {{suite_name}}"
+        observation_interval: {{observation_interval}}
+        signals_per_second: 95000
+        log_weight: {{log_weight}}
+        metric_weight: {{metric_weight}}
+        trace_weight: {{trace_weight}}
+        backend_core_start: 1
+        backend_core_end: 1
+        loadgen_core_start: 2
+        loadgen_core_end: 6
+
+  - name: 500k
+    from_template:
+      path: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/steps/otelcol.yaml
+      variables:{{ forward_variables() }}
+        data_dir: {{data_dir}}
+        test_dir: {{data_dir}}/tests/500k
+        report_name: "OTel Collector 500k - {{suite_name}}"
+        observation_interval: {{observation_interval}}
+        signals_per_second: 100000
+        log_weight: {{log_weight}}
+        metric_weight: {{metric_weight}}
+        trace_weight: {{trace_weight}}
+        backend_core_start: 1
+        backend_core_end: 1
+        loadgen_core_start: 2
+        loadgen_core_end: 6
+
   - name: 600k
     from_template:
       path: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/steps/otelcol.yaml
@@ -170,6 +221,40 @@ tests:
         backend_core_end: 1
         loadgen_core_start: 2
         loadgen_core_end: 7
+
+  - name: 700k
+    from_template:
+      path: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/steps/otelcol.yaml
+      variables:{{ forward_variables() }}
+        data_dir: {{data_dir}}
+        test_dir: {{data_dir}}/tests/700k
+        report_name: "OTel Collector 700k - {{suite_name}}"
+        observation_interval: {{observation_interval}}
+        signals_per_second: 100000
+        log_weight: {{log_weight}}
+        metric_weight: {{metric_weight}}
+        trace_weight: {{trace_weight}}
+        backend_core_start: 1
+        backend_core_end: 1
+        loadgen_core_start: 2
+        loadgen_core_end: 8
+
+  - name: 750k
+    from_template:
+      path: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/steps/otelcol.yaml
+      variables:{{ forward_variables() }}
+        data_dir: {{data_dir}}
+        test_dir: {{data_dir}}/tests/750k
+        report_name: "OTel Collector 750k - {{suite_name}}"
+        observation_interval: {{observation_interval}}
+        signals_per_second: 93750
+        log_weight: {{log_weight}}
+        metric_weight: {{metric_weight}}
+        trace_weight: {{trace_weight}}
+        backend_core_start: 1
+        backend_core_end: 1
+        loadgen_core_start: 2
+        loadgen_core_end: 9
 
   - name: 800k
     from_template:

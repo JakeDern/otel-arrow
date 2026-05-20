@@ -1,0 +1,969 @@
+Resolved 1 suite(s):
+  - /home/jakedern/repos/otel-arrow/tools/comparison_dashboard/suites/dfe/dfe-logs-otlp-none-baseline.yaml
+Publishing to: /home/jakedern/repos/otel-arrow/tools/comparison_dashboard/.site/data
+
+
+############################################################
+# [1/1] dfe-logs-otlp-none-baseline
+############################################################
+
+Suite:    DFE OTLP Baseline (Logs)
+Slug:     dfe_logs_otlp_none_baseline
+Binary:   dfe
+File:     /home/jakedern/repos/otel-arrow/tools/comparison_dashboard/suites/dfe/dfe-logs-otlp-none-baseline.yaml
+Template: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/orchestrator/dfe-single-core-multi-rate.yaml
+Staging:  .data/dfe_logs_otlp_none_baseline/20260519_174100
+
+Rendering orchestrator config...
+  Generated .data/dfe_logs_otlp_none_baseline/20260519_174100/orchestrator.yaml
+
+============================================================
+Running: /home/jakedern/repos/otel-arrow/.venv/bin/python ../pipeline_perf_test/orchestrator/run_orchestrator.py --config .data/dfe_logs_otlp_none_baseline/20260519_174100/orchestrator.yaml --tests 100k,400k,800k,1000k
+Log:     .data/dfe_logs_otlp_none_baseline/20260519_174100/orchestrator.log
+============================================================
+
+[2026-05-19 17:41:01] INFO | ctx.type=- ctx.name=- | Starting Test: 100k
+[2026-05-19 17:41:01] INFO | ctx.type=ScenarioContext ctx.name=100k | Running 14 test steps...
+[2026-05-19 17:41:01] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/dfe_logs_otlp_none_baseline/20260519_174100/tests/100k/backend-config.rendered.yaml
+[2026-05-19 17:41:01] INFO | ctx.type=StepContext ctx.name=Deploy Backend Engine | Executing main step action...
+[2026-05-19 17:41:02] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 17:41:02] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/dfe_logs_otlp_none_baseline/20260519_174100/tests/100k/engine-config.rendered.yaml
+[2026-05-19 17:41:02] INFO | ctx.type=StepContext ctx.name=Deploy Dataflow Engine | Executing main step action...
+[2026-05-19 17:41:03] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 17:41:03] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/dfe_logs_otlp_none_baseline/20260519_174100/tests/100k/loadgen-config.rendered.yaml
+[2026-05-19 17:41:03] INFO | ctx.type=StepContext ctx.name=Deploy Load Generator | Executing main step action...
+[2026-05-19 17:41:05] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 17:41:05] INFO | ctx.type=StepContext ctx.name=Monitor All | Executing main step action...
+[2026-05-19 17:41:05] INFO | ctx.type=StepContext ctx.name=Wait for data | Executing main step action...
+[2026-05-19 17:41:15] INFO | ctx.type=StepContext ctx.name=Observe Load | Executing main step action...
+[2026-05-19 17:41:35] INFO | ctx.type=StepContext ctx.name=Wait Before Drain | Executing main step action...
+[2026-05-19 17:41:45] INFO | ctx.type=StepContext ctx.name=Stop Load Generator | Executing main step action...
+[2026-05-19 17:41:45] INFO | ctx.type=StepContext ctx.name=Stop Engine | Executing main step action...
+[2026-05-19 17:41:45] INFO | ctx.type=StepContext ctx.name=Stop Backend | Executing main step action...
+[2026-05-19 17:41:45] INFO | ctx.type=StepContext ctx.name=Wait For Metrics Update | Executing main step action...
+[2026-05-19 17:41:46] INFO | ctx.type=StepContext ctx.name=Stop Monitoring All | Executing main step action...
+[2026-05-19 17:41:51] INFO | ctx.type=StepContext ctx.name=Destroy All | Executing main step action...
+[2026-05-19 17:42:22] INFO | ctx.type=StepContext ctx.name=Run Report | Executing main step action...
+
+================================================================================
+DOCKER CONTAINER LOGS
+================================================================================
+
+================================================================================
+Component: load-generator
+Container ID: 15284299dae910d53bea0bc872daaf8a0db717161056c8ef628ab995d4055510
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 113.91 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T17:41:04.237Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=1, core_allocation=2]
+[2m2026-05-19T17:41:04.239Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPECU5QNR4NHPRUVHYUOLSQ4E host.id=15284299dae9 container.id=[0m
+[2m2026-05-19T17:41:04.239Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.channels[0m: [num_connections=1, endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPECU5QNR4NHPRUVHYUOLSQ4E host.id=15284299dae9 container.id=[0m
+[2m2026-05-19T17:41:04.240Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+[2m2026-05-19T17:41:45.224Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T17:41:45.224Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T17:41:45.224Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=2, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T17:41:45.224Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPECU5QNR4NHPRUVHYUOLSQ4E host.id=15284299dae9 container.id=[0m
+[2m2026-05-19T17:41:45.226Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPECU5QNR4NHPRUVHYUOLSQ4E host.id=15284299dae9 container.id=[0m
+[2m2026-05-19T17:41:45.325Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=101][35m[0m
+[2m2026-05-19T17:41:45.327Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T17:41:45.327Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T17:41:45.327Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=0][35m[0m
+
+================================================================================
+Component: df-engine
+Container ID: d67561e7cdc6c9e3d489d674c556d133bd18da4cfe57e8bf43f7d3c9a600f5d1
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 113.97 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T17:41:02.923Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=1, core_allocation=0]
+[2m2026-05-19T17:41:02.926Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.start[0m: [grpc_endpoint=http://backend-service:1235][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPECU5LJJZ4DNR2ZQ7JUWEB4A host.id=d67561e7cdc6 container.id=[0m
+[2m2026-05-19T17:41:02.926Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.channels[0m: [num_connections=1, endpoint=http://backend-service:1235][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPECU5LJJZ4DNR2ZQ7JUWEB4A host.id=d67561e7cdc6 container.id=[0m
+[2m2026-05-19T17:41:02.926Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.receiver.grpc.start[0m: Starting OTLP gRPC receiver [endpoint=0.0.0.0:4317][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:otlp node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPECU5LJJZ4DNR2ZQ7JUWEB4A host.id=d67561e7cdc6 container.id=[0m
+[2m2026-05-19T17:41:02.926Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+[2m2026-05-19T17:41:45.329Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T17:41:45.329Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T17:41:45.329Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=0, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T17:41:45.329Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.receiver.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:otlp node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPECU5LJJZ4DNR2ZQ7JUWEB4A host.id=d67561e7cdc6 container.id=[0m
+[2m2026-05-19T17:41:45.329Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPECU5LJJZ4DNR2ZQ7JUWEB4A host.id=d67561e7cdc6 container.id=[0m
+[2m2026-05-19T17:41:45.429Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=100][35m[0m
+
+================================================================================
+Component: backend-service
+Container ID: 1f09a4600c5b65a1d19c3593647189c625f2d2849bc17c081888a8422ff5b91f
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 114.03 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T17:41:01.592Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=1, core_allocation=1]
+[2m2026-05-19T17:41:01.595Z[0m  [32mINFO [0m [1motap-df-core-nodes::perf_exporter.start[0m: Starting Perf Exporter [frequency_ms=500][35m entity/node.attrs: node.id=perf node.urn=urn:otel:exporter:perf node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=1 numa.node.id=0 process.instance.id=AGPECU5GC56TDJY2GRRNPLPVI4 host.id=1f09a4600c5b container.id=[0m
+[2m2026-05-19T17:41:01.595Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.receiver.grpc.start[0m: Starting OTLP gRPC receiver [endpoint=0.0.0.0:1235][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:otlp node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=1 numa.node.id=0 process.instance.id=AGPECU5GC56TDJY2GRRNPLPVI4 host.id=1f09a4600c5b container.id=[0m
+[2m2026-05-19T17:41:01.595Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+
+================================================================================
+END OF CONTAINER LOGS
+================================================================================
+[2026-05-19 17:42:23] INFO | ctx.type=- ctx.name=- | Starting Test: 400k
+[2026-05-19 17:42:23] INFO | ctx.type=ScenarioContext ctx.name=400k | Running 14 test steps...
+[2026-05-19 17:42:23] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/dfe_logs_otlp_none_baseline/20260519_174100/tests/400k/backend-config.rendered.yaml
+[2026-05-19 17:42:23] INFO | ctx.type=StepContext ctx.name=Deploy Backend Engine | Executing main step action...
+[2026-05-19 17:42:25] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 17:42:25] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/dfe_logs_otlp_none_baseline/20260519_174100/tests/400k/engine-config.rendered.yaml
+[2026-05-19 17:42:25] INFO | ctx.type=StepContext ctx.name=Deploy Dataflow Engine | Executing main step action...
+[2026-05-19 17:42:26] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 17:42:26] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/dfe_logs_otlp_none_baseline/20260519_174100/tests/400k/loadgen-config.rendered.yaml
+[2026-05-19 17:42:26] INFO | ctx.type=StepContext ctx.name=Deploy Load Generator | Executing main step action...
+[2026-05-19 17:42:27] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 17:42:27] INFO | ctx.type=StepContext ctx.name=Monitor All | Executing main step action...
+[2026-05-19 17:42:27] INFO | ctx.type=StepContext ctx.name=Wait for data | Executing main step action...
+[2026-05-19 17:42:37] INFO | ctx.type=StepContext ctx.name=Observe Load | Executing main step action...
+[2026-05-19 17:42:57] INFO | ctx.type=StepContext ctx.name=Wait Before Drain | Executing main step action...
+[2026-05-19 17:43:07] INFO | ctx.type=StepContext ctx.name=Stop Load Generator | Executing main step action...
+[2026-05-19 17:43:07] INFO | ctx.type=StepContext ctx.name=Stop Engine | Executing main step action...
+[2026-05-19 17:43:08] INFO | ctx.type=StepContext ctx.name=Stop Backend | Executing main step action...
+[2026-05-19 17:43:08] INFO | ctx.type=StepContext ctx.name=Wait For Metrics Update | Executing main step action...
+[2026-05-19 17:43:09] INFO | ctx.type=StepContext ctx.name=Stop Monitoring All | Executing main step action...
+[2026-05-19 17:43:14] INFO | ctx.type=StepContext ctx.name=Destroy All | Executing main step action...
+[2026-05-19 17:43:45] INFO | ctx.type=StepContext ctx.name=Run Report | Executing main step action...
+
+# DF Engine 100k - DFE OTLP Baseline (Logs)
+
+## Table: metadata_filtered
+  
+**Description**: Information about the test suite and report.
+  
+| Attribute        | Value                                     |
+|:-----------------|:------------------------------------------|
+| test.suite.start | 2026-05-19T17:41:01.021478+00:00          |
+| test.suite       | DFE OTLP Baseline (Logs)                  |
+| test.step        | Run Report                                |
+| test.start       | 2026-05-19T17:41:01.022270+00:00          |
+| test.name        | 100k                                      |
+| report.type      | sql_report                                |
+| report.time      | 2026-05-19T17:42:22.730240+00:00          |
+| report.name      | DF Engine 100k - DFE OTLP Baseline (Logs) |
+| code.sha         | ed5022bc35724109c28a91eb172c976aafdaed19  |
+| code.dirty       | True                                      |
+| code.branch      | otel-arrow-otlphttp-compression           |
+
+
+## Table: send_receive_rates_by_core
+  
+**Description**: Core Specific increase and average rate of various send / receive metrics
+  
+| component_name   | metric_name   |   core_id |   total_increase |   average_rate |
+|:-----------------|:--------------|----------:|-----------------:|---------------:|
+| backend-service  | logs          |         1 |        1.9e+06   |        99030.9 |
+| load-generator   | logs_produced |         2 |        1.899e+06 |        99027.6 |
+
+
+## Table: aggregate_send_receive_rates
+  
+**Description**: Cumulative increase and average rate of various send / receive metrics
+  
+| component_name   | metric_name   |   total_increase |   average_rate |
+|:-----------------|:--------------|-----------------:|---------------:|
+| load-generator   | logs_produced |        1.899e+06 |        99027.6 |
+| backend-service  | logs          |        1.9e+06   |        99030.9 |
+
+
+## Table: component_resource_metrics
+  
+**Description**: CPU and Memory metrics for the components in the Test Suite during the test.
+  
+| component_name   | metric_name            |   min_value |   avg_value |   max_value |
+|:-----------------|:-----------------------|------------:|------------:|------------:|
+| load-generator   | container.memory.usage | 1.48156e+08 | 1.48417e+08 | 1.48828e+08 |
+| load-generator   | container.cpu.usage    | 0.027756    | 0.0299845   | 0.0319361   |
+| df-engine        | container.cpu.usage    | 0.0380781   | 0.0385465   | 0.0390694   |
+| df-engine        | container.memory.usage | 5.76594e+07 | 5.78191e+07 | 5.79297e+07 |
+| backend-service  | container.cpu.usage    | 0.0733134   | 0.0744592   | 0.0761348   |
+| backend-service  | container.memory.usage | 4.83492e+07 | 4.88567e+07 | 4.93445e+07 |
+
+
+## Table: log_loss
+  
+**Description**: Lost logs (failed or sent but not received) total and as a percentage
+  
+|   logs_lost |   logs_lost_pct |
+|------------:|----------------:|
+|       -1000 |    -0.000526593 |
+
+
+## Table: log_throughput_rates
+  
+**Description**: Log throughput rates (logs/sec) calculated from total counts and observation window duration
+  
+| metric_name   |   total_increase |   logs_per_second |
+|:--------------|-----------------:|------------------:|
+| logs_produced |        1.899e+06 |           98970   |
+| logs          |        1.9e+06   |           99023.3 |
+
+
+## Table: gh_actions_benchmark
+  
+**Description**: The final metrics used with gh_actions_benchmark.
+  
+| name                          | unit      |           value | extra                                                |
+|:------------------------------|:----------|----------------:|:-----------------------------------------------------|
+| dropped_logs_percentage       | %         |    -0.0526593   | DFE OTLP Baseline (Logs)/100k - Dropped Logs %       |
+| cpu_percentage_normalized_avg | %         |     3.85465     | DFE OTLP Baseline (Logs)/100k - CPU % (Normalized)   |
+| cpu_percentage_normalized_max | %         |     3.90694     | DFE OTLP Baseline (Logs)/100k - CPU % (Normalized)   |
+| ram_mib_avg                   | MiB       |    55.1406      | DFE OTLP Baseline (Logs)/100k - RAM (MiB)            |
+| ram_mib_max                   | MiB       |    55.2461      | DFE OTLP Baseline (Logs)/100k - RAM (MiB)            |
+| logs_produced_rate            | logs/sec  | 98970           | DFE OTLP Baseline (Logs)/100k - Log Throughput       |
+| logs_received_rate            | logs/sec  | 99023.3         | DFE OTLP Baseline (Logs)/100k - Log Throughput       |
+| test_duration                 | seconds   |    20.0007      | DFE OTLP Baseline (Logs)/100k - Test Duration        |
+| network_tx_bytes_rate_avg     | bytes/sec |     3.60399e+07 | DFE OTLP Baseline (Logs)/100k - Network Utilization  |
+| network_rx_bytes_rate_avg     | bytes/sec |     3.59972e+07 | DFE OTLP Baseline (Logs)/100k - Network Utilization  |
+| egress_bytes_per_log          | bytes/log |   363.954       | DFE OTLP Baseline (Logs)/100k - Egress Bytes Per Log |
+
+
+
+
+================================================================================
+DOCKER CONTAINER LOGS
+================================================================================
+
+================================================================================
+Component: load-generator
+Container ID: 20341f9a8c6877e2f23e870fbc3ab88c635bd4c1fe742bbaf9431fb052cdfb1e
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 113.84 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T17:42:26.840Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=4, core_allocation=2-5]
+[2m2026-05-19T17:42:26.845Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPECVHTC57HHBSLREKTFXWMOU host.id=20341f9a8c68 container.id=[0m
+[2m2026-05-19T17:42:26.845Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.channels[0m: [num_connections=1, endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPECVHTC57HHBSLREKTFXWMOU host.id=20341f9a8c68 container.id=[0m
+[2m2026-05-19T17:42:26.845Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPECVHTC57HHBSLREKTFXWMOU host.id=20341f9a8c68 container.id=[0m
+[2m2026-05-19T17:42:26.845Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.channels[0m: [num_connections=1, endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPECVHTC57HHBSLREKTFXWMOU host.id=20341f9a8c68 container.id=[0m
+[2m2026-05-19T17:42:26.845Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPECVHTC57HHBSLREKTFXWMOU host.id=20341f9a8c68 container.id=[0m
+[2m2026-05-19T17:42:26.845Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.channels[0m: [num_connections=1, endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPECVHTC57HHBSLREKTFXWMOU host.id=20341f9a8c68 container.id=[0m
+[2m2026-05-19T17:42:26.845Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPECVHTC57HHBSLREKTFXWMOU host.id=20341f9a8c68 container.id=[0m
+[2m2026-05-19T17:42:26.845Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.channels[0m: [num_connections=1, endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPECVHTC57HHBSLREKTFXWMOU host.id=20341f9a8c68 container.id=[0m
+[2m2026-05-19T17:42:26.846Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+[2m2026-05-19T17:43:07.829Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T17:43:07.829Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T17:43:07.829Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=3, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T17:43:07.829Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=2, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T17:43:07.829Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=5, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T17:43:07.829Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=4, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T17:43:07.829Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPECVHTC57HHBSLREKTFXWMOU host.id=20341f9a8c68 container.id=[0m
+[2m2026-05-19T17:43:07.829Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPECVHTC57HHBSLREKTFXWMOU host.id=20341f9a8c68 container.id=[0m
+[2m2026-05-19T17:43:07.829Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPECVHTC57HHBSLREKTFXWMOU host.id=20341f9a8c68 container.id=[0m
+[2m2026-05-19T17:43:07.829Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPECVHTC57HHBSLREKTFXWMOU host.id=20341f9a8c68 container.id=[0m
+[2m2026-05-19T17:43:07.831Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPECVHTC57HHBSLREKTFXWMOU host.id=20341f9a8c68 container.id=[0m
+[2m2026-05-19T17:43:07.832Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPECVHTC57HHBSLREKTFXWMOU host.id=20341f9a8c68 container.id=[0m
+[2m2026-05-19T17:43:07.832Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPECVHTC57HHBSLREKTFXWMOU host.id=20341f9a8c68 container.id=[0m
+[2m2026-05-19T17:43:07.832Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPECVHTC57HHBSLREKTFXWMOU host.id=20341f9a8c68 container.id=[0m
+[2m2026-05-19T17:43:07.931Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=101][35m[0m
+[2m2026-05-19T17:43:07.933Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T17:43:07.933Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T17:43:07.933Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=0][35m[0m
+
+================================================================================
+Component: df-engine
+Container ID: 82934df8df9069c203132665ed50fd4b6a991918e3548674f6b271a6cef99a52
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 113.90 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T17:42:25.556Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=1, core_allocation=0]
+[2m2026-05-19T17:42:25.558Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.start[0m: [grpc_endpoint=http://backend-service:1235][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPECVHOCN66HP5IGQ3HDFKN44 host.id=82934df8df90 container.id=[0m
+[2m2026-05-19T17:42:25.558Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.channels[0m: [num_connections=1, endpoint=http://backend-service:1235][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPECVHOCN66HP5IGQ3HDFKN44 host.id=82934df8df90 container.id=[0m
+[2m2026-05-19T17:42:25.558Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.receiver.grpc.start[0m: Starting OTLP gRPC receiver [endpoint=0.0.0.0:4317][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:otlp node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPECVHOCN66HP5IGQ3HDFKN44 host.id=82934df8df90 container.id=[0m
+[2m2026-05-19T17:42:25.559Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+[2m2026-05-19T17:43:07.934Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T17:43:07.935Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T17:43:07.935Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=0, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T17:43:07.935Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.receiver.drain_ingress[0m[35m[0m
+[2m2026-05-19T17:43:07.935Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPECVHOCN66HP5IGQ3HDFKN44 host.id=82934df8df90 container.id=[0m
+[2m2026-05-19T17:43:08.036Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=101][35m[0m
+
+================================================================================
+Component: backend-service
+Container ID: bc717aa51c395ede2a000859e5031413aab664f52f3ca5799b28fcaf0cd0b6d1
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 113.91 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T17:42:24.260Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=1, core_allocation=1]
+[2m2026-05-19T17:42:24.263Z[0m  [32mINFO [0m [1motap-df-core-nodes::perf_exporter.start[0m: Starting Perf Exporter [frequency_ms=500][35m entity/node.attrs: node.id=perf node.urn=urn:otel:exporter:perf node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=1 numa.node.id=0 process.instance.id=AGPECVHJAN32HDU66TBLJKMN34 host.id=bc717aa51c39 container.id=[0m
+[2m2026-05-19T17:42:24.263Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.receiver.grpc.start[0m: Starting OTLP gRPC receiver [endpoint=0.0.0.0:1235][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:otlp node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=1 numa.node.id=0 process.instance.id=AGPECVHJAN32HDU66TBLJKMN34 host.id=bc717aa51c39 container.id=[0m
+[2m2026-05-19T17:42:24.263Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+
+================================================================================
+END OF CONTAINER LOGS
+================================================================================
+[2026-05-19 17:43:48] INFO | ctx.type=- ctx.name=- | Starting Test: 800k
+[2026-05-19 17:43:48] INFO | ctx.type=ScenarioContext ctx.name=800k | Running 14 test steps...
+[2026-05-19 17:43:48] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/dfe_logs_otlp_none_baseline/20260519_174100/tests/800k/backend-config.rendered.yaml
+[2026-05-19 17:43:48] INFO | ctx.type=StepContext ctx.name=Deploy Backend Engine | Executing main step action...
+[2026-05-19 17:43:49] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 17:43:49] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/dfe_logs_otlp_none_baseline/20260519_174100/tests/800k/engine-config.rendered.yaml
+[2026-05-19 17:43:49] INFO | ctx.type=StepContext ctx.name=Deploy Dataflow Engine | Executing main step action...
+[2026-05-19 17:43:51] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 17:43:51] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/dfe_logs_otlp_none_baseline/20260519_174100/tests/800k/loadgen-config.rendered.yaml
+[2026-05-19 17:43:51] INFO | ctx.type=StepContext ctx.name=Deploy Load Generator | Executing main step action...
+[2026-05-19 17:43:52] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 17:43:52] INFO | ctx.type=StepContext ctx.name=Monitor All | Executing main step action...
+[2026-05-19 17:43:52] INFO | ctx.type=StepContext ctx.name=Wait for data | Executing main step action...
+[2026-05-19 17:44:02] INFO | ctx.type=StepContext ctx.name=Observe Load | Executing main step action...
+[2026-05-19 17:44:22] INFO | ctx.type=StepContext ctx.name=Wait Before Drain | Executing main step action...
+[2026-05-19 17:44:32] INFO | ctx.type=StepContext ctx.name=Stop Load Generator | Executing main step action...
+[2026-05-19 17:44:32] INFO | ctx.type=StepContext ctx.name=Stop Engine | Executing main step action...
+[2026-05-19 17:44:32] INFO | ctx.type=StepContext ctx.name=Stop Backend | Executing main step action...
+[2026-05-19 17:44:32] INFO | ctx.type=StepContext ctx.name=Wait For Metrics Update | Executing main step action...
+[2026-05-19 17:44:33] INFO | ctx.type=StepContext ctx.name=Stop Monitoring All | Executing main step action...
+[2026-05-19 17:44:39] INFO | ctx.type=StepContext ctx.name=Destroy All | Executing main step action...
+[2026-05-19 17:45:10] INFO | ctx.type=StepContext ctx.name=Run Report | Executing main step action...
+
+# DF Engine 400k - DFE OTLP Baseline (Logs)
+
+## Table: metadata_filtered
+  
+**Description**: Information about the test suite and report.
+  
+| Attribute        | Value                                     |
+|:-----------------|:------------------------------------------|
+| test.suite.start | 2026-05-19T17:41:01.021478+00:00          |
+| test.suite       | DFE OTLP Baseline (Logs)                  |
+| test.step        | Run Report                                |
+| test.start       | 2026-05-19T17:42:23.868551+00:00          |
+| test.name        | 400k                                      |
+| report.type      | sql_report                                |
+| report.time      | 2026-05-19T17:43:45.984320+00:00          |
+| report.name      | DF Engine 400k - DFE OTLP Baseline (Logs) |
+| code.sha         | ed5022bc35724109c28a91eb172c976aafdaed19  |
+| code.dirty       | True                                      |
+| code.branch      | otel-arrow-otlphttp-compression           |
+
+
+## Table: send_receive_rates_by_core
+  
+**Description**: Core Specific increase and average rate of various send / receive metrics
+  
+| component_name   | metric_name   |   core_id |   total_increase |   average_rate |
+|:-----------------|:--------------|----------:|-----------------:|---------------:|
+| backend-service  | logs          |         1 |          8e+06   |       410297   |
+| load-generator   | logs_produced |         2 |          2e+06   |       102548   |
+| load-generator   | logs_produced |         3 |          1.9e+06 |        97606.5 |
+| load-generator   | logs_produced |         4 |          1.9e+06 |        97556.9 |
+| load-generator   | logs_produced |         5 |          1.9e+06 |        97606.5 |
+
+
+## Table: aggregate_send_receive_rates
+  
+**Description**: Cumulative increase and average rate of various send / receive metrics
+  
+| component_name   | metric_name   |   total_increase |   average_rate |
+|:-----------------|:--------------|-----------------:|---------------:|
+| load-generator   | logs_produced |          7.7e+06 |         395318 |
+| backend-service  | logs          |          8e+06   |         410297 |
+
+
+## Table: component_resource_metrics
+  
+**Description**: CPU and Memory metrics for the components in the Test Suite during the test.
+  
+| component_name   | metric_name            |   min_value |   avg_value |   max_value |
+|:-----------------|:-----------------------|------------:|------------:|------------:|
+| load-generator   | container.cpu.usage    | 0.117978    | 0.120408    | 0.123494    |
+| load-generator   | container.memory.usage | 4.36052e+08 | 4.3681e+08  | 4.37768e+08 |
+| df-engine        | container.memory.usage | 5.58203e+07 | 5.63728e+07 | 5.69057e+07 |
+| df-engine        | container.cpu.usage    | 0.137222    | 0.139769    | 0.141469    |
+| backend-service  | container.memory.usage | 4.7018e+07  | 4.72719e+07 | 4.74808e+07 |
+| backend-service  | container.cpu.usage    | 0.269884    | 0.273508    | 0.276491    |
+
+
+## Table: log_loss
+  
+**Description**: Lost logs (failed or sent but not received) total and as a percentage
+  
+|   logs_lost |   logs_lost_pct |
+|------------:|----------------:|
+|     -300000 |       -0.038961 |
+
+
+## Table: log_throughput_rates
+  
+**Description**: Log throughput rates (logs/sec) calculated from total counts and observation window duration
+  
+| metric_name   |   total_increase |   logs_per_second |
+|:--------------|-----------------:|------------------:|
+| logs_produced |          7.7e+06 |            394725 |
+| logs          |          8e+06   |            412271 |
+
+
+## Table: gh_actions_benchmark
+  
+**Description**: The final metrics used with gh_actions_benchmark.
+  
+| name                          | unit      |            value | extra                                                |
+|:------------------------------|:----------|-----------------:|:-----------------------------------------------------|
+| dropped_logs_percentage       | %         |     -3.8961      | DFE OTLP Baseline (Logs)/400k - Dropped Logs %       |
+| cpu_percentage_normalized_avg | %         |     13.9769      | DFE OTLP Baseline (Logs)/400k - CPU % (Normalized)   |
+| cpu_percentage_normalized_max | %         |     14.1469      | DFE OTLP Baseline (Logs)/400k - CPU % (Normalized)   |
+| ram_mib_avg                   | MiB       |     53.7613      | DFE OTLP Baseline (Logs)/400k - RAM (MiB)            |
+| ram_mib_max                   | MiB       |     54.2695      | DFE OTLP Baseline (Logs)/400k - RAM (MiB)            |
+| logs_produced_rate            | logs/sec  | 394725           | DFE OTLP Baseline (Logs)/400k - Log Throughput       |
+| logs_received_rate            | logs/sec  | 412271           | DFE OTLP Baseline (Logs)/400k - Log Throughput       |
+| test_duration                 | seconds   |     20.0006      | DFE OTLP Baseline (Logs)/400k - Test Duration        |
+| network_tx_bytes_rate_avg     | bytes/sec |      1.43798e+08 | DFE OTLP Baseline (Logs)/400k - Network Utilization  |
+| network_rx_bytes_rate_avg     | bytes/sec |      1.43671e+08 | DFE OTLP Baseline (Logs)/400k - Network Utilization  |
+| egress_bytes_per_log          | bytes/log |    348.795       | DFE OTLP Baseline (Logs)/400k - Egress Bytes Per Log |
+
+
+
+
+================================================================================
+DOCKER CONTAINER LOGS
+================================================================================
+
+================================================================================
+Component: load-generator
+Container ID: f45e22e54c86cd7a18a9795753adc7d1c7d49452267abc73ebb9d7ea7d8796fa
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 113.72 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T17:43:51.587Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=8, core_allocation=2-9]
+[2m2026-05-19T17:43:51.593Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:43:51.594Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.channels[0m: [num_connections=1, endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:43:51.594Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:43:51.594Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.channels[0m: [num_connections=1, endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:43:51.594Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:43:51.594Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:43:51.594Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:43:51.594Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.channels[0m: [num_connections=1, endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:43:51.594Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.channels[0m: [num_connections=1, endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:43:51.594Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.channels[0m: [num_connections=1, endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:43:51.594Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:43:51.594Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.channels[0m: [num_connections=1, endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:43:51.594Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:43:51.594Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.channels[0m: [num_connections=1, endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:43:51.595Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=9 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:43:51.595Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.channels[0m: [num_connections=1, endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=9 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:43:51.595Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+[2m2026-05-19T17:44:32.568Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T17:44:32.568Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T17:44:32.568Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=2, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T17:44:32.568Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=3, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T17:44:32.568Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=4, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T17:44:32.568Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=7, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T17:44:32.568Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=5, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T17:44:32.568Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=6, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T17:44:32.568Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=8, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T17:44:32.568Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=9, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T17:44:32.568Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:44:32.568Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:44:32.568Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:44:32.568Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:44:32.568Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=9 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:44:32.568Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:44:32.568Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:44:32.568Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:44:32.570Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:44:32.570Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:44:32.570Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:44:32.570Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:44:32.570Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:44:32.570Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:44:32.570Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:44:32.571Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=9 numa.node.id=0 process.instance.id=AGPECVR6EJ6CBP3VTHR52AQXJI host.id=f45e22e54c86 container.id=[0m
+[2m2026-05-19T17:44:32.669Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=101][35m[0m
+[2m2026-05-19T17:44:32.671Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T17:44:32.671Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T17:44:32.671Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=0][35m[0m
+
+================================================================================
+Component: df-engine
+Container ID: 5b481585d880f208403ad7dbb02036aab9eee40d7abb688141858662934c284b
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 113.77 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T17:43:50.284Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=1, core_allocation=0]
+[2m2026-05-19T17:43:50.287Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.start[0m: [grpc_endpoint=http://backend-service:1235][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPECVRZBR34HFFGZSPBOWP5AI host.id=5b481585d880 container.id=[0m
+[2m2026-05-19T17:43:50.287Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.channels[0m: [num_connections=1, endpoint=http://backend-service:1235][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPECVRZBR34HFFGZSPBOWP5AI host.id=5b481585d880 container.id=[0m
+[2m2026-05-19T17:43:50.287Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.receiver.grpc.start[0m: Starting OTLP gRPC receiver [endpoint=0.0.0.0:4317][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:otlp node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPECVRZBR34HFFGZSPBOWP5AI host.id=5b481585d880 container.id=[0m
+[2m2026-05-19T17:43:50.287Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+[2m2026-05-19T17:44:32.672Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T17:44:32.672Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T17:44:32.672Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=0, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T17:44:32.672Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.receiver.drain_ingress[0m[35m[0m
+[2m2026-05-19T17:44:32.672Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPECVRZBR34HFFGZSPBOWP5AI host.id=5b481585d880 container.id=[0m
+[2m2026-05-19T17:44:32.772Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=100][35m[0m
+
+================================================================================
+Component: backend-service
+Container ID: e6b02115133fa40c1f42816af6df3d383093e0761837488b1298ff94a7da1e9e
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 113.78 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T17:43:48.979Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=1, core_allocation=1]
+[2m2026-05-19T17:43:48.981Z[0m  [32mINFO [0m [1motap-df-core-nodes::perf_exporter.start[0m: Starting Perf Exporter [frequency_ms=500][35m entity/node.attrs: node.id=perf node.urn=urn:otel:exporter:perf node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=1 numa.node.id=0 process.instance.id=AGPECVRT6JZPBNSURRBKVPUSA4 host.id=e6b02115133f container.id=[0m
+[2m2026-05-19T17:43:48.981Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.receiver.grpc.start[0m: Starting OTLP gRPC receiver [endpoint=0.0.0.0:1235][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:otlp node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=1 numa.node.id=0 process.instance.id=AGPECVRT6JZPBNSURRBKVPUSA4 host.id=e6b02115133f container.id=[0m
+[2m2026-05-19T17:43:48.982Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+
+================================================================================
+END OF CONTAINER LOGS
+================================================================================
+[2026-05-19 17:45:15] INFO | ctx.type=- ctx.name=- | Starting Test: 1000k
+[2026-05-19 17:45:15] INFO | ctx.type=ScenarioContext ctx.name=1000k | Running 14 test steps...
+[2026-05-19 17:45:15] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/dfe_logs_otlp_none_baseline/20260519_174100/tests/1000k/backend-config.rendered.yaml
+[2026-05-19 17:45:15] INFO | ctx.type=StepContext ctx.name=Deploy Backend Engine | Executing main step action...
+[2026-05-19 17:45:17] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 17:45:17] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/dfe_logs_otlp_none_baseline/20260519_174100/tests/1000k/engine-config.rendered.yaml
+[2026-05-19 17:45:17] INFO | ctx.type=StepContext ctx.name=Deploy Dataflow Engine | Executing main step action...
+[2026-05-19 17:45:18] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 17:45:18] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/dfe_logs_otlp_none_baseline/20260519_174100/tests/1000k/loadgen-config.rendered.yaml
+[2026-05-19 17:45:18] INFO | ctx.type=StepContext ctx.name=Deploy Load Generator | Executing main step action...
+[2026-05-19 17:45:19] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 17:45:19] INFO | ctx.type=StepContext ctx.name=Monitor All | Executing main step action...
+[2026-05-19 17:45:19] INFO | ctx.type=StepContext ctx.name=Wait for data | Executing main step action...
+[2026-05-19 17:45:29] INFO | ctx.type=StepContext ctx.name=Observe Load | Executing main step action...
+[2026-05-19 17:45:49] INFO | ctx.type=StepContext ctx.name=Wait Before Drain | Executing main step action...
+[2026-05-19 17:45:59] INFO | ctx.type=StepContext ctx.name=Stop Load Generator | Executing main step action...
+[2026-05-19 17:45:59] INFO | ctx.type=StepContext ctx.name=Stop Engine | Executing main step action...
+[2026-05-19 17:45:59] INFO | ctx.type=StepContext ctx.name=Stop Backend | Executing main step action...
+[2026-05-19 17:45:59] INFO | ctx.type=StepContext ctx.name=Wait For Metrics Update | Executing main step action...
+[2026-05-19 17:46:00] INFO | ctx.type=StepContext ctx.name=Stop Monitoring All | Executing main step action...
+[2026-05-19 17:46:06] INFO | ctx.type=StepContext ctx.name=Destroy All | Executing main step action...
+[2026-05-19 17:46:37] INFO | ctx.type=StepContext ctx.name=Run Report | Executing main step action...
+
+# DF Engine 800k - DFE OTLP Baseline (Logs)
+
+## Table: metadata_filtered
+  
+**Description**: Information about the test suite and report.
+  
+| Attribute        | Value                                     |
+|:-----------------|:------------------------------------------|
+| test.suite.start | 2026-05-19T17:41:01.021478+00:00          |
+| test.suite       | DFE OTLP Baseline (Logs)                  |
+| test.step        | Run Report                                |
+| test.start       | 2026-05-19T17:43:48.660534+00:00          |
+| test.name        | 800k                                      |
+| report.type      | sql_report                                |
+| report.time      | 2026-05-19T17:45:10.494715+00:00          |
+| report.name      | DF Engine 800k - DFE OTLP Baseline (Logs) |
+| code.sha         | ed5022bc35724109c28a91eb172c976aafdaed19  |
+| code.dirty       | True                                      |
+| code.branch      | otel-arrow-otlphttp-compression           |
+
+
+## Table: send_receive_rates_by_core
+  
+**Description**: Core Specific increase and average rate of various send / receive metrics
+  
+| component_name   | metric_name   |   core_id |   total_increase |   average_rate |
+|:-----------------|:--------------|----------:|-----------------:|---------------:|
+| backend-service  | logs          |         1 |         1.52e+07 |         787206 |
+| load-generator   | logs_produced |         2 |         1.9e+06  |         100651 |
+| load-generator   | logs_produced |         3 |         1.9e+06  |         101101 |
+| load-generator   | logs_produced |         4 |         1.9e+06  |         101105 |
+| load-generator   | logs_produced |         5 |         1.8e+06  |          95915 |
+| load-generator   | logs_produced |         6 |         1.9e+06  |         101098 |
+| load-generator   | logs_produced |         7 |         1.8e+06  |         101120 |
+| load-generator   | logs_produced |         8 |         1.9e+06  |         100651 |
+| load-generator   | logs_produced |         9 |         1.8e+06  |          95915 |
+
+
+## Table: aggregate_send_receive_rates
+  
+**Description**: Cumulative increase and average rate of various send / receive metrics
+  
+| component_name   | metric_name   |   total_increase |   average_rate |
+|:-----------------|:--------------|-----------------:|---------------:|
+| load-generator   | logs_produced |         1.49e+07 |         797558 |
+| backend-service  | logs          |         1.52e+07 |         787206 |
+
+
+## Table: component_resource_metrics
+  
+**Description**: CPU and Memory metrics for the components in the Test Suite during the test.
+  
+| component_name   | metric_name            |   min_value |   avg_value |   max_value |
+|:-----------------|:-----------------------|------------:|------------:|------------:|
+| load-generator   | container.memory.usage | 8.22931e+08 | 8.26022e+08 | 8.35973e+08 |
+| load-generator   | container.cpu.usage    | 0.234083    | 0.238513    | 0.241971    |
+| df-engine        | container.cpu.usage    | 0.269065    | 0.274947    | 0.279096    |
+| df-engine        | container.memory.usage | 5.2994e+07  | 5.43347e+07 | 5.61275e+07 |
+| backend-service  | container.cpu.usage    | 0.520404    | 0.531653    | 0.544125    |
+| backend-service  | container.memory.usage | 4.95002e+07 | 5.05537e+07 | 5.16751e+07 |
+
+
+## Table: log_loss
+  
+**Description**: Lost logs (failed or sent but not received) total and as a percentage
+  
+|   logs_lost |   logs_lost_pct |
+|------------:|----------------:|
+|     -300000 |      -0.0201342 |
+
+
+## Table: log_throughput_rates
+  
+**Description**: Log throughput rates (logs/sec) calculated from total counts and observation window duration
+  
+| metric_name   |   total_increase |   logs_per_second |
+|:--------------|-----------------:|------------------:|
+| logs_produced |         1.49e+07 |            791061 |
+| logs          |         1.52e+07 |            785886 |
+
+
+## Table: gh_actions_benchmark
+  
+**Description**: The final metrics used with gh_actions_benchmark.
+  
+| name                          | unit      |            value | extra                                                |
+|:------------------------------|:----------|-----------------:|:-----------------------------------------------------|
+| dropped_logs_percentage       | %         |     -2.01342     | DFE OTLP Baseline (Logs)/800k - Dropped Logs %       |
+| cpu_percentage_normalized_avg | %         |     27.4947      | DFE OTLP Baseline (Logs)/800k - CPU % (Normalized)   |
+| cpu_percentage_normalized_max | %         |     27.9096      | DFE OTLP Baseline (Logs)/800k - CPU % (Normalized)   |
+| ram_mib_avg                   | MiB       |     51.8176      | DFE OTLP Baseline (Logs)/800k - RAM (MiB)            |
+| ram_mib_max                   | MiB       |     53.5273      | DFE OTLP Baseline (Logs)/800k - RAM (MiB)            |
+| logs_produced_rate            | logs/sec  | 791061           | DFE OTLP Baseline (Logs)/800k - Log Throughput       |
+| logs_received_rate            | logs/sec  | 785886           | DFE OTLP Baseline (Logs)/800k - Log Throughput       |
+| test_duration                 | seconds   |     20.0007      | DFE OTLP Baseline (Logs)/800k - Test Duration        |
+| network_tx_bytes_rate_avg     | bytes/sec |      2.88642e+08 | DFE OTLP Baseline (Logs)/800k - Network Utilization  |
+| network_rx_bytes_rate_avg     | bytes/sec |      2.88383e+08 | DFE OTLP Baseline (Logs)/800k - Network Utilization  |
+| egress_bytes_per_log          | bytes/log |    367.283       | DFE OTLP Baseline (Logs)/800k - Egress Bytes Per Log |
+
+
+
+
+================================================================================
+DOCKER CONTAINER LOGS
+================================================================================
+
+================================================================================
+Component: load-generator
+Container ID: c875e335723753ca66e129e1f6a8f86ce2536f3bf3b6094b85cd8f6b50481272
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 113.55 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T17:45:18.756Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=10, core_allocation=2-11]
+[2m2026-05-19T17:45:18.759Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:18.759Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.channels[0m: [num_connections=1, endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:18.761Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:18.761Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.channels[0m: [num_connections=1, endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:18.763Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:18.763Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.channels[0m: [num_connections=1, endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:18.764Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:18.764Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.channels[0m: [num_connections=1, endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:18.764Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:18.764Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.channels[0m: [num_connections=1, endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:18.764Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:18.764Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.channels[0m: [num_connections=1, endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:18.764Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=9 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:18.764Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.channels[0m: [num_connections=1, endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=9 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:18.765Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:18.765Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.channels[0m: [num_connections=1, endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:18.765Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=11 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:18.765Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.channels[0m: [num_connections=1, endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=11 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:18.765Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=10 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:18.765Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.channels[0m: [num_connections=1, endpoint=http://df-engine:4317][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=10 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:18.766Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+[2m2026-05-19T17:45:59.736Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T17:45:59.736Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T17:45:59.736Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=3, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T17:45:59.736Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=2, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T17:45:59.736Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=5, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T17:45:59.736Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=7, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T17:45:59.736Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=9, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T17:45:59.736Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=8, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T17:45:59.736Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=10, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T17:45:59.736Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=11, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T17:45:59.736Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=4, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T17:45:59.736Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=6, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T17:45:59.736Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:59.736Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:59.736Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:59.736Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:59.736Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:59.736Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=9 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:59.736Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=10 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:59.736Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=11 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:59.736Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:59.736Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:59.738Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:59.738Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:59.738Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:59.738Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=9 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:59.738Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:59.738Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=10 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:59.738Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:59.738Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=11 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:59.738Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:59.738Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPECV4SUN52HPF22Y2TSW3R4I host.id=c875e3357237 container.id=[0m
+[2m2026-05-19T17:45:59.837Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=101][35m[0m
+[2m2026-05-19T17:45:59.839Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T17:45:59.839Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T17:45:59.839Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=0][35m[0m
+
+================================================================================
+Component: df-engine
+Container ID: 950eba4d2da4f7813fb6b966761f3ba78461e4e6c982f2825d3fa496120cf05c
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 113.61 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T17:45:17.440Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=1, core_allocation=0]
+[2m2026-05-19T17:45:17.443Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.start[0m: [grpc_endpoint=http://backend-service:1235][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPECV4NP52ADNQ2GZDNSCTDTY host.id=950eba4d2da4 container.id=[0m
+[2m2026-05-19T17:45:17.443Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.channels[0m: [num_connections=1, endpoint=http://backend-service:1235][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPECV4NP52ADNQ2GZDNSCTDTY host.id=950eba4d2da4 container.id=[0m
+[2m2026-05-19T17:45:17.443Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.receiver.grpc.start[0m: Starting OTLP gRPC receiver [endpoint=0.0.0.0:4317][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:otlp node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPECV4NP52ADNQ2GZDNSCTDTY host.id=950eba4d2da4 container.id=[0m
+[2m2026-05-19T17:45:17.443Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+[2m2026-05-19T17:45:59.841Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T17:45:59.841Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T17:45:59.841Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=0, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T17:45:59.841Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.receiver.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:otlp node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPECV4NP52ADNQ2GZDNSCTDTY host.id=950eba4d2da4 container.id=[0m
+[2m2026-05-19T17:45:59.841Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:otlp_grpc node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPECV4NP52ADNQ2GZDNSCTDTY host.id=950eba4d2da4 container.id=[0m
+[2m2026-05-19T17:45:59.942Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=101][35m[0m
+
+================================================================================
+Component: backend-service
+Container ID: e1fb670fd35a343840b87217638d35ba0f703078a979334ac7c2cf303b90dcbc
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 113.60 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T17:45:16.126Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=1, core_allocation=1]
+[2m2026-05-19T17:45:16.129Z[0m  [32mINFO [0m [1motap-df-core-nodes::perf_exporter.start[0m: Starting Perf Exporter [frequency_ms=500][35m entity/node.attrs: node.id=perf node.urn=urn:otel:exporter:perf node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=1 numa.node.id=0 process.instance.id=AGPECV4ILZ7FDFPZN4C7TG63QQ host.id=e1fb670fd35a container.id=[0m
+[2m2026-05-19T17:45:16.129Z[0m  [32mINFO [0m [1motap-df-core-nodes::otlp.receiver.grpc.start[0m: Starting OTLP gRPC receiver [endpoint=0.0.0.0:1235][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:otlp node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=1 numa.node.id=0 process.instance.id=AGPECV4ILZ7FDFPZN4C7TG63QQ host.id=e1fb670fd35a container.id=[0m
+[2m2026-05-19T17:45:16.129Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+
+================================================================================
+END OF CONTAINER LOGS
+================================================================================
+
+# DF Engine 1000k - DFE OTLP Baseline (Logs)
+
+## Table: metadata_filtered
+  
+**Description**: Information about the test suite and report.
+  
+| Attribute        | Value                                      |
+|:-----------------|:-------------------------------------------|
+| test.suite.start | 2026-05-19T17:41:01.021478+00:00           |
+| test.suite       | DFE OTLP Baseline (Logs)                   |
+| test.step        | Run Report                                 |
+| test.start       | 2026-05-19T17:45:15.825556+00:00           |
+| test.name        | 1000k                                      |
+| report.type      | sql_report                                 |
+| report.time      | 2026-05-19T17:46:37.409804+00:00           |
+| report.name      | DF Engine 1000k - DFE OTLP Baseline (Logs) |
+| code.sha         | ed5022bc35724109c28a91eb172c976aafdaed19   |
+| code.dirty       | True                                       |
+| code.branch      | otel-arrow-otlphttp-compression            |
+
+
+## Table: send_receive_rates_by_core
+  
+**Description**: Core Specific increase and average rate of various send / receive metrics
+  
+| component_name   | metric_name   |   core_id |   total_increase |     average_rate |
+|:-----------------|:--------------|----------:|-----------------:|-----------------:|
+| backend-service  | logs          |         1 |       1.9996e+07 |      1.04291e+06 |
+| load-generator   | logs_produced |        10 |       1.901e+06  |  99119.4         |
+| load-generator   | logs_produced |        11 |       1.9e+06    |  98630.6         |
+| load-generator   | logs_produced |         2 |       1.9e+06    |  99119.9         |
+| load-generator   | logs_produced |         3 |       1.9e+06    | 103819           |
+| load-generator   | logs_produced |         4 |       1.997e+06  | 103188           |
+| load-generator   | logs_produced |         5 |       2e+06      | 104243           |
+| load-generator   | logs_produced |         6 |       1.9e+06    | 103830           |
+| load-generator   | logs_produced |         7 |       1.9e+06    |  98650.8         |
+| load-generator   | logs_produced |         8 |       1.9e+06    |  98630.6         |
+| load-generator   | logs_produced |         9 |       1.9e+06    |  98664.2         |
+
+
+## Table: aggregate_send_receive_rates
+  
+**Description**: Cumulative increase and average rate of various send / receive metrics
+  
+| component_name   | metric_name   |   total_increase |   average_rate |
+|:-----------------|:--------------|-----------------:|---------------:|
+| backend-service  | logs          |       1.9996e+07 |    1.04291e+06 |
+| load-generator   | logs_produced |       1.9198e+07 |    1.0079e+06  |
+
+
+## Table: component_resource_metrics
+  
+**Description**: CPU and Memory metrics for the components in the Test Suite during the test.
+  
+| component_name   | metric_name            |   min_value |   avg_value |   max_value |
+|:-----------------|:-----------------------|------------:|------------:|------------:|
+| load-generator   | container.cpu.usage    | 0.304248    | 0.309785    | 0.312847    |
+| load-generator   | container.memory.usage | 1.01917e+09 | 1.02366e+09 | 1.03274e+09 |
+| df-engine        | container.memory.usage | 6.44751e+07 | 6.64293e+07 | 6.95869e+07 |
+| df-engine        | container.cpu.usage    | 0.33678     | 0.342773    | 0.345778    |
+| backend-service  | container.cpu.usage    | 0.694406    | 0.698971    | 0.704735    |
+| backend-service  | container.memory.usage | 5.08068e+07 | 5.108e+07   | 5.15727e+07 |
+
+
+## Table: log_loss
+  
+**Description**: Lost logs (failed or sent but not received) total and as a percentage
+  
+|   logs_lost |   logs_lost_pct |
+|------------:|----------------:|
+|     -798000 |      -0.0415668 |
+
+
+## Table: log_throughput_rates
+  
+**Description**: Log throughput rates (logs/sec) calculated from total counts and observation window duration
+  
+| metric_name   |   total_increase |   logs_per_second |
+|:--------------|-----------------:|------------------:|
+| logs          |       1.9996e+07 |       1.04441e+06 |
+| logs_produced |       1.9198e+07 |       1.00243e+06 |
+
+
+## Table: gh_actions_benchmark
+  
+**Description**: The final metrics used with gh_actions_benchmark.
+  
+| name                          | unit      |         value | extra                                                 |
+|:------------------------------|:----------|--------------:|:------------------------------------------------------|
+| dropped_logs_percentage       | %         |  -4.15668     | DFE OTLP Baseline (Logs)/1000k - Dropped Logs %       |
+| cpu_percentage_normalized_avg | %         |  34.2773      | DFE OTLP Baseline (Logs)/1000k - CPU % (Normalized)   |
+| cpu_percentage_normalized_max | %         |  34.5778      | DFE OTLP Baseline (Logs)/1000k - CPU % (Normalized)   |
+| ram_mib_avg                   | MiB       |  63.352       | DFE OTLP Baseline (Logs)/1000k - RAM (MiB)            |
+| ram_mib_max                   | MiB       |  66.3633      | DFE OTLP Baseline (Logs)/1000k - RAM (MiB)            |
+| logs_produced_rate            | logs/sec  |   1.00243e+06 | DFE OTLP Baseline (Logs)/1000k - Log Throughput       |
+| logs_received_rate            | logs/sec  |   1.04441e+06 | DFE OTLP Baseline (Logs)/1000k - Log Throughput       |
+| test_duration                 | seconds   |  20.0006      | DFE OTLP Baseline (Logs)/1000k - Test Duration        |
+| network_tx_bytes_rate_avg     | bytes/sec |   3.60402e+08 | DFE OTLP Baseline (Logs)/1000k - Network Utilization  |
+| network_rx_bytes_rate_avg     | bytes/sec |   3.59884e+08 | DFE OTLP Baseline (Logs)/1000k - Network Utilization  |
+| egress_bytes_per_log          | bytes/log | 345.078       | DFE OTLP Baseline (Logs)/1000k - Egress Bytes Per Log |
+
+
+
+  Captured run env: .data/dfe_logs_otlp_none_baseline/20260519_174100/run_env.json
+  Environment:      INTEL(R) XEON(R) PLATINUM 8581C CPU @ 2.30GHz / x86_64 / 16 cores / 118 GiB / Debian GNU/Linux 12
+
+Publishing results...
+  Updated /home/jakedern/repos/otel-arrow/tools/comparison_dashboard/.site/data/suite/dfe_logs_otlp_none_baseline/suite.yaml
+  Updated /home/jakedern/repos/otel-arrow/tools/comparison_dashboard/.site/data/suite/dfe_logs_otlp_none_baseline/run_env.json
+  1000k: metrics.json from sql_report-df_engine_1000k_dfe_otlp_baseline_logs-20260519_174637.json
+  1000k: 5 files published
+  100k: metrics.json from sql_report-df_engine_100k_dfe_otlp_baseline_logs-20260519_174222.json
+  100k: 5 files published
+  400k: metrics.json from sql_report-df_engine_400k_dfe_otlp_baseline_logs-20260519_174345.json
+  400k: 5 files published
+  800k: metrics.json from sql_report-df_engine_800k_dfe_otlp_baseline_logs-20260519_174510.json
+  800k: 5 files published
+  Published to /home/jakedern/repos/otel-arrow/tools/comparison_dashboard/.site/data/suite/dfe_logs_otlp_none_baseline

@@ -1,0 +1,44 @@
+version: otel_dataflow/v1
+policies:
+  channel_capacity:
+    control:
+      pipeline: {{ default_pipeline_ctrl_msg_channel_size | default(100) }}
+      node: {{ default_node_ctrl_msg_channel_size | default(100) }}
+    pdata: {{ default_pdata_channel_size | default(100) }}
+  resources:
+    core_allocation:
+      type: core_set
+      set:
+        - start: {{core_start}}
+          end: {{core_end}}
+
+engine: {}
+
+groups:
+  default:
+    pipelines:
+      main:
+        nodes:
+          receiver:
+            type: "urn:otel:receiver:traffic_generator"
+            config:
+              data_source: semantic_conventions
+              generation_strategy: {{ generation_strategy | default("pre_generated") }}
+              traffic_config:
+                production_mode: {{ production_mode | default("smooth") }}
+                max_batch_size: {{ loadgen_max_batch_size | default(1000) }}
+                signals_per_second: {{ (signals_per_second | default(100000)) }}
+                # STEF is metrics-only in this PR; force metrics regardless of suite weights.
+                metric_weight: 100
+                trace_weight: 0
+                log_weight: 0
+
+          exporter:
+            type: "urn:otel:exporter:stef"
+            config:
+              grpc_endpoint: "http://{{ engine_hostname | default("localhost") }}:{{ exporter_port | default(4320) }}"
+              stef_compression: {{ compression_method | default("none") }}
+
+        connections:
+          - from: receiver
+            to: exporter

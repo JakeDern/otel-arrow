@@ -21,7 +21,7 @@ variables:
 # allowed set.
 meta:
   binary: [dfe, otc]
-  protocols: [otap, otlp, otlphttp]
+  protocols: [otap, otlp, otlphttp, stef]
   signals: [logs, metrics, traces]
   compression: [none, gzip, zstd]
 
@@ -79,6 +79,8 @@ suites:
   - suites/dfe/dfe-metrics-otlphttp-none-baseline.yaml
   - suites/dfe/dfe-metrics-otlphttp-gzip-baseline.yaml
   - suites/dfe/dfe-metrics-otlphttp-zstd-baseline.yaml
+  - suites/dfe/dfe-metrics-stef-none-baseline.yaml
+  - suites/dfe/dfe-metrics-stef-zstd-baseline.yaml
   - suites/dfe/dfe-traces-otap-none-baseline.yaml
   - suites/dfe/dfe-traces-otap-gzip-baseline.yaml
   - suites/dfe/dfe-traces-otap-zstd-baseline.yaml
@@ -102,6 +104,8 @@ suites:
   - suites/otc/otc-metrics-otlp-gzip-baseline.yaml
   - suites/otc/otc-metrics-otlp-zstd-baseline.yaml
   - suites/otc/otc-metrics-otlphttp-none-baseline.yaml
+  - suites/otc/otc-metrics-stef-none-baseline.yaml
+  - suites/otc/otc-metrics-stef-zstd-baseline.yaml
   - suites/otc/otc-traces-otap-none-baseline.yaml
   - suites/otc/otc-traces-otap-gzip-baseline.yaml
   - suites/otc/otc-traces-otap-zstd-baseline.yaml

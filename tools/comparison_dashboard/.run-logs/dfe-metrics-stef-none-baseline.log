@@ -1,0 +1,1166 @@
+Resolved 1 suite(s):
+  - /home/jakedern/repos/otel-arrow/tools/comparison_dashboard/suites/dfe/dfe-metrics-stef-none-baseline.yaml
+Publishing to: /home/jakedern/repos/otel-arrow/tools/comparison_dashboard/.site/data
+
+
+############################################################
+# [1/1] dfe-metrics-stef-none-baseline
+############################################################
+
+Suite:    DFE STEF Baseline (Metrics)
+Slug:     dfe_metrics_stef_none_baseline
+Binary:   dfe
+File:     /home/jakedern/repos/otel-arrow/tools/comparison_dashboard/suites/dfe/dfe-metrics-stef-none-baseline.yaml
+Template: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/orchestrator/dfe-single-core-multi-rate.yaml
+Staging:  .data/dfe_metrics_stef_none_baseline/20260519_212431
+
+Rendering orchestrator config...
+  Generated .data/dfe_metrics_stef_none_baseline/20260519_212431/orchestrator.yaml
+
+============================================================
+Running: /home/jakedern/repos/otel-arrow/.venv/bin/python ../pipeline_perf_test/orchestrator/run_orchestrator.py --config .data/dfe_metrics_stef_none_baseline/20260519_212431/orchestrator.yaml --tests 100k,400k,600k,800k,1000k
+Log:     .data/dfe_metrics_stef_none_baseline/20260519_212431/orchestrator.log
+============================================================
+
+[2026-05-19 21:24:32] INFO | ctx.type=- ctx.name=- | Starting Test: 100k
+[2026-05-19 21:24:32] INFO | ctx.type=ScenarioContext ctx.name=100k | Running 14 test steps...
+[2026-05-19 21:24:32] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/dfe_metrics_stef_none_baseline/20260519_212431/tests/100k/backend-config.rendered.yaml
+[2026-05-19 21:24:32] INFO | ctx.type=StepContext ctx.name=Deploy Backend Engine | Executing main step action...
+[2026-05-19 21:24:33] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 21:24:33] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/dfe_metrics_stef_none_baseline/20260519_212431/tests/100k/engine-config.rendered.yaml
+[2026-05-19 21:24:33] INFO | ctx.type=StepContext ctx.name=Deploy Dataflow Engine | Executing main step action...
+[2026-05-19 21:24:35] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 21:24:35] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/dfe_metrics_stef_none_baseline/20260519_212431/tests/100k/loadgen-config.rendered.yaml
+[2026-05-19 21:24:35] INFO | ctx.type=StepContext ctx.name=Deploy Load Generator | Executing main step action...
+[2026-05-19 21:24:36] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 21:24:36] INFO | ctx.type=StepContext ctx.name=Monitor All | Executing main step action...
+[2026-05-19 21:24:36] INFO | ctx.type=StepContext ctx.name=Wait for data | Executing main step action...
+[2026-05-19 21:24:46] INFO | ctx.type=StepContext ctx.name=Observe Load | Executing main step action...
+[2026-05-19 21:25:06] INFO | ctx.type=StepContext ctx.name=Wait Before Drain | Executing main step action...
+[2026-05-19 21:25:16] INFO | ctx.type=StepContext ctx.name=Stop Load Generator | Executing main step action...
+[2026-05-19 21:25:16] INFO | ctx.type=StepContext ctx.name=Stop Engine | Executing main step action...
+[2026-05-19 21:25:16] INFO | ctx.type=StepContext ctx.name=Stop Backend | Executing main step action...
+[2026-05-19 21:25:16] INFO | ctx.type=StepContext ctx.name=Wait For Metrics Update | Executing main step action...
+[2026-05-19 21:25:17] INFO | ctx.type=StepContext ctx.name=Stop Monitoring All | Executing main step action...
+[2026-05-19 21:25:22] INFO | ctx.type=StepContext ctx.name=Destroy All | Executing main step action...
+[2026-05-19 21:25:54] INFO | ctx.type=StepContext ctx.name=Run Report | Executing main step action...
+
+================================================================================
+DOCKER CONTAINER LOGS
+================================================================================
+
+================================================================================
+Component: load-generator
+Container ID: 1d2c3d330fbfac68be2eae57bbf522ff9a610958a3d5a2f67d2e99dfec091696
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 113.76 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:stef, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:stef, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T21:24:35.556Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=1, core_allocation=2]
+[2m2026-05-19T21:24:35.559Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEEICUMR7LHDNW4HYZWYLIYQ host.id=1d2c3d330fbf container.id=[0m
+[2m2026-05-19T21:24:35.559Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+[2m2026-05-19T21:25:16.541Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T21:25:16.541Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T21:25:16.541Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=2, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:25:16.541Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEEICUMR7LHDNW4HYZWYLIYQ host.id=1d2c3d330fbf container.id=[0m
+[2m2026-05-19T21:25:16.543Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEEICUMR7LHDNW4HYZWYLIYQ host.id=1d2c3d330fbf container.id=[0m
+[2m2026-05-19T21:25:16.642Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=101][35m[0m
+[2m2026-05-19T21:25:16.645Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T21:25:16.645Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T21:25:16.645Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=0][35m[0m
+
+================================================================================
+Component: df-engine
+Container ID: cee8576499b52e3968f7700c0354fb52ac796d3c118399ed5854e160bda40eb6
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 113.82 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:stef, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:stef, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T21:24:34.264Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=1, core_allocation=0]
+[2m2026-05-19T21:24:34.267Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://backend-service:1235, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPEEICPK57DDKPOKGE3XIE6NE host.id=cee8576499b5 container.id=[0m
+[2m2026-05-19T21:24:34.267Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.receiver.grpc.start[0m: Starting STEF gRPC receiver [endpoint=0.0.0.0:4320][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:stef node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPEEICPK57DDKPOKGE3XIE6NE host.id=cee8576499b5 container.id=[0m
+[2m2026-05-19T21:24:34.267Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+[2m2026-05-19T21:25:16.647Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T21:25:16.647Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T21:25:16.647Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=0, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:25:16.647Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.receiver.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:stef node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPEEICPK57DDKPOKGE3XIE6NE host.id=cee8576499b5 container.id=[0m
+[2m2026-05-19T21:25:16.647Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPEEICPK57DDKPOKGE3XIE6NE host.id=cee8576499b5 container.id=[0m
+[2m2026-05-19T21:25:16.748Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=101][35m[0m
+
+================================================================================
+Component: backend-service
+Container ID: c6bfd07788c7bde0ba3f11734a48bd480fd9aaf11fccaebba398117e8005a046
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 113.88 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:stef, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:stef, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T21:24:32.939Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=1, core_allocation=1]
+[2m2026-05-19T21:24:32.942Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+[2m2026-05-19T21:24:32.942Z[0m  [32mINFO [0m [1motap-df-core-nodes::perf_exporter.start[0m: Starting Perf Exporter [frequency_ms=500][35m entity/node.attrs: node.id=perf node.urn=urn:otel:exporter:perf node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=1 numa.node.id=0 process.instance.id=AGPEEICKFJ3MFK3NULPBFLGS7M host.id=c6bfd07788c7 container.id=[0m
+[2m2026-05-19T21:24:32.942Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.receiver.grpc.start[0m: Starting STEF gRPC receiver [endpoint=0.0.0.0:1235][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:stef node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=1 numa.node.id=0 process.instance.id=AGPEEICKFJ3MFK3NULPBFLGS7M host.id=c6bfd07788c7 container.id=[0m
+
+================================================================================
+END OF CONTAINER LOGS
+================================================================================
+[2026-05-19 21:25:55] INFO | ctx.type=- ctx.name=- | Starting Test: 400k
+[2026-05-19 21:25:55] INFO | ctx.type=ScenarioContext ctx.name=400k | Running 14 test steps...
+[2026-05-19 21:25:55] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/dfe_metrics_stef_none_baseline/20260519_212431/tests/400k/backend-config.rendered.yaml
+[2026-05-19 21:25:55] INFO | ctx.type=StepContext ctx.name=Deploy Backend Engine | Executing main step action...
+[2026-05-19 21:25:56] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 21:25:56] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/dfe_metrics_stef_none_baseline/20260519_212431/tests/400k/engine-config.rendered.yaml
+[2026-05-19 21:25:56] INFO | ctx.type=StepContext ctx.name=Deploy Dataflow Engine | Executing main step action...
+[2026-05-19 21:25:58] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 21:25:58] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/dfe_metrics_stef_none_baseline/20260519_212431/tests/400k/loadgen-config.rendered.yaml
+[2026-05-19 21:25:58] INFO | ctx.type=StepContext ctx.name=Deploy Load Generator | Executing main step action...
+[2026-05-19 21:25:59] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 21:25:59] INFO | ctx.type=StepContext ctx.name=Monitor All | Executing main step action...
+[2026-05-19 21:25:59] INFO | ctx.type=StepContext ctx.name=Wait for data | Executing main step action...
+[2026-05-19 21:26:09] INFO | ctx.type=StepContext ctx.name=Observe Load | Executing main step action...
+[2026-05-19 21:26:29] INFO | ctx.type=StepContext ctx.name=Wait Before Drain | Executing main step action...
+[2026-05-19 21:26:39] INFO | ctx.type=StepContext ctx.name=Stop Load Generator | Executing main step action...
+[2026-05-19 21:26:39] INFO | ctx.type=StepContext ctx.name=Stop Engine | Executing main step action...
+[2026-05-19 21:26:39] INFO | ctx.type=StepContext ctx.name=Stop Backend | Executing main step action...
+[2026-05-19 21:26:39] INFO | ctx.type=StepContext ctx.name=Wait For Metrics Update | Executing main step action...
+[2026-05-19 21:26:40] INFO | ctx.type=StepContext ctx.name=Stop Monitoring All | Executing main step action...
+[2026-05-19 21:26:45] INFO | ctx.type=StepContext ctx.name=Destroy All | Executing main step action...
+[2026-05-19 21:27:16] INFO | ctx.type=StepContext ctx.name=Run Report | Executing main step action...
+
+# DF Engine 100k - DFE STEF Baseline (Metrics)
+
+## Table: metadata_filtered
+  
+**Description**: Information about the test suite and report.
+  
+| Attribute        | Value                                        |
+|:-----------------|:---------------------------------------------|
+| test.suite.start | 2026-05-19T21:24:32.645698+00:00             |
+| test.suite       | DFE STEF Baseline (Metrics)                  |
+| test.step        | Run Report                                   |
+| test.start       | 2026-05-19T21:24:32.646466+00:00             |
+| test.name        | 100k                                         |
+| report.type      | sql_report                                   |
+| report.time      | 2026-05-19T21:25:54.286125+00:00             |
+| report.name      | DF Engine 100k - DFE STEF Baseline (Metrics) |
+| code.sha         | 6eafd2676d480c0c3d2671aafbb0fb44f5b2a587     |
+| code.dirty       | True                                         |
+| code.branch      | stef-benchmarks                              |
+
+
+## Table: send_receive_rates_by_core
+  
+**Description**: Core Specific increase and average rate of various send / receive metrics
+  
+| component_name   | metric_name      |   core_id |   total_increase |   average_rate |
+|:-----------------|:-----------------|----------:|-----------------:|---------------:|
+| backend-service  | metrics          |         1 |       1.6473e+06 |        86135.2 |
+| load-generator   | metrics_produced |         2 |       1.6473e+06 |        85793.7 |
+
+
+## Table: aggregate_send_receive_rates
+  
+**Description**: Cumulative increase and average rate of various send / receive metrics
+  
+| component_name   | metric_name      |   total_increase |   average_rate |
+|:-----------------|:-----------------|-----------------:|---------------:|
+| backend-service  | metrics          |       1.6473e+06 |        86135.2 |
+| load-generator   | metrics_produced |       1.6473e+06 |        85793.7 |
+
+
+## Table: component_resource_metrics
+  
+**Description**: CPU and Memory metrics for the components in the Test Suite during the test.
+  
+| component_name   | metric_name            |   min_value |   avg_value |   max_value |
+|:-----------------|:-----------------------|------------:|------------:|------------:|
+| load-generator   | container.cpu.usage    | 0.0734752   | 0.0753389   | 0.0772664   |
+| load-generator   | container.memory.usage | 1.22126e+08 | 1.22336e+08 | 1.22651e+08 |
+| df-engine        | container.memory.usage | 1.5362e+08  | 2.35796e+08 | 3.18497e+08 |
+| df-engine        | container.cpu.usage    | 0.101316    | 0.103212    | 0.1075      |
+| backend-service  | container.memory.usage | 1.55787e+08 | 2.38367e+08 | 3.19336e+08 |
+| backend-service  | container.cpu.usage    | 0.0597557   | 0.068327    | 0.112588    |
+
+
+## Table: metric_loss
+  
+**Description**: Lost metrics (failed or sent but not received) total and as a percentage
+  
+|   metrics_lost |   metrics_lost_pct |
+|---------------:|-------------------:|
+|              0 |                  0 |
+
+
+## Table: metric_throughput_rates
+  
+**Description**: Metric throughput rates (metrics/sec) calculated from total counts and observation window duration
+  
+| metric_name      |   total_increase |   metrics_per_second |
+|:-----------------|-----------------:|---------------------:|
+| metrics          |       1.6473e+06 |              86118.2 |
+| metrics_produced |       1.6473e+06 |              85666.5 |
+
+
+## Table: gh_actions_benchmark
+  
+**Description**: The final metrics used with gh_actions_benchmark.
+  
+| name                          | unit        |           value | extra                                                  |
+|:------------------------------|:------------|----------------:|:-------------------------------------------------------|
+| dropped_metrics_percentage    | %           |     0           | DFE STEF Baseline (Metrics)/100k - Dropped Metrics %   |
+| cpu_percentage_normalized_avg | %           |    10.3212      | DFE STEF Baseline (Metrics)/100k - CPU % (Normalized)  |
+| cpu_percentage_normalized_max | %           |    10.75        | DFE STEF Baseline (Metrics)/100k - CPU % (Normalized)  |
+| ram_mib_avg                   | MiB         |   224.873       | DFE STEF Baseline (Metrics)/100k - RAM (MiB)           |
+| ram_mib_max                   | MiB         |   303.742       | DFE STEF Baseline (Metrics)/100k - RAM (MiB)           |
+| metrics_produced_rate         | metrics/sec | 85666.5         | DFE STEF Baseline (Metrics)/100k - Metric Throughput   |
+| metrics_received_rate         | metrics/sec | 86118.2         | DFE STEF Baseline (Metrics)/100k - Metric Throughput   |
+| test_duration                 | seconds     |    20.0006      | DFE STEF Baseline (Metrics)/100k - Test Duration       |
+| network_tx_bytes_rate_avg     | bytes/sec   |     1.51015e+06 | DFE STEF Baseline (Metrics)/100k - Network Utilization |
+| network_rx_bytes_rate_avg     | bytes/sec   |     1.46938e+06 | DFE STEF Baseline (Metrics)/100k - Network Utilization |
+
+
+
+
+================================================================================
+DOCKER CONTAINER LOGS
+================================================================================
+
+================================================================================
+Component: load-generator
+Container ID: 52400937afe7dccbea39b5a956dfdf3a5b7786292eb3ea356c35b5f3b7304918
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 113.71 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:stef, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:stef, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T21:25:58.517Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=4, core_allocation=2-5]
+[2m2026-05-19T21:25:58.523Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEEIMYOR33HKQGER2F5IMFSE host.id=52400937afe7 container.id=[0m
+[2m2026-05-19T21:25:58.523Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEEIMYOR33HKQGER2F5IMFSE host.id=52400937afe7 container.id=[0m
+[2m2026-05-19T21:25:58.523Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEEIMYOR33HKQGER2F5IMFSE host.id=52400937afe7 container.id=[0m
+[2m2026-05-19T21:25:58.523Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEEIMYOR33HKQGER2F5IMFSE host.id=52400937afe7 container.id=[0m
+[2m2026-05-19T21:25:58.523Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+[2m2026-05-19T21:26:39.504Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T21:26:39.504Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T21:26:39.504Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=2, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:26:39.504Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=5, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:26:39.504Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=3, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:26:39.504Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=4, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:26:39.504Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEEIMYOR33HKQGER2F5IMFSE host.id=52400937afe7 container.id=[0m
+[2m2026-05-19T21:26:39.504Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEEIMYOR33HKQGER2F5IMFSE host.id=52400937afe7 container.id=[0m
+[2m2026-05-19T21:26:39.504Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEEIMYOR33HKQGER2F5IMFSE host.id=52400937afe7 container.id=[0m
+[2m2026-05-19T21:26:39.504Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEEIMYOR33HKQGER2F5IMFSE host.id=52400937afe7 container.id=[0m
+[2m2026-05-19T21:26:39.506Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEEIMYOR33HKQGER2F5IMFSE host.id=52400937afe7 container.id=[0m
+[2m2026-05-19T21:26:39.506Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEEIMYOR33HKQGER2F5IMFSE host.id=52400937afe7 container.id=[0m
+[2m2026-05-19T21:26:39.506Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEEIMYOR33HKQGER2F5IMFSE host.id=52400937afe7 container.id=[0m
+[2m2026-05-19T21:26:39.506Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEEIMYOR33HKQGER2F5IMFSE host.id=52400937afe7 container.id=[0m
+[2m2026-05-19T21:26:39.605Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=101][35m[0m
+[2m2026-05-19T21:26:39.607Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T21:26:39.607Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T21:26:39.607Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=0][35m[0m
+
+================================================================================
+Component: df-engine
+Container ID: 5ee4dfeb1a6522ecb2cea03d674d60773b838c54ad4ca9a2460dfab5f44abfff
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 113.76 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:stef, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:stef, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T21:25:57.165Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=1, core_allocation=0]
+[2m2026-05-19T21:25:57.168Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://backend-service:1235, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPEEIMTFR74DHCM6T7TWLVU3Q host.id=5ee4dfeb1a65 container.id=[0m
+[2m2026-05-19T21:25:57.168Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.receiver.grpc.start[0m: Starting STEF gRPC receiver [endpoint=0.0.0.0:4320][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:stef node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPEEIMTFR74DHCM6T7TWLVU3Q host.id=5ee4dfeb1a65 container.id=[0m
+[2m2026-05-19T21:25:57.168Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+[2m2026-05-19T21:26:39.608Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T21:26:39.608Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T21:26:39.738Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=0, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:26:39.738Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.receiver.drain_ingress[0m[35m[0m
+[2m2026-05-19T21:26:39.817Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPEEIMTFR74DHCM6T7TWLVU3Q host.id=5ee4dfeb1a65 container.id=[0m
+[2m2026-05-19T21:26:39.912Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=303][35m[0m
+
+================================================================================
+Component: backend-service
+Container ID: 9314ea3fad7f2e5c54481ac018c1b3d6f4440b7c089740378f78bf2115ceb113
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 113.78 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:stef, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:stef, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T21:25:55.828Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=1, core_allocation=1]
+[2m2026-05-19T21:25:55.830Z[0m  [32mINFO [0m [1motap-df-core-nodes::perf_exporter.start[0m: Starting Perf Exporter [frequency_ms=500][35m entity/node.attrs: node.id=perf node.urn=urn:otel:exporter:perf node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=1 numa.node.id=0 process.instance.id=AGPEEIMN6N2NHKAPZKICWQFPM4 host.id=9314ea3fad7f container.id=[0m
+[2m2026-05-19T21:25:55.830Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.receiver.grpc.start[0m: Starting STEF gRPC receiver [endpoint=0.0.0.0:1235][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:stef node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=1 numa.node.id=0 process.instance.id=AGPEEIMN6N2NHKAPZKICWQFPM4 host.id=9314ea3fad7f container.id=[0m
+[2m2026-05-19T21:25:55.830Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+
+================================================================================
+END OF CONTAINER LOGS
+================================================================================
+[2026-05-19 21:27:19] INFO | ctx.type=- ctx.name=- | Starting Test: 600k
+[2026-05-19 21:27:19] INFO | ctx.type=ScenarioContext ctx.name=600k | Running 14 test steps...
+[2026-05-19 21:27:19] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/dfe_metrics_stef_none_baseline/20260519_212431/tests/600k/backend-config.rendered.yaml
+[2026-05-19 21:27:19] INFO | ctx.type=StepContext ctx.name=Deploy Backend Engine | Executing main step action...
+[2026-05-19 21:27:20] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 21:27:20] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/dfe_metrics_stef_none_baseline/20260519_212431/tests/600k/engine-config.rendered.yaml
+[2026-05-19 21:27:20] INFO | ctx.type=StepContext ctx.name=Deploy Dataflow Engine | Executing main step action...
+[2026-05-19 21:27:22] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 21:27:22] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/dfe_metrics_stef_none_baseline/20260519_212431/tests/600k/loadgen-config.rendered.yaml
+[2026-05-19 21:27:22] INFO | ctx.type=StepContext ctx.name=Deploy Load Generator | Executing main step action...
+[2026-05-19 21:27:23] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 21:27:23] INFO | ctx.type=StepContext ctx.name=Monitor All | Executing main step action...
+[2026-05-19 21:27:23] INFO | ctx.type=StepContext ctx.name=Wait for data | Executing main step action...
+[2026-05-19 21:27:33] INFO | ctx.type=StepContext ctx.name=Observe Load | Executing main step action...
+[2026-05-19 21:27:53] INFO | ctx.type=StepContext ctx.name=Wait Before Drain | Executing main step action...
+[2026-05-19 21:28:03] INFO | ctx.type=StepContext ctx.name=Stop Load Generator | Executing main step action...
+[2026-05-19 21:28:03] INFO | ctx.type=StepContext ctx.name=Stop Engine | Executing main step action...
+[2026-05-19 21:28:04] INFO | ctx.type=StepContext ctx.name=Stop Backend | Executing main step action...
+[2026-05-19 21:28:04] INFO | ctx.type=StepContext ctx.name=Wait For Metrics Update | Executing main step action...
+[2026-05-19 21:28:05] INFO | ctx.type=StepContext ctx.name=Stop Monitoring All | Executing main step action...
+[2026-05-19 21:28:10] INFO | ctx.type=StepContext ctx.name=Destroy All | Executing main step action...
+[2026-05-19 21:28:41] INFO | ctx.type=StepContext ctx.name=Run Report | Executing main step action...
+
+# DF Engine 400k - DFE STEF Baseline (Metrics)
+
+## Table: metadata_filtered
+  
+**Description**: Information about the test suite and report.
+  
+| Attribute        | Value                                        |
+|:-----------------|:---------------------------------------------|
+| test.suite.start | 2026-05-19T21:24:32.645698+00:00             |
+| test.suite       | DFE STEF Baseline (Metrics)                  |
+| test.step        | Run Report                                   |
+| test.start       | 2026-05-19T21:25:55.488389+00:00             |
+| test.name        | 400k                                         |
+| report.type      | sql_report                                   |
+| report.time      | 2026-05-19T21:27:17.000187+00:00             |
+| report.name      | DF Engine 400k - DFE STEF Baseline (Metrics) |
+| code.sha         | 6eafd2676d480c0c3d2671aafbb0fb44f5b2a587     |
+| code.dirty       | True                                         |
+| code.branch      | stef-benchmarks                              |
+
+
+## Table: send_receive_rates_by_core
+  
+**Description**: Core Specific increase and average rate of various send / receive metrics
+  
+| component_name   | metric_name      |   core_id |   total_increase |   average_rate |
+|:-----------------|:-----------------|----------:|-----------------:|---------------:|
+| backend-service  | metrics          |         1 |       6.5892e+06 |       344264   |
+| load-generator   | metrics_produced |         2 |       1.6473e+06 |        84456.6 |
+| load-generator   | metrics_produced |         3 |       1.6473e+06 |        84503.6 |
+| load-generator   | metrics_produced |         4 |       1.734e+06  |        88788   |
+| load-generator   | metrics_produced |         5 |       1.6473e+06 |        84503.6 |
+
+
+## Table: aggregate_send_receive_rates
+  
+**Description**: Cumulative increase and average rate of various send / receive metrics
+  
+| component_name   | metric_name      |   total_increase |   average_rate |
+|:-----------------|:-----------------|-----------------:|---------------:|
+| load-generator   | metrics_produced |       6.6759e+06 |         342252 |
+| backend-service  | metrics          |       6.5892e+06 |         344264 |
+
+
+## Table: component_resource_metrics
+  
+**Description**: CPU and Memory metrics for the components in the Test Suite during the test.
+  
+| component_name   | metric_name            |   min_value |   avg_value |   max_value |
+|:-----------------|:-----------------------|------------:|------------:|------------:|
+| load-generator   | container.cpu.usage    | 0.310063    | 0.311536    | 0.313469    |
+| load-generator   | container.memory.usage | 3.40333e+08 | 3.40618e+08 | 3.42872e+08 |
+| df-engine        | container.memory.usage | 4.49782e+08 | 7.86713e+08 | 1.12463e+09 |
+| df-engine        | container.cpu.usage    | 0.415208    | 0.418815    | 0.436806    |
+| backend-service  | container.memory.usage | 4.43228e+08 | 7.63572e+08 | 1.08224e+09 |
+| backend-service  | container.cpu.usage    | 0.2456      | 0.274192    | 0.417065    |
+
+
+## Table: metric_loss
+  
+**Description**: Lost metrics (failed or sent but not received) total and as a percentage
+  
+|   metrics_lost |   metrics_lost_pct |
+|---------------:|-------------------:|
+|          86700 |           0.012987 |
+
+
+## Table: metric_throughput_rates
+  
+**Description**: Metric throughput rates (metrics/sec) calculated from total counts and observation window duration
+  
+| metric_name      |   total_increase |   metrics_per_second |
+|:-----------------|-----------------:|---------------------:|
+| metrics_produced |       6.6759e+06 |               341615 |
+| metrics          |       6.5892e+06 |               344237 |
+
+
+## Table: gh_actions_benchmark
+  
+**Description**: The final metrics used with gh_actions_benchmark.
+  
+| name                          | unit        |            value | extra                                                  |
+|:------------------------------|:------------|-----------------:|:-------------------------------------------------------|
+| dropped_metrics_percentage    | %           |      1.2987      | DFE STEF Baseline (Metrics)/400k - Dropped Metrics %   |
+| cpu_percentage_normalized_avg | %           |     41.8815      | DFE STEF Baseline (Metrics)/400k - CPU % (Normalized)  |
+| cpu_percentage_normalized_max | %           |     43.6806      | DFE STEF Baseline (Metrics)/400k - CPU % (Normalized)  |
+| ram_mib_avg                   | MiB         |    750.268       | DFE STEF Baseline (Metrics)/400k - RAM (MiB)           |
+| ram_mib_max                   | MiB         |   1072.54        | DFE STEF Baseline (Metrics)/400k - RAM (MiB)           |
+| metrics_produced_rate         | metrics/sec | 341615           | DFE STEF Baseline (Metrics)/400k - Metric Throughput   |
+| metrics_received_rate         | metrics/sec | 344237           | DFE STEF Baseline (Metrics)/400k - Metric Throughput   |
+| test_duration                 | seconds     |     20.0006      | DFE STEF Baseline (Metrics)/400k - Test Duration       |
+| network_tx_bytes_rate_avg     | bytes/sec   |      5.92053e+06 | DFE STEF Baseline (Metrics)/400k - Network Utilization |
+| network_rx_bytes_rate_avg     | bytes/sec   |      5.87742e+06 | DFE STEF Baseline (Metrics)/400k - Network Utilization |
+
+
+
+
+================================================================================
+DOCKER CONTAINER LOGS
+================================================================================
+
+================================================================================
+Component: load-generator
+Container ID: 4bd08824f5fc1ff71b0090ade58790a4fb490c5c51f771c6f840a5eca3a01733
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 113.60 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:stef, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:stef, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T21:27:22.595Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=6, core_allocation=2-7]
+[2m2026-05-19T21:27:22.601Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEEIXA4J5SHI6B536NDRZ3FQ host.id=4bd08824f5fc container.id=[0m
+[2m2026-05-19T21:27:22.601Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEEIXA4J5SHI6B536NDRZ3FQ host.id=4bd08824f5fc container.id=[0m
+[2m2026-05-19T21:27:22.601Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEEIXA4J5SHI6B536NDRZ3FQ host.id=4bd08824f5fc container.id=[0m
+[2m2026-05-19T21:27:22.601Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEEIXA4J5SHI6B536NDRZ3FQ host.id=4bd08824f5fc container.id=[0m
+[2m2026-05-19T21:27:22.601Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEEIXA4J5SHI6B536NDRZ3FQ host.id=4bd08824f5fc container.id=[0m
+[2m2026-05-19T21:27:22.602Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEEIXA4J5SHI6B536NDRZ3FQ host.id=4bd08824f5fc container.id=[0m
+[2m2026-05-19T21:27:22.602Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+[2m2026-05-19T21:28:03.582Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T21:28:03.582Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T21:28:03.582Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=2, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:28:03.582Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=3, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:28:03.582Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=4, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:28:03.582Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=7, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:28:03.582Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=6, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:28:03.582Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=5, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:28:03.582Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEEIXA4J5SHI6B536NDRZ3FQ host.id=4bd08824f5fc container.id=[0m
+[2m2026-05-19T21:28:03.582Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEEIXA4J5SHI6B536NDRZ3FQ host.id=4bd08824f5fc container.id=[0m
+[2m2026-05-19T21:28:03.582Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEEIXA4J5SHI6B536NDRZ3FQ host.id=4bd08824f5fc container.id=[0m
+[2m2026-05-19T21:28:03.582Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEEIXA4J5SHI6B536NDRZ3FQ host.id=4bd08824f5fc container.id=[0m
+[2m2026-05-19T21:28:03.582Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEEIXA4J5SHI6B536NDRZ3FQ host.id=4bd08824f5fc container.id=[0m
+[2m2026-05-19T21:28:03.582Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEEIXA4J5SHI6B536NDRZ3FQ host.id=4bd08824f5fc container.id=[0m
+[2m2026-05-19T21:28:03.584Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEEIXA4J5SHI6B536NDRZ3FQ host.id=4bd08824f5fc container.id=[0m
+[2m2026-05-19T21:28:03.584Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEEIXA4J5SHI6B536NDRZ3FQ host.id=4bd08824f5fc container.id=[0m
+[2m2026-05-19T21:28:03.584Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEEIXA4J5SHI6B536NDRZ3FQ host.id=4bd08824f5fc container.id=[0m
+[2m2026-05-19T21:28:03.584Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEEIXA4J5SHI6B536NDRZ3FQ host.id=4bd08824f5fc container.id=[0m
+[2m2026-05-19T21:28:03.584Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEEIXA4J5SHI6B536NDRZ3FQ host.id=4bd08824f5fc container.id=[0m
+[2m2026-05-19T21:28:03.585Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEEIXA4J5SHI6B536NDRZ3FQ host.id=4bd08824f5fc container.id=[0m
+[2m2026-05-19T21:28:03.683Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=101][35m[0m
+[2m2026-05-19T21:28:03.685Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T21:28:03.685Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T21:28:03.685Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=0][35m[0m
+
+================================================================================
+Component: df-engine
+Container ID: e2fdf8d47b75a82ffb74c683ed494030e7d60bac5472ca9deabcc666b13862be
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 113.65 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:stef, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:stef, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T21:27:21.303Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=1, core_allocation=0]
+[2m2026-05-19T21:27:21.305Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+[2m2026-05-19T21:27:21.305Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://backend-service:1235, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPEEIW32Z3QDASFEG7NWO64JQ host.id=e2fdf8d47b75 container.id=[0m
+[2m2026-05-19T21:27:21.305Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.receiver.grpc.start[0m: Starting STEF gRPC receiver [endpoint=0.0.0.0:4320][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:stef node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPEEIW32Z3QDASFEG7NWO64JQ host.id=e2fdf8d47b75 container.id=[0m
+[2m2026-05-19T21:28:03.687Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T21:28:03.687Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T21:28:03.997Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=0, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:28:03.997Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.receiver.drain_ingress[0m[35m[0m
+[2m2026-05-19T21:28:04.086Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPEEIW32Z3QDASFEG7NWO64JQ host.id=e2fdf8d47b75 container.id=[0m
+[2m2026-05-19T21:28:04.091Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=404][35m[0m
+
+================================================================================
+Component: backend-service
+Container ID: a2c588877259ac64a534703e8f790ceffdd36cbd4330081fee3849138dcf56d4
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 113.66 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:stef, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:stef, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T21:27:20.007Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=1, core_allocation=1]
+[2m2026-05-19T21:27:20.010Z[0m  [32mINFO [0m [1motap-df-core-nodes::perf_exporter.start[0m: Starting Perf Exporter [frequency_ms=500][35m entity/node.attrs: node.id=perf node.urn=urn:otel:exporter:perf node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=1 numa.node.id=0 process.instance.id=AGPEEIWWYZ4EBARXILOTEC6TXQ host.id=a2c588877259 container.id=[0m
+[2m2026-05-19T21:27:20.010Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.receiver.grpc.start[0m: Starting STEF gRPC receiver [endpoint=0.0.0.0:1235][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:stef node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=1 numa.node.id=0 process.instance.id=AGPEEIWWYZ4EBARXILOTEC6TXQ host.id=a2c588877259 container.id=[0m
+[2m2026-05-19T21:27:20.010Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+
+================================================================================
+END OF CONTAINER LOGS
+================================================================================
+[2026-05-19 21:28:45] INFO | ctx.type=- ctx.name=- | Starting Test: 800k
+[2026-05-19 21:28:45] INFO | ctx.type=ScenarioContext ctx.name=800k | Running 14 test steps...
+[2026-05-19 21:28:45] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/dfe_metrics_stef_none_baseline/20260519_212431/tests/800k/backend-config.rendered.yaml
+[2026-05-19 21:28:45] INFO | ctx.type=StepContext ctx.name=Deploy Backend Engine | Executing main step action...
+[2026-05-19 21:28:47] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 21:28:47] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/dfe_metrics_stef_none_baseline/20260519_212431/tests/800k/engine-config.rendered.yaml
+[2026-05-19 21:28:47] INFO | ctx.type=StepContext ctx.name=Deploy Dataflow Engine | Executing main step action...
+[2026-05-19 21:28:48] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 21:28:48] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/dfe_metrics_stef_none_baseline/20260519_212431/tests/800k/loadgen-config.rendered.yaml
+[2026-05-19 21:28:48] INFO | ctx.type=StepContext ctx.name=Deploy Load Generator | Executing main step action...
+[2026-05-19 21:28:49] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 21:28:49] INFO | ctx.type=StepContext ctx.name=Monitor All | Executing main step action...
+[2026-05-19 21:28:49] INFO | ctx.type=StepContext ctx.name=Wait for data | Executing main step action...
+[2026-05-19 21:28:59] INFO | ctx.type=StepContext ctx.name=Observe Load | Executing main step action...
+[2026-05-19 21:29:19] INFO | ctx.type=StepContext ctx.name=Wait Before Drain | Executing main step action...
+[2026-05-19 21:29:30] INFO | ctx.type=StepContext ctx.name=Stop Load Generator | Executing main step action...
+[2026-05-19 21:29:30] INFO | ctx.type=StepContext ctx.name=Stop Engine | Executing main step action...
+[2026-05-19 21:29:30] INFO | ctx.type=StepContext ctx.name=Stop Backend | Executing main step action...
+[2026-05-19 21:29:30] INFO | ctx.type=StepContext ctx.name=Wait For Metrics Update | Executing main step action...
+[2026-05-19 21:29:31] INFO | ctx.type=StepContext ctx.name=Stop Monitoring All | Executing main step action...
+[2026-05-19 21:29:36] INFO | ctx.type=StepContext ctx.name=Destroy All | Executing main step action...
+[2026-05-19 21:30:07] INFO | ctx.type=StepContext ctx.name=Run Report | Executing main step action...
+
+# DF Engine 600k - DFE STEF Baseline (Metrics)
+
+## Table: metadata_filtered
+  
+**Description**: Information about the test suite and report.
+  
+| Attribute        | Value                                        |
+|:-----------------|:---------------------------------------------|
+| test.suite.start | 2026-05-19T21:24:32.645698+00:00             |
+| test.suite       | DFE STEF Baseline (Metrics)                  |
+| test.step        | Run Report                                   |
+| test.start       | 2026-05-19T21:27:19.705493+00:00             |
+| test.name        | 600k                                         |
+| report.type      | sql_report                                   |
+| report.time      | 2026-05-19T21:28:41.277491+00:00             |
+| report.name      | DF Engine 600k - DFE STEF Baseline (Metrics) |
+| code.sha         | 6eafd2676d480c0c3d2671aafbb0fb44f5b2a587     |
+| code.dirty       | True                                         |
+| code.branch      | stef-benchmarks                              |
+
+
+## Table: send_receive_rates_by_core
+  
+**Description**: Core Specific increase and average rate of various send / receive metrics
+  
+| component_name   | metric_name      |   core_id |   total_increase |   average_rate |
+|:-----------------|:-----------------|----------:|-----------------:|---------------:|
+| backend-service  | metrics          |         1 |      9.88293e+06 |       517218   |
+| load-generator   | metrics_produced |         2 |      1.6473e+06  |        87424.1 |
+| load-generator   | metrics_produced |         3 |      1.6473e+06  |        87815.7 |
+| load-generator   | metrics_produced |         4 |      1.64643e+06 |        87385   |
+| load-generator   | metrics_produced |         5 |      1.6473e+06  |        87837.5 |
+| load-generator   | metrics_produced |         6 |      1.6473e+06  |        87817.1 |
+| load-generator   | metrics_produced |         7 |      1.6473e+06  |        87837.6 |
+
+
+## Table: aggregate_send_receive_rates
+  
+**Description**: Cumulative increase and average rate of various send / receive metrics
+  
+| component_name   | metric_name      |   total_increase |   average_rate |
+|:-----------------|:-----------------|-----------------:|---------------:|
+| load-generator   | metrics_produced |      9.88293e+06 |         526117 |
+| backend-service  | metrics          |      9.88293e+06 |         517218 |
+
+
+## Table: component_resource_metrics
+  
+**Description**: CPU and Memory metrics for the components in the Test Suite during the test.
+  
+| component_name   | metric_name            |   min_value |   avg_value |   max_value |
+|:-----------------|:-----------------------|------------:|------------:|------------:|
+| load-generator   | container.memory.usage | 4.50413e+08 | 4.51263e+08 | 4.56704e+08 |
+| load-generator   | container.cpu.usage    | 0.467753    | 0.474695    | 0.51117     |
+| df-engine        | container.cpu.usage    | 0.622836    | 0.663329    | 0.868221    |
+| df-engine        | container.memory.usage | 5.98397e+08 | 1.09465e+09 | 1.59484e+09 |
+| backend-service  | container.memory.usage | 6.02771e+08 | 1.11428e+09 | 1.56127e+09 |
+| backend-service  | container.cpu.usage    | 0.30152     | 0.364889    | 0.422443    |
+
+
+## Table: metric_loss
+  
+**Description**: Lost metrics (failed or sent but not received) total and as a percentage
+  
+|   metrics_lost |   metrics_lost_pct |
+|---------------:|-------------------:|
+|              0 |                  0 |
+
+
+## Table: metric_throughput_rates
+  
+**Description**: Metric throughput rates (metrics/sec) calculated from total counts and observation window duration
+  
+| metric_name      |   total_increase |   metrics_per_second |
+|:-----------------|-----------------:|---------------------:|
+| metrics_produced |      9.88293e+06 |               528534 |
+| metrics          |      9.88293e+06 |               517218 |
+
+
+## Table: gh_actions_benchmark
+  
+**Description**: The final metrics used with gh_actions_benchmark.
+  
+| name                          | unit        |            value | extra                                                  |
+|:------------------------------|:------------|-----------------:|:-------------------------------------------------------|
+| dropped_metrics_percentage    | %           |      0           | DFE STEF Baseline (Metrics)/600k - Dropped Metrics %   |
+| cpu_percentage_normalized_avg | %           |     66.3329      | DFE STEF Baseline (Metrics)/600k - CPU % (Normalized)  |
+| cpu_percentage_normalized_max | %           |     86.8221      | DFE STEF Baseline (Metrics)/600k - CPU % (Normalized)  |
+| ram_mib_avg                   | MiB         |   1043.94        | DFE STEF Baseline (Metrics)/600k - RAM (MiB)           |
+| ram_mib_max                   | MiB         |   1520.96        | DFE STEF Baseline (Metrics)/600k - RAM (MiB)           |
+| metrics_produced_rate         | metrics/sec | 528534           | DFE STEF Baseline (Metrics)/600k - Metric Throughput   |
+| metrics_received_rate         | metrics/sec | 517218           | DFE STEF Baseline (Metrics)/600k - Metric Throughput   |
+| test_duration                 | seconds     |     20.0006      | DFE STEF Baseline (Metrics)/600k - Test Duration       |
+| network_tx_bytes_rate_avg     | bytes/sec   |      8.83764e+06 | DFE STEF Baseline (Metrics)/600k - Network Utilization |
+| network_rx_bytes_rate_avg     | bytes/sec   |      8.79318e+06 | DFE STEF Baseline (Metrics)/600k - Network Utilization |
+
+
+
+
+================================================================================
+DOCKER CONTAINER LOGS
+================================================================================
+
+================================================================================
+Component: load-generator
+Container ID: 6d864c6717055267a225ff4c6d15c9b7ed788618770c9d08b36fc661670a3b9d
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 113.50 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:stef, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:stef, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T21:28:48.860Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=8, core_allocation=2-9]
+[2m2026-05-19T21:28:48.866Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEEJBR3R3BBPAD2YQ5CQMPOQ host.id=6d864c671705 container.id=[0m
+[2m2026-05-19T21:28:48.866Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEEJBR3R3BBPAD2YQ5CQMPOQ host.id=6d864c671705 container.id=[0m
+[2m2026-05-19T21:28:48.866Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEEJBR3R3BBPAD2YQ5CQMPOQ host.id=6d864c671705 container.id=[0m
+[2m2026-05-19T21:28:48.866Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEEJBR3R3BBPAD2YQ5CQMPOQ host.id=6d864c671705 container.id=[0m
+[2m2026-05-19T21:28:48.866Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEEJBR3R3BBPAD2YQ5CQMPOQ host.id=6d864c671705 container.id=[0m
+[2m2026-05-19T21:28:48.866Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEEJBR3R3BBPAD2YQ5CQMPOQ host.id=6d864c671705 container.id=[0m
+[2m2026-05-19T21:28:48.867Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=9 numa.node.id=0 process.instance.id=AGPEEJBR3R3BBPAD2YQ5CQMPOQ host.id=6d864c671705 container.id=[0m
+[2m2026-05-19T21:28:48.867Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPEEJBR3R3BBPAD2YQ5CQMPOQ host.id=6d864c671705 container.id=[0m
+[2m2026-05-19T21:28:48.868Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+[2m2026-05-19T21:29:29.943Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T21:29:29.943Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T21:29:29.943Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=2, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:29:29.946Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=3, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:29:29.946Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=5, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:29:29.946Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=4, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:29:29.946Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=7, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:29:29.946Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=8, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:29:29.946Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=9, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:29:29.946Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=6, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:29:29.943Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m[0m
+[2m2026-05-19T21:29:29.943Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m[0m
+[2m2026-05-19T21:29:29.943Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m[0m
+[2m2026-05-19T21:29:29.943Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m[0m
+[2m2026-05-19T21:29:29.943Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m[0m
+[2m2026-05-19T21:29:29.943Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m[0m
+[2m2026-05-19T21:29:29.943Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m[0m
+[2m2026-05-19T21:29:29.943Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m[0m
+[2m2026-05-19T21:29:30.146Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEEJBR3R3BBPAD2YQ5CQMPOQ host.id=6d864c671705 container.id=[0m
+[2m2026-05-19T21:29:30.228Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPEEJBR3R3BBPAD2YQ5CQMPOQ host.id=6d864c671705 container.id=[0m
+[2m2026-05-19T21:29:30.308Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=9 numa.node.id=0 process.instance.id=AGPEEJBR3R3BBPAD2YQ5CQMPOQ host.id=6d864c671705 container.id=[0m
+[2m2026-05-19T21:29:30.389Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEEJBR3R3BBPAD2YQ5CQMPOQ host.id=6d864c671705 container.id=[0m
+[2m2026-05-19T21:29:30.471Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEEJBR3R3BBPAD2YQ5CQMPOQ host.id=6d864c671705 container.id=[0m
+[2m2026-05-19T21:29:30.551Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEEJBR3R3BBPAD2YQ5CQMPOQ host.id=6d864c671705 container.id=[0m
+[2m2026-05-19T21:29:30.633Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEEJBR3R3BBPAD2YQ5CQMPOQ host.id=6d864c671705 container.id=[0m
+[2m2026-05-19T21:29:30.719Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEEJBR3R3BBPAD2YQ5CQMPOQ host.id=6d864c671705 container.id=[0m
+[2m2026-05-19T21:29:30.752Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=809][35m[0m
+[2m2026-05-19T21:29:30.754Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T21:29:30.754Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T21:29:30.754Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=0][35m[0m
+
+================================================================================
+Component: df-engine
+Container ID: 0a2ecb7eb0b3f438981b8cae07943c0a407ac83a55e4554758dfbaf71e9313bc
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 113.54 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:stef, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:stef, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T21:28:47.569Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=1, core_allocation=0]
+[2m2026-05-19T21:28:47.571Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://backend-service:1235, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPEEJBM2BY6HP5U6RXM23H7CE host.id=0a2ecb7eb0b3 container.id=[0m
+[2m2026-05-19T21:28:47.571Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.receiver.grpc.start[0m: Starting STEF gRPC receiver [endpoint=0.0.0.0:4320][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:stef node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPEEJBM2BY6HP5U6RXM23H7CE host.id=0a2ecb7eb0b3 container.id=[0m
+[2m2026-05-19T21:28:47.572Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+[2m2026-05-19T21:29:30.755Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T21:29:30.755Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T21:29:30.801Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=0, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:29:30.801Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.receiver.drain_ingress[0m[35m[0m
+[2m2026-05-19T21:29:30.893Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPEEJBM2BY6HP5U6RXM23H7CE host.id=0a2ecb7eb0b3 container.id=[0m
+[2m2026-05-19T21:29:30.958Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=202][35m[0m
+
+================================================================================
+Component: backend-service
+Container ID: e871bf7c258968ffb1e059946f4a3386de0bd88ab73a82e2bc5377780c936386
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 113.54 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:stef, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:stef, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T21:28:46.300Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=1, core_allocation=1]
+[2m2026-05-19T21:28:46.303Z[0m  [32mINFO [0m [1motap-df-core-nodes::perf_exporter.start[0m: Starting Perf Exporter [frequency_ms=500][35m entity/node.attrs: node.id=perf node.urn=urn:otel:exporter:perf node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=1 numa.node.id=0 process.instance.id=AGPEEJBH3N6DHG3A5RSHIXWWDQ host.id=e871bf7c2589 container.id=[0m
+[2m2026-05-19T21:28:46.303Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.receiver.grpc.start[0m: Starting STEF gRPC receiver [endpoint=0.0.0.0:1235][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:stef node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=1 numa.node.id=0 process.instance.id=AGPEEJBH3N6DHG3A5RSHIXWWDQ host.id=e871bf7c2589 container.id=[0m
+[2m2026-05-19T21:28:46.303Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+
+================================================================================
+END OF CONTAINER LOGS
+================================================================================
+[2026-05-19 21:30:14] INFO | ctx.type=- ctx.name=- | Starting Test: 1000k
+[2026-05-19 21:30:14] INFO | ctx.type=ScenarioContext ctx.name=1000k | Running 14 test steps...
+[2026-05-19 21:30:14] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/dfe_metrics_stef_none_baseline/20260519_212431/tests/1000k/backend-config.rendered.yaml
+[2026-05-19 21:30:14] INFO | ctx.type=StepContext ctx.name=Deploy Backend Engine | Executing main step action...
+[2026-05-19 21:30:16] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 21:30:16] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/dfe_metrics_stef_none_baseline/20260519_212431/tests/1000k/engine-config.rendered.yaml
+[2026-05-19 21:30:16] INFO | ctx.type=StepContext ctx.name=Deploy Dataflow Engine | Executing main step action...
+[2026-05-19 21:30:17] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 21:30:17] INFO | ctx.type=FrameworkElementHookContext ctx.name=RenderTemplateHook (pre_run) | Rendered template saved to .data/dfe_metrics_stef_none_baseline/20260519_212431/tests/1000k/loadgen-config.rendered.yaml
+[2026-05-19 21:30:17] INFO | ctx.type=StepContext ctx.name=Deploy Load Generator | Executing main step action...
+[2026-05-19 21:30:18] INFO | ctx.type=FrameworkElementHookContext ctx.name=ReadyCheckHttpHook (post_run) | Ready check passed on attempt 2
+[2026-05-19 21:30:18] INFO | ctx.type=StepContext ctx.name=Monitor All | Executing main step action...
+[2026-05-19 21:30:18] INFO | ctx.type=StepContext ctx.name=Wait for data | Executing main step action...
+[2026-05-19 21:30:28] INFO | ctx.type=StepContext ctx.name=Observe Load | Executing main step action...
+[2026-05-19 21:30:48] INFO | ctx.type=StepContext ctx.name=Wait Before Drain | Executing main step action...
+[2026-05-19 21:31:00] INFO | ctx.type=StepContext ctx.name=Stop Load Generator | Executing main step action...
+[2026-05-19 21:31:00] INFO | ctx.type=StepContext ctx.name=Stop Engine | Executing main step action...
+[2026-05-19 21:31:00] INFO | ctx.type=StepContext ctx.name=Stop Backend | Executing main step action...
+[2026-05-19 21:31:00] INFO | ctx.type=StepContext ctx.name=Wait For Metrics Update | Executing main step action...
+[2026-05-19 21:31:01] INFO | ctx.type=StepContext ctx.name=Stop Monitoring All | Executing main step action...
+[2026-05-19 21:31:05] INFO | ctx.type=StepContext ctx.name=Destroy All | Executing main step action...
+[2026-05-19 21:31:36] INFO | ctx.type=StepContext ctx.name=Run Report | Executing main step action...
+
+# DF Engine 800k - DFE STEF Baseline (Metrics)
+
+## Table: metadata_filtered
+  
+**Description**: Information about the test suite and report.
+  
+| Attribute        | Value                                        |
+|:-----------------|:---------------------------------------------|
+| test.suite.start | 2026-05-19T21:24:32.645698+00:00             |
+| test.suite       | DFE STEF Baseline (Metrics)                  |
+| test.step        | Run Report                                   |
+| test.start       | 2026-05-19T21:28:45.983968+00:00             |
+| test.name        | 800k                                         |
+| report.type      | sql_report                                   |
+| report.time      | 2026-05-19T21:30:07.720505+00:00             |
+| report.name      | DF Engine 800k - DFE STEF Baseline (Metrics) |
+| code.sha         | 6eafd2676d480c0c3d2671aafbb0fb44f5b2a587     |
+| code.dirty       | True                                         |
+| code.branch      | stef-benchmarks                              |
+
+
+## Table: send_receive_rates_by_core
+  
+**Description**: Core Specific increase and average rate of various send / receive metrics
+  
+| component_name   | metric_name      |   core_id |   total_increase |   average_rate |
+|:-----------------|:-----------------|----------:|-----------------:|---------------:|
+| backend-service  | metrics          |         1 |      1.25438e+07 |       651031   |
+| load-generator   | metrics_produced |         2 |      1.62649e+06 |        85816.2 |
+| load-generator   | metrics_produced |         3 |      1.62649e+06 |        85816.2 |
+| load-generator   | metrics_produced |         4 |      1.62562e+06 |        85775.6 |
+| load-generator   | metrics_produced |         5 |      1.62649e+06 |        85826.7 |
+| load-generator   | metrics_produced |         6 |      1.62476e+06 |        85323.7 |
+| load-generator   | metrics_produced |         7 |      1.53979e+06 |        85397   |
+| load-generator   | metrics_produced |         8 |      1.62389e+06 |        85685.6 |
+| load-generator   | metrics_produced |         9 |      1.62476e+06 |        85705.1 |
+
+
+## Table: aggregate_send_receive_rates
+  
+**Description**: Cumulative increase and average rate of various send / receive metrics
+  
+| component_name   | metric_name      |   total_increase |   average_rate |
+|:-----------------|:-----------------|-----------------:|---------------:|
+| load-generator   | metrics_produced |      1.29183e+07 |         685346 |
+| backend-service  | metrics          |      1.25438e+07 |         651031 |
+
+
+## Table: component_resource_metrics
+  
+**Description**: CPU and Memory metrics for the components in the Test Suite during the test.
+  
+| component_name   | metric_name            |   min_value |   avg_value |   max_value |
+|:-----------------|:-----------------------|------------:|------------:|------------:|
+| load-generator   | container.memory.usage | 5.8477e+08  | 5.86274e+08 | 5.93887e+08 |
+| load-generator   | container.cpu.usage    | 0.206598    | 0.598774    | 0.723481    |
+| df-engine        | container.cpu.usage    | 0.200302    | 0.791984    | 0.944122    |
+| df-engine        | container.memory.usage | 8.12646e+08 | 1.4403e+09  | 2.04034e+09 |
+| backend-service  | container.memory.usage | 8.08284e+08 | 1.42854e+09 | 2.02944e+09 |
+| backend-service  | container.cpu.usage    | 0.306255    | 0.4885      | 0.555334    |
+
+
+## Table: metric_loss
+  
+**Description**: Lost metrics (failed or sent but not received) total and as a percentage
+  
+|   metrics_lost |   metrics_lost_pct |
+|---------------:|-------------------:|
+|         374544 |          0.0289933 |
+
+
+## Table: metric_throughput_rates
+  
+**Description**: Metric throughput rates (metrics/sec) calculated from total counts and observation window duration
+  
+| metric_name      |   total_increase |   metrics_per_second |
+|:-----------------|-----------------:|---------------------:|
+| metrics_produced |      1.29183e+07 |               682891 |
+| metrics          |      1.25438e+07 |               649009 |
+
+
+## Table: gh_actions_benchmark
+  
+**Description**: The final metrics used with gh_actions_benchmark.
+  
+| name                          | unit        |            value | extra                                                  |
+|:------------------------------|:------------|-----------------:|:-------------------------------------------------------|
+| dropped_metrics_percentage    | %           |      2.89933     | DFE STEF Baseline (Metrics)/800k - Dropped Metrics %   |
+| cpu_percentage_normalized_avg | %           |     79.1984      | DFE STEF Baseline (Metrics)/800k - CPU % (Normalized)  |
+| cpu_percentage_normalized_max | %           |     94.4122      | DFE STEF Baseline (Metrics)/800k - CPU % (Normalized)  |
+| ram_mib_avg                   | MiB         |   1373.58        | DFE STEF Baseline (Metrics)/800k - RAM (MiB)           |
+| ram_mib_max                   | MiB         |   1945.82        | DFE STEF Baseline (Metrics)/800k - RAM (MiB)           |
+| metrics_produced_rate         | metrics/sec | 682891           | DFE STEF Baseline (Metrics)/800k - Metric Throughput   |
+| metrics_received_rate         | metrics/sec | 649009           | DFE STEF Baseline (Metrics)/800k - Metric Throughput   |
+| test_duration                 | seconds     |     20.0006      | DFE STEF Baseline (Metrics)/800k - Test Duration       |
+| network_tx_bytes_rate_avg     | bytes/sec   |      1.12294e+07 | DFE STEF Baseline (Metrics)/800k - Network Utilization |
+| network_rx_bytes_rate_avg     | bytes/sec   |      1.11829e+07 | DFE STEF Baseline (Metrics)/800k - Network Utilization |
+
+
+
+
+================================================================================
+DOCKER CONTAINER LOGS
+================================================================================
+
+================================================================================
+Component: load-generator
+Container ID: 9e76ffff01f8338211b01d7f3abd2662ccdecb5ab2e75ec3c73d7c2bf114416b
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 113.33 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:stef, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:stef, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T21:30:17.907Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=10, core_allocation=2-11]
+[2m2026-05-19T21:30:17.915Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=9 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS456RNYB7P4 host.id=9e76ffff01f8 container.id=[0m
+[2m2026-05-19T21:30:17.915Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS456RNYB7P4 host.id=9e76ffff01f8 container.id=[0m
+[2m2026-05-19T21:30:17.915Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS456RNYB7P4 host.id=9e76ffff01f8 container.id=[0m
+[2m2026-05-19T21:30:17.915Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS456RNYB7P4 host.id=9e76ffff01f8 container.id=[0m
+[2m2026-05-19T21:30:17.915Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS456RNYB7P4 host.id=9e76ffff01f8 container.id=[0m
+[2m2026-05-19T21:30:17.915Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS456RNYB7P4 host.id=9e76ffff01f8 container.id=[0m
+[2m2026-05-19T21:30:17.915Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS456RNYB7P4 host.id=9e76ffff01f8 container.id=[0m
+[2m2026-05-19T21:30:17.916Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=10 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS456RNYB7P4 host.id=9e76ffff01f8 container.id=[0m
+[2m2026-05-19T21:30:17.916Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS456RNYB7P4 host.id=9e76ffff01f8 container.id=[0m
+[2m2026-05-19T21:30:17.916Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://df-engine:4320, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=11 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS456RNYB7P4 host.id=9e76ffff01f8 container.id=[0m
+[2m2026-05-19T21:30:17.917Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+[2m2026-05-19T21:30:20.071Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=1, remaining_items=867][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS45[2m2026-05-19T21:30:30.051Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=2, remaining_items=1734][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:30.072Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=5, remaining_items=4335][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:30.126Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=9, remaining_items=7803][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=9 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:30.193Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=12, remaining_items=10404][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:30.233Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=13, remaining_items=11271][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=11 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBM[2m2026-05-19T21:30:30.273Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=12, remaining_items=10404][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:30.314Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=12, remaining_items=10404][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:30.354Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=13, remaining_items=11271][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:30.392Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=13, remaining_items=11271][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:30.431Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=13, remaining_items=11271][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=10 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBM[2m2026-05-19T21:30:31.193Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=6, remaining_items=5202][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:31.232Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=5, remaining_items=4335][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=11 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS[2m2026-05-19T21:30:31.271Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=6, remaining_items=5202][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:31.312Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=6, remaining_items=5202][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:31.352Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=5, remaining_items=4335][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:31.429Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=5, remaining_items=4335][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=10 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS[2m2026-05-19T21:30:32.232Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=8, remaining_items=6936][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=11 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS[2m2026-05-19T21:30:32.272Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=8, remaining_items=6936][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:32.313Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=8, remaining_items=6936][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:32.353Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=8, remaining_items=6936][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:32.431Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=10, remaining_items=8670][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=10 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:33.234Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=30, remaining_items=26010][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=11 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBM[2m2026-05-19T21:30:33.274Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=30, remaining_items=26010][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:33.315Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=30, remaining_items=26010][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:33.356Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=30, remaining_items=26010][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:34.231Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=4, remaining_items=3468][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=11 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS[2m2026-05-19T21:30:34.272Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=4, remaining_items=3468][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:34.313Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=4, remaining_items=3468][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:34.353Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=4, remaining_items=3468][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:35.232Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=9, remaining_items=7803][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=11 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS[2m2026-05-19T21:30:35.272Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=9, remaining_items=7803][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:35.313Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=9, remaining_items=7803][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:35.353Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=9, remaining_items=7803][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:36.232Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=6, remaining_items=5202][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=11 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS[2m2026-05-19T21:30:36.272Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=6, remaining_items=5202][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:36.312Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=6, remaining_items=5202][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:36.352Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=7, remaining_items=6069][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:37.232Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=7, remaining_items=6069][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=11 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS[2m2026-05-19T21:30:37.271Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=6, remaining_items=5202][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:37.312Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=6, remaining_items=5202][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:37.353Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=6, remaining_items=5202][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:38.272Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=7, remaining_items=6069][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:38.313Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=8, remaining_items=6936][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:38.353Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=7, remaining_items=6069][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:39.272Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=6, remaining_items=5202][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:39.353Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=5, remaining_items=4335][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:40.272Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=6, remaining_items=5202][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:40.353Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=6, remaining_items=5202][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:41.055Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=35, remaining_items=30345][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:41.077Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=37, remaining_items=32079][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:41.130Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=42, remaining_items=36414][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=9 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:41.196Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=37, remaining_items=32079][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:41.278Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=56, remaining_items=48552][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:41.360Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=65, remaining_items=56355][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:41.397Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=68, remaining_items=58956][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:41.435Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=53, remaining_items=45951][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=10 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBM[2m2026-05-19T21:30:43.231Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=4, remaining_items=3468][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=11 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS[2m2026-05-19T21:30:44.231Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=5, remaining_items=4335][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=11 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS[2m2026-05-19T21:30:44.313Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=3, remaining_items=2601][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:45.232Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=8, remaining_items=6936][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=11 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS[2m2026-05-19T21:30:45.313Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=8, remaining_items=6936][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:46.232Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=7, remaining_items=6069][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=11 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS[2m2026-05-19T21:30:46.272Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=3, remaining_items=2601][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:46.313Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=12, remaining_items=10404][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:46.353Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=8, remaining_items=6936][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:46.391Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=9, remaining_items=7803][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:47.056Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=48, remaining_items=41616][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:47.076Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=49, remaining_items=42483][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:47.131Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=49, remaining_items=42483][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=9 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:47.196Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=38, remaining_items=32946][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:47.237Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=52, remaining_items=45084][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=11 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBM[2m2026-05-19T21:30:47.318Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=47, remaining_items=40749][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:47.395Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=42, remaining_items=36414][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:47.434Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=34, remaining_items=29478][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=10 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBM[2m2026-05-19T21:30:48.072Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=5, remaining_items=4335][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:48.125Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=6, remaining_items=5202][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=9 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:48.192Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=6, remaining_items=5202][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:48.231Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=5, remaining_items=4335][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=11 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS[2m2026-05-19T21:30:48.312Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=4, remaining_items=3468][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:48.391Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=6, remaining_items=5202][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:48.430Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=5, remaining_items=4335][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=10 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS[2m2026-05-19T21:30:49.072Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=8, remaining_items=6936][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:49.125Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=8, remaining_items=6936][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=9 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:49.193Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=7, remaining_items=6069][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:49.232Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=7, remaining_items=6069][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=11 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS[2m2026-05-19T21:30:49.313Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=8, remaining_items=6936][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:50.072Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=6, remaining_items=5202][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:50.126Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=6, remaining_items=5202][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=9 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:50.193Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=6, remaining_items=5202][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:50.232Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=6, remaining_items=5202][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=11 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS[2m2026-05-19T21:30:50.313Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=6, remaining_items=5202][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:51.071Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=6, remaining_items=5202][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:51.125Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=6, remaining_items=5202][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=9 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:51.193Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=6, remaining_items=5202][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:51.232Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=6, remaining_items=5202][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=11 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS[2m2026-05-19T21:30:51.313Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=6, remaining_items=5202][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:52.073Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=12, remaining_items=10404][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:52.126Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=13, remaining_items=11271][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=9 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:52.193Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=14, remaining_items=12138][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:52.233Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=15, remaining_items=13005][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=11 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBM[2m2026-05-19T21:30:52.313Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=15, remaining_items=13005][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:53.051Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=4, remaining_items=3468][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:53.073Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=19, remaining_items=16473][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:53.127Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=18, remaining_items=15606][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=9 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:53.193Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=18, remaining_items=15606][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:53.272Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=8, remaining_items=6936][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:53.314Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=19, remaining_items=16473][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:53.353Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=9, remaining_items=7803][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:54.053Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=19, remaining_items=16473][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:54.127Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=19, remaining_items=16473][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=9 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:54.194Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=19, remaining_items=16473][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:54.273Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=19, remaining_items=16473][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:54.314Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=20, remaining_items=17340][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:54.354Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=19, remaining_items=16473][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:55.052Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=12, remaining_items=10404][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:55.126Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=10, remaining_items=8670][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=9 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS[2m2026-05-19T21:30:55.193Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=10, remaining_items=8670][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS[2m2026-05-19T21:30:55.353Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=10, remaining_items=8670][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS[2m2026-05-19T21:30:56.052Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=13, remaining_items=11271][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:56.126Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=14, remaining_items=12138][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=9 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:56.193Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=15, remaining_items=13005][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:56.272Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=2, remaining_items=1734][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:56.354Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=15, remaining_items=13005][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:56.390Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=3, remaining_items=2601][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS4[2m2026-05-19T21:30:56.429Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=2, remaining_items=1734][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=10 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS[2m2026-05-19T21:30:57.053Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=17, remaining_items=14739][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:57.127Z[0m  [33mWARN [0m [1motap-df-core-nodes::traffic_generator.smooth_run_behind[0m: Data generator is falling behind and didn't finish the current run. For highest possible throughput, use production_mode: open [remaining=18, remaining_items=15606][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:traffic_generator node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=9 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMG[2m2026-05-19T21:30:58.894Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T21:30:58.894Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T21:30:58.894Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=2, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:30:58.903Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=3, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:30:58.903Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=4, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:30:58.903Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=5, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:30:58.903Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=6, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:30:58.903Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=7, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:30:58.903Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=11, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:30:58.903Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=8, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:30:58.903Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=9, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:30:58.903Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=10, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:30:58.894Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m[0m
+[2m2026-05-19T21:30:58.894Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m[0m
+[2m2026-05-19T21:30:58.894Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m[0m
+[2m2026-05-19T21:30:58.894Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m[0m
+[2m2026-05-19T21:30:58.894Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m[0m
+[2m2026-05-19T21:30:58.894Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m[0m
+[2m2026-05-19T21:30:58.894Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m[0m
+[2m2026-05-19T21:30:58.894Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m[0m
+[2m2026-05-19T21:30:58.894Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m[0m
+[2m2026-05-19T21:30:58.894Z[0m  [32mINFO [0m [1motap-df-core-nodes::traffic_generator.drain_ingress[0m[35m[0m
+[2m2026-05-19T21:30:59.514Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=11 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS456RNYB7P4 host.id=9e76ffff01f8 container.id=[0m
+[2m2026-05-19T21:30:59.654Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=8 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS456RNYB7P4 host.id=9e76ffff01f8 container.id=[0m
+[2m2026-05-19T21:30:59.975Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=4 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS456RNYB7P4 host.id=9e76ffff01f8 container.id=[0m
+[2m2026-05-19T21:31:00.057Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=6 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS456RNYB7P4 host.id=9e76ffff01f8 container.id=[0m
+[2m2026-05-19T21:31:00.178Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=2 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS456RNYB7P4 host.id=9e76ffff01f8 container.id=[0m
+[2m2026-05-19T21:31:00.251Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=3 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS456RNYB7P4 host.id=9e76ffff01f8 container.id=[0m
+[2m2026-05-19T21:31:00.325Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=10 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS456RNYB7P4 host.id=9e76ffff01f8 container.id=[0m
+[2m2026-05-19T21:31:00.399Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=9 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS456RNYB7P4 host.id=9e76ffff01f8 container.id=[0m
+[2m2026-05-19T21:31:00.473Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=5 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS456RNYB7P4 host.id=9e76ffff01f8 container.id=[0m
+[2m2026-05-19T21:31:00.547Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=7 numa.node.id=0 process.instance.id=AGPEEJMNWJ4NBMGS456RNYB7P4 host.id=9e76ffff01f8 container.id=[0m
+[2m2026-05-19T21:31:00.613Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=1719][35m[0m
+[2m2026-05-19T21:31:00.615Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T21:31:00.615Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T21:31:00.615Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=0][35m[0m
+
+================================================================================
+Component: df-engine
+Container ID: cf67b898153c63f74b02d229b8c1793e845b0bf626a9fb2c13542af555fe0d64
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 113.38 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:stef, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:stef, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T21:30:16.602Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=1, core_allocation=0]
+[2m2026-05-19T21:30:16.604Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+[2m2026-05-19T21:30:16.605Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.start[0m: [grpc_endpoint=http://backend-service:1235, stef_compression=None][35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPEEJMITF5OHAPN4SOW3JYWIQ host.id=cf67b898153c container.id=[0m
+[2m2026-05-19T21:30:16.605Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.receiver.grpc.start[0m: Starting STEF gRPC receiver [endpoint=0.0.0.0:4320][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:stef node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPEEJMITF5OHAPN4SOW3JYWIQ host.id=cf67b898153c container.id=[0m
+[2m2026-05-19T21:31:00.616Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.requested[0m: [wait=true, timeout_secs=5][35m[0m
+[2m2026-05-19T21:31:00.616Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.blocking_wait[0m: [timeout_secs=5][35m[0m
+[2m2026-05-19T21:31:00.620Z[0m  [32mINFO [0m [1motap-df-state::state.observed_event[0m: global shutdown [pipeline_group_id=default, pipeline_id=main, core_id=0, event_type=ShutdownRequested][35m[0m
+[2m2026-05-19T21:31:00.620Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.receiver.drain_ingress[0m[35m[0m
+[2m2026-05-19T21:31:00.715Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.exporter.grpc.shutdown[0m[35m entity/node.attrs: node.id=exporter node.urn=urn:otel:exporter:stef node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=0 numa.node.id=0 process.instance.id=AGPEEJMITF5OHAPN4SOW3JYWIQ host.id=cf67b898153c container.id=[0m
+[2m2026-05-19T21:31:00.718Z[0m  [32mINFO [0m [1motap-df-admin::shutdown.completed[0m: [elapsed_ms=101][35m[0m
+
+================================================================================
+Component: backend-service
+Container ID: 75d4099f5b1239288a38076bfed4c2e9d54a93431ddc0202451bc3c140391eab
+================================================================================
+System Information:
+  Available CPU cores: 32
+  Available memory: 113.35 GB / 117.92 GB
+  Build mode: release
+  Memory allocator: jemalloc
+
+Available Component URNs:
+  Receivers: urn:otel:receiver:host_metrics, urn:otel:receiver:internal_telemetry, urn:otel:receiver:otap, urn:otel:receiver:otlp, urn:otel:receiver:stef, urn:otel:receiver:syslog_cef, urn:otel:receiver:topic, urn:otel:receiver:traffic_generator
+  Processors: urn:otel:processor:attribute, urn:otel:processor:batch, urn:otel:processor:content_router, urn:otel:processor:debug, urn:otel:processor:delay, urn:otel:processor:durable_buffer, urn:otel:processor:fanout, urn:otel:processor:filter, urn:otel:processor:log_sampling, urn:otel:processor:retry, urn:otel:processor:temporal_reaggregation, urn:otel:processor:transform, urn:otel:processor:type_router
+  Exporters: urn:otel:exporter:console, urn:otel:exporter:error, urn:otel:exporter:noop, urn:otel:exporter:otap, urn:otel:exporter:otlp_grpc, urn:otel:exporter:otlp_http, urn:otel:exporter:parquet, urn:otel:exporter:perf, urn:otel:exporter:stef, urn:otel:exporter:topic
+
+Example configuration files can be found in the configs/ directory.
+[2m2026-05-19T21:30:15.314Z[0m  [32mINFO [0m [1motap-df-controller::pipeline.core_allocation[0m: [pipeline_group_id=default, pipeline_id=main, num_cores=1, core_allocation=1]
+[2m2026-05-19T21:30:15.317Z[0m  [32mINFO [0m [1motap-df-core-nodes::perf_exporter.start[0m: Starting Perf Exporter [frequency_ms=500][35m entity/node.attrs: node.id=perf node.urn=urn:otel:exporter:perf node.type=exporter pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=1 numa.node.id=0 process.instance.id=AGPEEJMDSFZVHOSXPHEV7XFAMQ host.id=75d4099f5b12 container.id=[0m
+[2m2026-05-19T21:30:15.317Z[0m  [32mINFO [0m [1motap-df-contrib-nodes::stef.receiver.grpc.start[0m: Starting STEF gRPC receiver [endpoint=0.0.0.0:1235][35m entity/node.attrs: node.id=receiver node.urn=urn:otel:receiver:stef node.type=receiver pipeline.id=main pipeline.group.id=default deployment.generation=0 core.id=1 numa.node.id=0 process.instance.id=AGPEEJMDSFZVHOSXPHEV7XFAMQ host.id=75d4099f5b12 container.id=[0m
+[2m2026-05-19T21:30:15.317Z[0m  [32mINFO [0m [1motap-df-admin::endpoint.start[0m: Admin HTTP server listening [bind_address=0.0.0.0:8080][35m[0m
+
+================================================================================
+END OF CONTAINER LOGS
+================================================================================
+
+# DF Engine 1000k - DFE STEF Baseline (Metrics)
+
+## Table: metadata_filtered
+  
+**Description**: Information about the test suite and report.
+  
+| Attribute        | Value                                         |
+|:-----------------|:----------------------------------------------|
+| test.suite.start | 2026-05-19T21:24:32.645698+00:00              |
+| test.suite       | DFE STEF Baseline (Metrics)                   |
+| test.step        | Run Report                                    |
+| test.start       | 2026-05-19T21:30:14.972375+00:00              |
+| test.name        | 1000k                                         |
+| report.type      | sql_report                                    |
+| report.time      | 2026-05-19T21:31:36.421971+00:00              |
+| report.name      | DF Engine 1000k - DFE STEF Baseline (Metrics) |
+| code.sha         | 6eafd2676d480c0c3d2671aafbb0fb44f5b2a587      |
+| code.dirty       | True                                          |
+| code.branch      | stef-benchmarks                               |
+
+
+## Table: send_receive_rates_by_core
+  
+**Description**: Core Specific increase and average rate of various send / receive metrics
+  
+| component_name   | metric_name      |   core_id |   total_increase |   average_rate |
+|:-----------------|:-----------------|----------:|-----------------:|---------------:|
+| backend-service  | metrics          |         1 |      1.41676e+07 |       743180   |
+| load-generator   | metrics_produced |        10 |      1.51118e+06 |        78561.2 |
+| load-generator   | metrics_produced |        11 |      1.42535e+06 |        74403.1 |
+| load-generator   | metrics_produced |         2 |      1.3872e+06  |        72370.7 |
+| load-generator   | metrics_produced |         3 |      1.42708e+06 |        74628.6 |
+| load-generator   | metrics_produced |         4 |      1.3872e+06  |        72209.8 |
+| load-generator   | metrics_produced |         5 |      1.42448e+06 |        78603.6 |
+| load-generator   | metrics_produced |         6 |      1.42622e+06 |        74416   |
+| load-generator   | metrics_produced |         7 |      1.3872e+06  |        76712.4 |
+| load-generator   | metrics_produced |         8 |      1.42535e+06 |        74645   |
+| load-generator   | metrics_produced |         9 |      1.42622e+06 |        74334.7 |
+
+
+## Table: aggregate_send_receive_rates
+  
+**Description**: Cumulative increase and average rate of various send / receive metrics
+  
+| component_name   | metric_name      |   total_increase |   average_rate |
+|:-----------------|:-----------------|-----------------:|---------------:|
+| load-generator   | metrics_produced |      1.42275e+07 |         750885 |
+| backend-service  | metrics          |      1.41676e+07 |         743180 |
+
+
+## Table: component_resource_metrics
+  
+**Description**: CPU and Memory metrics for the components in the Test Suite during the test.
+  
+| component_name   | metric_name            |   min_value |   avg_value |   max_value |
+|:-----------------|:-----------------------|------------:|------------:|------------:|
+| load-generator   | container.cpu.usage    | 0.477302    | 0.667456    | 0.7525      |
+| load-generator   | container.memory.usage | 7.32594e+08 | 7.34163e+08 | 7.40991e+08 |
+| df-engine        | container.memory.usage | 9.13359e+08 | 1.6215e+09  | 2.29757e+09 |
+| df-engine        | container.cpu.usage    | 0.713192    | 0.895875    | 0.959307    |
+| backend-service  | container.cpu.usage    | 0.519777    | 0.561919    | 0.747294    |
+| backend-service  | container.memory.usage | 9.13175e+08 | 1.60478e+09 | 2.27738e+09 |
+
+
+## Table: metric_loss
+  
+**Description**: Lost metrics (failed or sent but not received) total and as a percentage
+  
+|   metrics_lost |   metrics_lost_pct |
+|---------------:|-------------------:|
+|          59823 |         0.00420475 |
+
+
+## Table: metric_throughput_rates
+  
+**Description**: Metric throughput rates (metrics/sec) calculated from total counts and observation window duration
+  
+| metric_name      |   total_increase |   metrics_per_second |
+|:-----------------|-----------------:|---------------------:|
+| metrics_produced |      1.42275e+07 |               740872 |
+| metrics          |      1.41676e+07 |               737807 |
+
+
+## Table: gh_actions_benchmark
+  
+**Description**: The final metrics used with gh_actions_benchmark.
+  
+| name                          | unit        |            value | extra                                                   |
+|:------------------------------|:------------|-----------------:|:--------------------------------------------------------|
+| dropped_metrics_percentage    | %           |      0.420475    | DFE STEF Baseline (Metrics)/1000k - Dropped Metrics %   |
+| cpu_percentage_normalized_avg | %           |     89.5875      | DFE STEF Baseline (Metrics)/1000k - CPU % (Normalized)  |
+| cpu_percentage_normalized_max | %           |     95.9307      | DFE STEF Baseline (Metrics)/1000k - CPU % (Normalized)  |
+| ram_mib_avg                   | MiB         |   1546.38        | DFE STEF Baseline (Metrics)/1000k - RAM (MiB)           |
+| ram_mib_max                   | MiB         |   2191.13        | DFE STEF Baseline (Metrics)/1000k - RAM (MiB)           |
+| metrics_produced_rate         | metrics/sec | 740872           | DFE STEF Baseline (Metrics)/1000k - Metric Throughput   |
+| metrics_received_rate         | metrics/sec | 737807           | DFE STEF Baseline (Metrics)/1000k - Metric Throughput   |
+| test_duration                 | seconds     |     20.0006      | DFE STEF Baseline (Metrics)/1000k - Test Duration       |
+| network_tx_bytes_rate_avg     | bytes/sec   |      1.28086e+07 | DFE STEF Baseline (Metrics)/1000k - Network Utilization |
+| network_rx_bytes_rate_avg     | bytes/sec   |      1.27733e+07 | DFE STEF Baseline (Metrics)/1000k - Network Utilization |
+
+
+
+  Captured run env: .data/dfe_metrics_stef_none_baseline/20260519_212431/run_env.json
+  Environment:      INTEL(R) XEON(R) PLATINUM 8581C CPU @ 2.30GHz / x86_64 / 16 cores / 118 GiB / Debian GNU/Linux 12
+
+Publishing results...
+  Updated /home/jakedern/repos/otel-arrow/tools/comparison_dashboard/.site/data/suite/dfe_metrics_stef_none_baseline/suite.yaml
+  Updated /home/jakedern/repos/otel-arrow/tools/comparison_dashboard/.site/data/suite/dfe_metrics_stef_none_baseline/run_env.json
+  1000k: metrics.json from sql_report-df_engine_1000k_dfe_stef_baseline_metrics-20260519_213136.json
+  1000k: 5 files published
+  100k: metrics.json from sql_report-df_engine_100k_dfe_stef_baseline_metrics-20260519_212554.json
+  100k: 5 files published
+  400k: metrics.json from sql_report-df_engine_400k_dfe_stef_baseline_metrics-20260519_212717.json
+  400k: 5 files published
+  600k: metrics.json from sql_report-df_engine_600k_dfe_stef_baseline_metrics-20260519_212841.json
+  600k: 5 files published
+  800k: metrics.json from sql_report-df_engine_800k_dfe_stef_baseline_metrics-20260519_213007.json
+  800k: 5 files published
+  Published to /home/jakedern/repos/otel-arrow/tools/comparison_dashboard/.site/data/suite/dfe_metrics_stef_none_baseline

@@ -1,0 +1,35 @@
+version: otel_dataflow/v1
+policies:
+  channel_capacity:
+    control:
+      node: 100
+      pipeline: 100
+    pdata: 100
+  resources:
+    core_allocation:
+      type: core_set
+      set:
+        - start: {{core_start}}
+          end: {{core_end}}
+engine:
+  telemetry:
+    logs:
+      level: info
+groups:
+  default:
+    pipelines:
+      main:
+        nodes:
+          receiver:
+            type: urn:otel:receiver:stef
+            config:
+              listening_addr: 0.0.0.0:4320
+              wait_for_result: {% if wait_for_result | default(false) %}true{% else %}false{% endif %}
+          exporter:
+            type: urn:otel:exporter:stef
+            config:
+              grpc_endpoint: http://{{backend_hostname}}:1235
+              stef_compression: {{ compression_method | default("none") }}
+        connections:
+          - from: receiver
+            to: exporter

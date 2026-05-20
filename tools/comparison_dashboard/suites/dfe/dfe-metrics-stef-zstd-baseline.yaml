@@ -1,0 +1,22 @@
+name: DFE STEF Baseline w/ Zstd (Metrics)
+slug: dfe_metrics_stef_zstd_baseline
+description: Dataflow Engine baseline for STEF metrics with zstd payload compression
+orchestrator_template: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/orchestrator/dfe-single-core-multi-rate.yaml
+
+meta:
+  binary: dfe
+  protocols: [stef]
+  signals: [metrics]
+  compression: zstd
+
+variables:
+  report: ../pipeline_perf_test/test_suites/comparison_dashboard/reports/report_metrics.yaml
+  engine_config: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/engine/stef-stef.yaml.j2
+  loadgen_config: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/loadgen/stef.yaml.j2
+  backend_config: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/backend/stef.yaml.j2
+  protocol: stef
+  signal: metrics
+  loadgen_max_batch_size: 1000
+  compression_method: zstd
+  exporter_port: 4320
+  wait_for_result: true

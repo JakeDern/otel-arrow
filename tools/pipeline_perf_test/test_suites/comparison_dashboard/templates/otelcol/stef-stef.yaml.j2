@@ -1,0 +1,32 @@
+receivers:
+  stef:
+    endpoint: 0.0.0.0:4320
+    ack_interval: {{ stef_ack_interval | default("10ms") }}
+
+exporters:
+  stef:
+    endpoint: '{{backend_hostname}}:1235'
+    tls:
+      insecure: true
+{%- if compression_method is defined and compression_method != "none" %}
+    compression: {{ compression_method }}
+{%- endif %}
+    sending_queue:
+      enabled: true
+      num_consumers: {{ stef_num_consumers | default(10) }}
+      queue_size: {{ stef_queue_size | default(10000) }}
+    timeout: {{ stef_timeout | default("30s") }}
+
+service:
+  telemetry:
+    metrics:
+      readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: '0.0.0.0'
+                port: 8086
+  pipelines:
+    metrics:
+      receivers: [stef]
+      exporters: [stef]
