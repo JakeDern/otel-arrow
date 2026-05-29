@@ -217,3 +217,104 @@ tests:
         loadgen_core_start: 2
         loadgen_core_end: 11
 
+  # --- High-rate saturation sweep (issue #2993) ---
+  # Engine pinned to core 0, backend to core 1 (each on its own physical core).
+  # Loadgen uses cores 2-15 (14 isolated physical cores); cores 16/17 are the
+  # HT siblings of engine/backend and are deliberately left idle. Higher rates
+  # are achieved by raising per-core signals_per_second rather than adding cores,
+  # since the contiguous loadgen range cannot grow past 15 without touching 16/17.
+  - name: 1400k
+    from_template:
+      path: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/steps/df-engine.yaml
+      variables:{{ forward_variables() }}
+        data_dir: {{data_dir}}
+        test_dir: {{data_dir}}/tests/1400k
+        report_name: "DF Engine 1400k - {{suite_name}}"
+        observation_interval: {{observation_interval}}
+        signals_per_second: 100000
+        log_weight: {{log_weight}}
+        metric_weight: {{metric_weight}}
+        trace_weight: {{trace_weight}}
+        engine_core_start: 0
+        engine_core_end: 0
+        backend_core_start: 1
+        backend_core_end: 1
+        loadgen_core_start: 2
+        loadgen_core_end: 15
+
+  - name: 1750k
+    from_template:
+      path: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/steps/df-engine.yaml
+      variables:{{ forward_variables() }}
+        data_dir: {{data_dir}}
+        test_dir: {{data_dir}}/tests/1750k
+        report_name: "DF Engine 1750k - {{suite_name}}"
+        observation_interval: {{observation_interval}}
+        signals_per_second: 125000
+        log_weight: {{log_weight}}
+        metric_weight: {{metric_weight}}
+        trace_weight: {{trace_weight}}
+        engine_core_start: 0
+        engine_core_end: 0
+        backend_core_start: 1
+        backend_core_end: 1
+        loadgen_core_start: 2
+        loadgen_core_end: 15
+
+  - name: 2100k
+    from_template:
+      path: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/steps/df-engine.yaml
+      variables:{{ forward_variables() }}
+        data_dir: {{data_dir}}
+        test_dir: {{data_dir}}/tests/2100k
+        report_name: "DF Engine 2100k - {{suite_name}}"
+        observation_interval: {{observation_interval}}
+        signals_per_second: 150000
+        log_weight: {{log_weight}}
+        metric_weight: {{metric_weight}}
+        trace_weight: {{trace_weight}}
+        engine_core_start: 0
+        engine_core_end: 0
+        backend_core_start: 1
+        backend_core_end: 1
+        loadgen_core_start: 2
+        loadgen_core_end: 15
+
+  - name: 2800k
+    from_template:
+      path: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/steps/df-engine.yaml
+      variables:{{ forward_variables() }}
+        data_dir: {{data_dir}}
+        test_dir: {{data_dir}}/tests/2800k
+        report_name: "DF Engine 2800k - {{suite_name}}"
+        observation_interval: {{observation_interval}}
+        signals_per_second: 200000
+        log_weight: {{log_weight}}
+        metric_weight: {{metric_weight}}
+        trace_weight: {{trace_weight}}
+        engine_core_start: 0
+        engine_core_end: 0
+        backend_core_start: 1
+        backend_core_end: 1
+        loadgen_core_start: 2
+        loadgen_core_end: 15
+
+  - name: 3500k
+    from_template:
+      path: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/steps/df-engine.yaml
+      variables:{{ forward_variables() }}
+        data_dir: {{data_dir}}
+        test_dir: {{data_dir}}/tests/3500k
+        report_name: "DF Engine 3500k - {{suite_name}}"
+        observation_interval: {{observation_interval}}
+        signals_per_second: 250000
+        log_weight: {{log_weight}}
+        metric_weight: {{metric_weight}}
+        trace_weight: {{trace_weight}}
+        engine_core_start: 0
+        engine_core_end: 0
+        backend_core_start: 1
+        backend_core_end: 1
+        loadgen_core_start: 2
+        loadgen_core_end: 15
+
