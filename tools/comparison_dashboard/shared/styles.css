@@ -1,3 +1,6 @@
+/* Hide Alpine-controlled elements until Alpine processes their x-show etc. */
+[x-cloak] { display: none !important; }
+
 :root {
   --bg: #f6f8fb;
   --card: #ffffff;

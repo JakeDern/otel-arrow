@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Benchmark Dashboard{% endblock %}</title>
+  <link rel="stylesheet" href="{{ shared_rel }}/styles.css">
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+  <div class="wip-banner" role="alert">
+    <span class="wip-icon" aria-hidden="true">&#9888;&#65039;</span>
+   <span class="wip-text">{{ banner_text }} <a class="wip-link" href="{{ issue_url }}" target="_blank" rel="noopener">{{ banner_link_text }}</a></span>
+    <span class="wip-icon" aria-hidden="true">&#9888;&#65039;</span>
+  </div>
+  <div class="wrap">
+{% block content %}{% endblock %}
+  </div>
+
+  <div id="run-detail-modal" class="modal-backdrop" x-data="fileModal" x-show="open" x-cloak
+       style="display:none" @keydown.escape.window="close()" @click.self="close()">
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-title" x-text="title"></div>
+        <button class="modal-close" type="button" @click="close()">Close</button>
+      </div>
+      <div class="modal-body">
+        <pre class="config-full-code"><code x-html="bodyHtml"></code></pre>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.js"></script>
+{% block data_scripts %}{% endblock %}
+  <script>window.DATA_PATH = {{ data_path_json | safe }};</script>
+  <script>window.METRICS_META = {{ metrics_meta_json | safe }};</script>
+{% block page_scripts %}{% endblock %}
+  <script type="module" src="{{ shared_rel }}/{{ entry_script }}"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.15.12/dist/cdn.min.js"></script>
+</body>
+</html>

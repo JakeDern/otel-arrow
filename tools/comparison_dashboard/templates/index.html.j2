@@ -1,0 +1,57 @@
+{% extends "base.html.j2" %}
+{% block title %}Telemetry Engine Benchmarks{% endblock %}
+{% block content %}
+    <h1>Telemetry Engine Benchmark Dashboard</h1>
+    <div class="sub">Compare telemetry engines across a variety of use-cases and protocols.</div>
+
+    <button class="colorblind-toggle" type="button"
+            :class="{ active: $store.palette.colorblind }"
+            title="Toggle colorblind-friendly palette"
+            @click="$store.palette.toggle()"
+            x-text="$store.palette.label"
+            x-data></button>
+
+    <div id="comparison-cards">
+      <template x-for="comp in (window.COMPARISONS || [])" :key="comp.slug">
+        <section class="scenario-section" :data-comparison-id="comp.slug"
+                 x-data="comparisonSection(comp)">
+          <div class="scenario-section-head">
+            <a class="scenario-section-title" :href="link()" x-text="titleText()"></a>
+            <select class="scenario-metric-select" x-model="selectedMetric">
+              <template x-for="opt in metricOptions()" :key="opt.value">
+                <option :value="opt.value" x-text="opt.label"></option>
+              </template>
+            </select>
+          </div>
+          <div class="scenario-section-description" x-text="descriptionText()"></div>
+
+          <template x-if="hasFilters()">
+            <div class="chart-filters">
+              <template x-for="group in filterGroups()" :key="group.cat">
+                <div class="chart-filter-group">
+                  <span class="chart-filter-label" x-text="group.label + ':'"></span>
+                  <template x-for="val in group.values" :key="val">
+                    <label class="chart-filter-option">
+                      <input type="checkbox" :value="val" x-model="filterState[group.cat]">
+                      <span x-text="val"></span>
+                    </label>
+                  </template>
+                </div>
+              </template>
+              <button class="filter-reset chart-filter-reset" type="button" @click="resetFilters()">Reset</button>
+            </div>
+          </template>
+
+          <div class="chart-container"><canvas x-ref="canvas"></canvas></div>
+          <div class="chart-backpressure-legend" x-show="showBackpressure" x-cloak>&#9888; Backpressure detected</div>
+        </section>
+      </template>
+    </div>
+
+    <div class="muted" style="padding:16px" x-data x-show="!(window.COMPARISONS || []).length">No comparisons defined.</div>
+{% endblock %}
+{% block data_scripts %}
+{% for slug in available_slugs %}  <script src="{{ data_rel }}/suite/{{ slug }}/data.js"></script>
+{% endfor %}{% endblock %}
+{% block page_scripts %}  <script>window.COMPARISONS = {{ comparisons_json | safe }};</script>
+{% endblock %}

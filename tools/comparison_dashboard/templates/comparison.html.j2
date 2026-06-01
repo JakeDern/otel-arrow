@@ -1,0 +1,219 @@
+{% extends "base.html.j2" %}
+{% block title %}{{ title }} - Benchmark Dashboard{% endblock %}
+{% block content %}
+    <div x-data="comparisonDetailPage(window.COMPARISON, window.COMPARISON_SLUG)">
+      <div class="scenario-header">
+        <a class="back-link" href="../">&larr; All Comparisons</a>
+        <h1 x-text="titleText()"></h1>
+        <div class="sub" x-text="descriptionText()"></div>
+      </div>
+
+      <!-- Environment header -->
+      <template x-if="envHeader.kind === 'summary'">
+        <div class="env-summary">
+          <span class="env-summary-label">Environment:</span>
+          <span class="env-summary-value" x-text="envHeader.line"></span>
+        </div>
+      </template>
+      <template x-if="envHeader.kind === 'unknown'">
+        <div class="env-summary env-summary-unknown">Environment: unknown (no run_env.json recorded)</div>
+      </template>
+      <template x-if="envHeader.kind === 'mismatch'">
+        <div class="env-mismatch-banner" role="alert">
+          <div class="env-mismatch-title">&#9888;&#65039; Mismatched run environments</div>
+          <div class="env-mismatch-reason">This comparison mixes data collected on different hardware. Results are not apples-to-apples.</div>
+          <ul class="env-mismatch-list">
+            <li><span class="env-mismatch-slug" x-text="(envHeader.mismatch.reference || {}).slug || '?'"></span> (reference): <span x-text="(envHeader.mismatch.reference || {}).fingerprintStr || 'no env recorded'"></span></li>
+            <li><span class="env-mismatch-slug" x-text="(envHeader.mismatch.conflict || {}).slug || '?'"></span>: <span x-text="(envHeader.mismatch.conflict || {}).fingerprintStr || 'no env recorded'"></span></li>
+          </ul>
+          <div class="env-mismatch-note">Re-run the conflicting suite on the reference hardware, or omit it from the comparison.</div>
+        </div>
+      </template>
+
+      <button class="colorblind-toggle" type="button"
+              :class="{ active: $store.palette.colorblind }"
+              title="Toggle colorblind-friendly palette"
+              @click="$store.palette.toggle()"
+              x-text="$store.palette.label"></button>
+
+      <!-- Filters -->
+      <template x-if="hasFilters()">
+        <div class="chart-filters">
+          <template x-for="group in filterGroups()" :key="group.cat">
+            <div class="chart-filter-group">
+              <span class="chart-filter-label" x-text="group.label + ':'"></span>
+              <template x-for="val in group.values" :key="val">
+                <label class="chart-filter-option">
+                  <input type="checkbox" :value="val" x-model="filterState[group.cat]">
+                  <span x-text="val"></span>
+                </label>
+              </template>
+            </div>
+          </template>
+          <button class="filter-reset chart-filter-reset" type="button" @click="resetFilters()">Reset</button>
+        </div>
+      </template>
+
+      <!-- Overview bar chart -->
+      <div id="comparison-chart">
+        <template x-if="noSuites()">
+          <div class="scenario-section"><div class="muted" style="padding:16px">No suites match the current filters.</div></div>
+        </template>
+        <div class="scenario-section" x-show="!noSuites()">
+          <div class="scenario-section-head">
+            <div class="scenario-section-title" x-text="selectedMetricTitle()"></div>
+            <select class="scenario-metric-select" x-model="selectedMetric">
+              <template x-for="opt in metricOptions()" :key="opt.value">
+                <option :value="opt.value" x-text="opt.label"></option>
+              </template>
+            </select>
+          </div>
+          <div class="chart-container"><canvas x-ref="barCanvas"></canvas></div>
+          <div class="chart-backpressure-legend" x-show="showBackpressure" x-cloak>&#9888; Backpressure detected</div>
+        </div>
+      </div>
+
+      <!-- Detail panel -->
+      <div id="comparison-detail">
+        <div class="scenario-section">
+          <div class="scenario-section-head"><div class="scenario-section-title">Test Details</div></div>
+
+          <template x-if="noSuites()">
+            <div class="muted" style="padding:12px 0">No suites match the current filters.</div>
+          </template>
+
+          <template x-if="!noSuites()">
+            <div>
+              <div class="detail-controls">
+                <div class="detail-pills">
+                  <template x-for="(ref, i) in refs()" :key="ref.slug">
+                    <button class="detail-pill" type="button"
+                            :class="{ active: i === detailSuiteIdx }"
+                            :style="'--pill-color: ' + pillColor(i)"
+                            @click="selectSuite(i)"
+                            x-text="pillLabel(ref)"></button>
+                  </template>
+                </div>
+                <select class="detail-test-select" x-model="detailTestName">
+                  <template x-for="opt in testOptions()" :key="opt.value">
+                    <option :value="opt.value" x-text="opt.label"></option>
+                  </template>
+                </select>
+              </div>
+
+              <div class="detail-backpressure-badge" x-show="detailBackpressure()" x-cloak>&#9888; Backpressure detected</div>
+
+              <!-- When the selected suite/test has no published data -->
+              <template x-if="!selectedTest()">
+                <div>
+                  <!-- Env still shown for the selected suite -->
+                  <template x-if="envRows()">
+                    <div>
+                      <div class="detail-pane-title" style="margin-top:16px">Environment</div>
+                      <div class="env-detail">
+                        <template x-for="row in envRows()" :key="row[0]">
+                          <div class="env-detail-row">
+                            <div class="env-detail-key" x-text="row[0]"></div>
+                            <div class="env-detail-val" x-text="row[1]"></div>
+                          </div>
+                        </template>
+                      </div>
+                    </div>
+                  </template>
+                  <template x-if="!envRows()">
+                    <div>
+                      <div class="detail-pane-title" style="margin-top:16px">Environment</div>
+                      <div class="muted" style="padding:4px 0">No environment data recorded for this run.</div>
+                    </div>
+                  </template>
+                  <div class="muted" style="padding:12px 0">No data available for this selection.</div>
+                </div>
+              </template>
+
+              <!-- When the selected suite/test has data -->
+              <template x-if="selectedTest()">
+                <div>
+                  <div class="files-section">
+                    <div class="detail-pane-title">Files</div>
+                    <template x-if="files().length">
+                      <div class="files-flex">
+                        <template x-for="f in files()" :key="f">
+                          <div class="file-list-item" :data-file="f" @click="openFile(f)" x-text="f"></div>
+                        </template>
+                      </div>
+                    </template>
+                    <template x-if="!files().length">
+                      <div class="muted">No files available.</div>
+                    </template>
+                  </div>
+
+                  <template x-if="envRows()">
+                    <div>
+                      <div class="detail-pane-title" style="margin-top:16px">Environment</div>
+                      <div class="env-detail">
+                        <template x-for="row in envRows()" :key="row[0]">
+                          <div class="env-detail-row">
+                            <div class="env-detail-key" x-text="row[0]"></div>
+                            <div class="env-detail-val" x-text="row[1]"></div>
+                          </div>
+                        </template>
+                      </div>
+                    </div>
+                  </template>
+                  <template x-if="!envRows()">
+                    <div>
+                      <div class="detail-pane-title" style="margin-top:16px">Environment</div>
+                      <div class="muted" style="padding:4px 0">No environment data recorded for this run.</div>
+                    </div>
+                  </template>
+
+                  <div class="detail-pane-title" style="margin-top:16px">Metrics</div>
+
+                  <template x-if="scalarCards().length">
+                    <div class="metric-scalars">
+                      <template x-for="card in scalarCards()" :key="card.name">
+                        <div class="metric-scalar-card" :class="{ backpressure: card.bad }">
+                          <div class="metric-scalar-name" x-text="card.name"></div>
+                          <div class="metric-scalar-value" x-text="card.value"></div>
+                        </div>
+                      </template>
+                    </div>
+                  </template>
+
+                  <template x-if="timeseriesCards().length">
+                    <div class="metric-chart-grid">
+                      <template x-for="card in timeseriesCards()" :key="card.key">
+                        <div class="metric-chart-card" :data-ts-key="card.key">
+                          <div class="metric-chart-header">
+                            <div class="metric-chart-name" x-text="card.title"></div>
+                            <div class="metric-chart-values">
+                              <template x-for="p in card.parts"><span x-text="p"></span></template>
+                            </div>
+                          </div>
+                          <template x-if="card.hasSeries">
+                            <div class="metric-chart-body"><canvas></canvas></div>
+                          </template>
+                          <template x-if="!card.hasSeries">
+                            <div class="muted" style="font-size:12px">No time-series data available.</div>
+                          </template>
+                        </div>
+                      </template>
+                    </div>
+                  </template>
+                  <template x-if="!timeseriesCards().length">
+                    <div class="muted">No metrics available.</div>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+{% endblock %}
+{% block data_scripts %}
+{% for slug in suite_slugs %}  <script src="{{ data_rel }}/suite/{{ slug }}/data.js"></script>
+{% endfor %}{% endblock %}
+{% block page_scripts %}  <script>window.COMPARISON_SLUG = {{ comp_slug_json | safe }};</script>
+  <script>window.COMPARISON = {{ comp_json | safe }};</script>
+{% endblock %}
