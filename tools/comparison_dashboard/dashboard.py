@@ -31,7 +31,7 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 
 import yaml
-from jinja2 import Environment, BaseLoader, StrictUndefined
+from jinja2 import Environment, BaseLoader, FileSystemLoader, StrictUndefined
 
 
 # ---------------------------------------------------------------------------
@@ -52,6 +52,15 @@ DEFAULT_DATA_DIR = DEFAULT_SITE_ROOT / DEFAULT_DATA_SUBDIR
 # as a comparison slug so it can't collide with a generated page directory.
 SHARED_DIR_NAME = "shared"
 SHARED_SOURCE_SUBDIR = Path(SHARED_DIR_NAME)
+
+# Page HTML is rendered from Jinja templates in <dashboard-dir>/templates/.
+# This is a separate Jinja environment from the orchestrator-config renderer
+# (see render_orchestrator_config): site templates are HTML and autoescape,
+# whereas orchestrator templates emit YAML and must not be HTML-escaped.
+SITE_TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
+
+# Path (relative to shared/) of the ES module entry point loaded by each page.
+ENTRY_SCRIPT = "js/main.js"
 
 # File extensions included when scanning test directories during build
 ALLOWED_EXTENSIONS = {".toml", ".yaml", ".yml", ".json", ".txt"}
@@ -1474,6 +1483,45 @@ def _url_relpath(target: Path, start: Path) -> str:
     return Path(os.path.relpath(target, start)).as_posix()
 
 
+_SITE_JINJA_ENV: Environment | None = None
+
+
+def site_jinja_env() -> Environment:
+    """Lazily build the HTML page-rendering Jinja environment.
+
+    Distinct from the orchestrator-config renderer (render_orchestrator_config):
+    site templates are HTML and must autoescape interpolated values; orchestrator
+    templates emit YAML and must not be HTML-escaped. Pre-serialized JSON blobs
+    are injected with the `| safe` filter in the templates.
+    """
+    global _SITE_JINJA_ENV
+    if _SITE_JINJA_ENV is None:
+        _SITE_JINJA_ENV = Environment(
+            loader=FileSystemLoader(str(SITE_TEMPLATES_DIR)),
+            autoescape=True,
+            undefined=StrictUndefined,
+            trim_blocks=True,
+            lstrip_blocks=True,
+            keep_trailing_newline=True,
+        )
+    return _SITE_JINJA_ENV
+
+
+def _shell_context(paths: BuildPaths, shared_rel: str, data_rel: str, manifest: Manifest) -> dict:
+    """Context shared by every page template (shell, banner, common scripts)."""
+    metrics_meta = {m["name"]: {"label": m["label"]} for m in manifest.metrics}
+    return {
+        "shared_rel": shared_rel,
+        "data_rel": data_rel,
+        "entry_script": ENTRY_SCRIPT,
+        "banner_text": BANNER_TEXT,
+        "banner_link_text": BANNER_LINK_TEXT,
+        "issue_url": ISSUE_URL,
+        "data_path_json": json.dumps(f"{data_rel}/suite"),
+        "metrics_meta_json": json.dumps(metrics_meta),
+    }
+
+
 def generate_index_html(comparisons: list, suites: dict, paths: BuildPaths, manifest: Manifest) -> None:
     """Generate <compare_dir>/index.html with comparison sections."""
     shared_rel = _url_relpath(paths.shared_dst, paths.compare_dir)
@@ -1483,61 +1531,16 @@ def generate_index_html(comparisons: list, suites: dict, paths: BuildPaths, mani
     for comp in comparisons:
         for suite_ref in comp["suites"]:
             referenced_slugs.add(suite_ref["slug"])
-
     available_slugs = sorted(slug for slug in referenced_slugs if slug in suites)
 
-    data_script_tags = "\n".join(
-        f'  <script src="{data_rel}/suite/{slug}/data.js"></script>'
-        for slug in available_slugs
-    )
-
     comparisons_public = [_strip_internal(c) for c in comparisons]
-    comparisons_json = json.dumps(comparisons_public, indent=2)
-    metrics_meta = {m["name"]: {"label": m["label"]} for m in manifest.metrics}
-    metrics_meta_json = json.dumps(metrics_meta)
 
-    lines = [
-        '<!DOCTYPE html>',
-        '<html lang="en">',
-        '<head>',
-        '  <meta charset="utf-8">',
-        '  <meta name="viewport" content="width=device-width, initial-scale=1">',
-        '  <title>Telemetry Engine Benchmarks</title>',
-        f'  <link rel="stylesheet" href="{shared_rel}/styles.css">',
-        '</head>',
-        '<body>',
-        '  <div class="wip-banner" role="alert">',
-        '    <span class="wip-icon" aria-hidden="true">&#9888;&#65039;</span>',
-        f'   <span class="wip-text">{BANNER_TEXT} <a class="wip-link" href="{ISSUE_URL}" target="_blank" rel="noopener">{BANNER_LINK_TEXT}</a></span>',
-        '    <span class="wip-icon" aria-hidden="true">&#9888;&#65039;</span>',
-        '  </div>',
-        '  <div class="wrap">',
-        '    <h1>Telemetry Engine Benchmark Dashboard</h1>',
-        '    <div class="sub">Compare telemetry engines across a variety of use-cases and protocols.</div>',
-        '    <div id="app"></div>',
-        '    <div id="comparison-cards"></div>',
-        '  </div>',
-        '',
-        '  <div id="run-detail-modal" class="modal-backdrop" hidden>',
-        '    <div class="modal">',
-        '      <div class="modal-head">',
-        '        <div id="run-detail-title" class="modal-title"></div>',
-        '        <button id="run-detail-close" class="modal-close" type="button">Close</button>',
-        '      </div>',
-        '      <div id="run-detail-body" class="modal-body"></div>',
-        '    </div>',
-        '  </div>',
-        '',
-        '  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.js"></script>',
-        data_script_tags,
-        f'  <script>window.DATA_PATH = "{data_rel}/suite";</script>',
-        f'  <script>window.METRICS_META = {metrics_meta_json};</script>',
-        f'  <script>window.COMPARISONS = {comparisons_json};</script>',
-        f'  <script type="module" src="{shared_rel}/app.js"></script>',
-        '</body>',
-        '</html>',
-    ]
-    html = "\n".join(lines) + "\n"
+    ctx = _shell_context(paths, shared_rel, data_rel, manifest)
+    ctx.update(
+        available_slugs=available_slugs,
+        comparisons_json=json.dumps(comparisons_public, indent=2),
+    )
+    html = site_jinja_env().get_template("index.html.j2").render(**ctx)
 
     index_path = paths.compare_dir / "index.html"
     index_path.write_text(html)
@@ -1556,8 +1559,8 @@ def generate_compare_stubs(comparisons: list, suites: dict, paths: BuildPaths, m
     sample_stub = paths.compare_page_dir("_")
     shared_rel = _url_relpath(paths.shared_dst, sample_stub)
     data_rel = _url_relpath(paths.data_dir, sample_stub)
-    metrics_meta = {m["name"]: {"label": m["label"]} for m in manifest.metrics}
-    metrics_meta_json = json.dumps(metrics_meta)
+    template = site_jinja_env().get_template("comparison.html.j2")
+    base_ctx = _shell_context(paths, shared_rel, data_rel, manifest)
 
     for comp in comparisons:
         comp_slug = comp["slug"]
@@ -1569,60 +1572,18 @@ def generate_compare_stubs(comparisons: list, suites: dict, paths: BuildPaths, m
             shutil.rmtree(stub_dir)
         stub_dir.mkdir(parents=True, exist_ok=True)
 
-        title = comp.get("name", comp_slug)
-
-        suite_script_tags = []
-        for suite_ref in comp["suites"]:
-            slug = suite_ref["slug"]
-            if slug in suites:
-                suite_script_tags.append(
-                    f'  <script src="{data_rel}/suite/{slug}/data.js"></script>'
-                )
-
-        suite_scripts = "\n".join(suite_script_tags)
-
-        comp_json = json.dumps(_strip_internal(comp), indent=2)
-
-        html_lines = [
-            '<!DOCTYPE html>',
-            '<html lang="en">',
-            '<head>',
-            '  <meta charset="utf-8">',
-            '  <meta name="viewport" content="width=device-width, initial-scale=1">',
-            f'  <title>{title} - Benchmark Dashboard</title>',
-            f'  <link rel="stylesheet" href="{shared_rel}/styles.css">',
-            '</head>',
-            '<body>',
-            '  <div class="wip-banner" role="alert">',
-            '    <span class="wip-icon" aria-hidden="true">&#9888;&#65039;</span>',
-            f'   <span class="wip-text">{BANNER_TEXT} <a class="wip-link" href="{ISSUE_URL}" target="_blank" rel="noopener">{BANNER_LINK_TEXT}</a></span>',
-            '    <span class="wip-icon" aria-hidden="true">&#9888;&#65039;</span>',
-            '  </div>',
-            '  <div class="wrap">',
-            '    <div id="app"></div>',
-            '  </div>',
-            '',
-            '  <div id="run-detail-modal" class="modal-backdrop" hidden>',
-            '    <div class="modal">',
-            '      <div class="modal-head">',
-            '        <div id="run-detail-title" class="modal-title"></div>',
-            '        <button id="run-detail-close" class="modal-close" type="button">Close</button>',
-            '      </div>',
-            '      <div id="run-detail-body" class="modal-body"></div>',
-            '    </div>',
-            '  </div>',
-            '',
-            '  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.js"></script>',
-            f'  <script>window.DATA_PATH = "{data_rel}/suite";</script>',
-            f'  <script>window.METRICS_META = {metrics_meta_json};</script>',
-            f'  <script>window.COMPARISON_SLUG = "{comp_slug}";</script>',
-            suite_scripts,
-            f'  <script>window.COMPARISON = {comp_json};</script>',
-            f'  <script type="module" src="{shared_rel}/app.js"></script>',
-            '</body>',
-            '</html>',
+        suite_slugs = [
+            ref["slug"] for ref in comp["suites"] if ref["slug"] in suites
         ]
-        stub_html = "\n".join(html_lines) + "\n"
+
+        ctx = dict(base_ctx)
+        ctx.update(
+            title=comp.get("name", comp_slug),
+            comp_slug_json=json.dumps(comp_slug),
+            suite_slugs=suite_slugs,
+            comp_json=json.dumps(_strip_internal(comp), indent=2),
+        )
+        stub_html = template.render(**ctx)
 
         stub_path = stub_dir / "index.html"
         stub_path.write_text(stub_html)

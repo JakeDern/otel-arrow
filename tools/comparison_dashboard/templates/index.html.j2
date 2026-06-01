@@ -1,0 +1,13 @@
+{% extends "base.html.j2" %}
+{% block title %}Telemetry Engine Benchmarks{% endblock %}
+{% block content %}
+    <h1>Telemetry Engine Benchmark Dashboard</h1>
+    <div class="sub">Compare telemetry engines across a variety of use-cases and protocols.</div>
+    <div id="app"></div>
+    <div id="comparison-cards"></div>
+{% endblock %}
+{% block data_scripts %}
+{% for slug in available_slugs %}  <script src="{{ data_rel }}/suite/{{ slug }}/data.js"></script>
+{% endfor %}{% endblock %}
+{% block page_scripts %}  <script>window.COMPARISONS = {{ comparisons_json | safe }};</script>
+{% endblock %}
