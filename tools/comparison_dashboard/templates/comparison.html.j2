@@ -1,0 +1,11 @@
+{% extends "base.html.j2" %}
+{% block title %}{{ title }} - Benchmark Dashboard{% endblock %}
+{% block content %}
+    <div id="app"></div>
+{% endblock %}
+{% block data_scripts %}
+{% for slug in suite_slugs %}  <script src="{{ data_rel }}/suite/{{ slug }}/data.js"></script>
+{% endfor %}{% endblock %}
+{% block page_scripts %}  <script>window.COMPARISON_SLUG = {{ comp_slug_json | safe }};</script>
+  <script>window.COMPARISON = {{ comp_json | safe }};</script>
+{% endblock %}
