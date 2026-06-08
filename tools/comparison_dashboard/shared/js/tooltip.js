@@ -5,9 +5,32 @@
 // the supplied client coordinates with a small offset; the tooltip is clamped
 // inside the viewport so it never spills off-screen.
 //
-// The element's styles live in shared/js/styles/global.js under the legacy
-// class name `.axis-hover-tooltip` (kept for CSS continuity even though the
-// helper is no longer axis-specific).
+// This module owns both the singleton DOM node and its styles. The class
+// name `.axis-hover-tooltip` is kept for CSS continuity even though the
+// helper is no longer axis-specific.
+
+import { adopt, tokensSheet } from "./styles.js";
+
+const css = `
+.axis-hover-tooltip {
+    position: fixed;
+    pointer-events: none;
+    z-index: 1000;
+    background: rgba(15, 23, 42, 0.9);
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    line-height: 1.3;
+    max-width: 280px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+.axis-hover-tooltip[hidden] { display: none; }
+`;
+
+const sheet = new CSSStyleSheet();
+sheet.replaceSync(css);
+adopt(tokensSheet, sheet);
 
 let tooltipEl = null;
 

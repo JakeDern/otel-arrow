@@ -5,8 +5,7 @@
 
 import { DATA_PATH } from "../data.js";
 import { highlightFileContent } from "../highlight.js";
-import { adopt } from "../styles/adopt.js";
-import { tokensSheet } from "../styles/tokens.js";
+import { adopt, tokensSheet } from "../styles.js";
 
 const css = `
 .modal-backdrop {

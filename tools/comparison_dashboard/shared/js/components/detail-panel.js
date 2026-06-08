@@ -13,8 +13,7 @@ import { hasBackpressure, DATA_LOSS_THRESHOLD } from "../backpressure.js";
 import { SCALAR_ONLY_METRICS, TIMESERIES_METRICS, tmTitle } from "../metrics.js";
 import { renderEnvDetail } from "../env.js";
 import { createLineChart } from "../charts/line.js";
-import { adopt } from "../styles/adopt.js";
-import { tokensSheet } from "../styles/tokens.js";
+import { adopt, tokensSheet } from "../styles.js";
 import { WARNING_SIGN } from "../icons.js";
 
 const css = `

@@ -12,64 +12,26 @@ import {
 } from "../filters.js";
 import { findAvailableMetrics, defaultMetric, metricTitle, perComparisonMetrics } from "../metrics.js";
 import { anyComparisonBackpressure } from "../backpressure.js";
-import { adopt } from "../styles/adopt.js";
-import { tokensSheet } from "../styles/tokens.js";
+import { adopt, tokensSheet } from "../styles.js";
 import { WARNING_SIGN } from "../icons.js";
 import "./bar-chart.js";
 
+// Only landing-card-specific rules live here. Shared chart-section card
+// styles (`.scenario-section`, `.scenario-metric-select`, etc.) come in via
+// `section-card.js` so the detail page picks them up too.
 const css = `
-/* Container that holds the landing-page comparison cards. */
 #comparison-cards {
     display: grid;
     gap: 16px;
     margin-top: 14px;
 }
 
-/* Chart-section card. Also used by <comparison-page> on the detail page. */
-.scenario-section {
-    background: var(--card);
-    border: 1px solid var(--slate-200);
-    border-radius: var(--radius-sm);
-    padding: 16px 20px;
-    margin-bottom: 16px;
-}
-.scenario-section-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-    gap: 12px;
-}
-.scenario-section-title {
-    font-size: 1.05rem;
-    font-weight: 600;
-    color: var(--slate-900);
-}
+/* Card title is a link on the landing page (navigates into the comparison). */
 a.scenario-section-title {
     color: var(--blue-600);
     text-decoration: none;
 }
 a.scenario-section-title:hover { text-decoration: underline; }
-.scenario-section-description {
-    font-size: 0.85rem;
-    color: var(--slate-400);
-    margin-bottom: 12px;
-}
-.scenario-metric-select {
-    font-size: 0.85rem;
-    padding: 4px 8px;
-    border-radius: 4px;
-    border: 1px solid var(--slate-200);
-    background: var(--card);
-    color: var(--slate-900);
-}
-
-.chart-backpressure-legend {
-    font-size: 11px;
-    color: var(--bad-text);
-    text-align: center;
-    margin-top: 4px;
-}
 `;
 
 const sheet = new CSSStyleSheet();

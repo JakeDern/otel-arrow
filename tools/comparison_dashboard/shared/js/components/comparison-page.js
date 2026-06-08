@@ -14,8 +14,7 @@ import {
 import { renderComparisonEnvHeader } from "../env.js";
 import { findAvailableMetrics, defaultMetric, metricTitle, perComparisonMetrics } from "../metrics.js";
 import { anyComparisonBackpressure } from "../backpressure.js";
-import { adopt } from "../styles/adopt.js";
-import { tokensSheet } from "../styles/tokens.js";
+import { adopt, tokensSheet } from "../styles.js";
 import { WARNING_SIGN } from "../icons.js";
 import "./bar-chart.js";
 import "./detail-panel.js";

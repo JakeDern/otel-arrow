@@ -2,12 +2,11 @@
 // Page shell rendered into light DOM (matching this codebase's no-shadow-DOM
 // convention). Owns the wip-banner, the controls-bar host, the legend-banner
 // host, and a `.wrap` container that holds the page-specific content element.
-// Banner copy and link come in as attributes from main.js (sourced from
+// Banner copy and link come in as attributes from bootstrap.js (sourced from
 // PAGE_DATA), so the static index.html never needs to know about them.
 
 import { escapeHtml } from "../format.js";
-import { adopt } from "../styles/adopt.js";
-import { tokensSheet } from "../styles/tokens.js";
+import { adopt, tokensSheet } from "../styles.js";
 import { WARNING_EMOJI_HTML } from "../icons.js";
 
 const css = `
@@ -160,8 +159,8 @@ export class DashboardShell extends HTMLElement {
         `;
     }
 
-    // Page mount target. `main.js` appends comparison-section / comparison-page
-    // children here after the shell is in the document.
+    // Page mount target. The bootstrap hands this node to each page's
+    // mountPage callback, which appends its top-level element here.
     get pageRoot() { return this.querySelector("#page-root"); }
 }
 

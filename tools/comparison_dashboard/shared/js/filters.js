@@ -5,8 +5,7 @@
 import { getSuiteMeta } from "./data.js";
 import { escapeHtml } from "./format.js";
 import { showTooltip, hideTooltip } from "./tooltip.js";
-import { adopt } from "./styles/adopt.js";
-import { tokensSheet } from "./styles/tokens.js";
+import { adopt, tokensSheet } from "./styles.js";
 
 const css = `
 .chart-filters {

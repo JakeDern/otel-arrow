@@ -53,12 +53,15 @@ DEFAULT_DATA_DIR = DEFAULT_SITE_ROOT / DEFAULT_DATA_SUBDIR
 SHARED_DIR_NAME = "shared"
 SHARED_SOURCE_SUBDIR = Path(SHARED_DIR_NAME)
 
-# Page HTML is a single static asset shipped to every page directory unchanged.
-# Per-page state lives in a sibling `page-data.js` that dashboard.py emits via
-# json.dumps. The static HTML lives next to the JS modules under shared/ so
-# `copytree(shared_src, shared_dst)` already publishes a canonical copy that
-# the build then copies into each page directory.
-STATIC_INDEX_HTML_PATH = Path(__file__).resolve().parent / "shared" / "index.html"
+# Page HTML: one static file per page kind (landing vs. comparison detail).
+# Both differ only in <title>; each is shipped verbatim to every page directory
+# that needs it. Per-page state lives in a sibling `page-data.js` that
+# dashboard.py emits via json.dumps. The static HTML files live next to the JS
+# modules under shared/ so `copytree(shared_src, shared_dst)` already publishes
+# canonical copies that the build then copies into each page directory.
+_SHARED_DIR = Path(__file__).resolve().parent / "shared"
+STATIC_LANDING_HTML_PATH = _SHARED_DIR / "landing.html"
+STATIC_COMPARISON_HTML_PATH = _SHARED_DIR / "comparison.html"
 
 # File extensions included when scanning test directories during build
 ALLOWED_EXTENSIONS = {".toml", ".yaml", ".yml", ".json", ".txt"}
@@ -1536,16 +1539,25 @@ def _url_relpath(target: Path, start: Path) -> str:
     return Path(os.path.relpath(target, start)).as_posix()
 
 
-# Boot block appended to every page-data.js. Injects the main.js module with
-# the correct per-page relative path. Stylesheets are now constructable: each
-# JS module adopts its own CSSStyleSheet onto document.adoptedStyleSheets, so
-# the boot block only has to load main.js -- no <link rel="stylesheet"> needed.
-_PAGE_DATA_BOOT = """
+# Boot blocks appended to page-data.js. Inject the per-page-kind ES module
+# entry with the correct per-page relative path. Stylesheets are constructable
+# (each JS module adopts its own CSSStyleSheet), so the boot block only has to
+# load the entry script -- no <link rel="stylesheet"> needed.
+_LANDING_BOOT = """
 (() => {
-  const main = document.createElement("script");
-  main.type = "module";
-  main.src = window.PAGE_DATA.sharedHref + "/js/main.js";
-  document.head.appendChild(main);
+  const m = document.createElement("script");
+  m.type = "module";
+  m.src = window.PAGE_DATA.sharedHref + "/js/entries/landing.js";
+  document.head.appendChild(m);
+})();
+"""
+
+_COMPARISON_BOOT = """
+(() => {
+  const m = document.createElement("script");
+  m.type = "module";
+  m.src = window.PAGE_DATA.sharedHref + "/js/entries/comparison.js";
+  document.head.appendChild(m);
 })();
 """
 
@@ -1571,11 +1583,13 @@ def _shell_payload(manifest: Manifest, shared_href: str, data_href: str) -> dict
     }
 
 
-def _write_page(page_dir: Path, payload: dict) -> None:
-    """Copy the static index.html into page_dir and write page-data.js next to it."""
+def _write_page(page_dir: Path, payload: dict, html_src: Path, boot: str) -> None:
+    """Copy `html_src` into page_dir as index.html and write page-data.js next
+    to it. `boot` is the JS snippet appended after the PAGE_DATA assignment;
+    it is responsible for injecting the per-page-kind ES module entry."""
     page_dir.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(STATIC_INDEX_HTML_PATH, page_dir / "index.html")
-    js = f"window.PAGE_DATA = {json.dumps(payload, indent=2)};\n{_PAGE_DATA_BOOT}"
+    shutil.copy2(html_src, page_dir / "index.html")
+    js = f"window.PAGE_DATA = {json.dumps(payload, indent=2)};\n{boot}"
     (page_dir / "page-data.js").write_text(js)
 
 
@@ -1592,13 +1606,12 @@ def generate_index_html(comparisons: list, suites: dict, paths: BuildPaths, mani
     suite_files = [f"{data_href}/suite/{slug}/data.js" for slug in available_slugs]
 
     payload = {
-        "kind": "landing",
         "title": "Telemetry Engine Benchmarks",
         **_shell_payload(manifest, shared_href, data_href),
         "suiteFiles": suite_files,
         "comparisons": [_strip_internal(c) for c in comparisons],
     }
-    _write_page(paths.compare_dir, payload)
+    _write_page(paths.compare_dir, payload, STATIC_LANDING_HTML_PATH, _LANDING_BOOT)
     print(f"  Generated {paths.compare_dir / 'index.html'}")
     print(f"  Generated {paths.compare_dir / 'page-data.js'}")
 
@@ -1625,14 +1638,13 @@ def generate_compare_stubs(comparisons: list, suites: dict, paths: BuildPaths, m
         suite_files = [f"{data_href}/suite/{slug}/data.js" for slug in suite_slugs]
 
         payload = {
-            "kind": "comparison",
             "title": f"{comp.get('name', comp_slug)} - Benchmark Dashboard",
             **shared_payload,
             "suiteFiles": suite_files,
             "comparisonSlug": comp_slug,
             "comparison": _strip_internal(comp),
         }
-        _write_page(stub_dir, payload)
+        _write_page(stub_dir, payload, STATIC_COMPARISON_HTML_PATH, _COMPARISON_BOOT)
         print(f"  Generated {stub_dir / 'index.html'}")
 
 

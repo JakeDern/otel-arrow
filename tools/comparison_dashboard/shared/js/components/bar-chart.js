@@ -19,8 +19,7 @@ import { getSuiteTests } from "../data.js";
 import { formatMetricValue } from "../format.js";
 import { hasBackpressure } from "../backpressure.js";
 import { showTooltip, hideTooltip } from "../tooltip.js";
-import { adopt } from "../styles/adopt.js";
-import { tokensSheet } from "../styles/tokens.js";
+import { adopt, tokensSheet } from "../styles.js";
 import { WARNING_SIGN } from "../icons.js";
 
 const css = `

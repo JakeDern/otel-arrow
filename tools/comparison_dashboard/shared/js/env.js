@@ -3,8 +3,7 @@
 // per-run environment block in the detail panel.
 
 import { escapeHtml } from "./format.js";
-import { adopt } from "./styles/adopt.js";
-import { tokensSheet } from "./styles/tokens.js";
+import { adopt, tokensSheet } from "./styles.js";
 import { WARNING_EMOJI_HTML } from "./icons.js";
 
 const css = `
