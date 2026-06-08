@@ -11,6 +11,11 @@ import { clearPatternCache } from "./charts/pattern.js";
 
 const LEGEND_STORAGE_KEY = "legend-banner-expanded";
 
+/**
+ * Populate the #legend-banner host (rendered by <dashboard-shell>) with the
+ * glossary terms in PAGE_DATA.glossary and restore the user's expand/collapse
+ * preference. Hides the banner entirely when no glossary is configured.
+ */
 export function initLegendBanner() {
     const banner = document.getElementById("legend-banner");
     if (!banner) return;
@@ -27,6 +32,13 @@ export function initLegendBanner() {
     banner.classList.toggle("collapsed", !expanded);
 }
 
+/**
+ * Render the page-level display switches into the #controls-bar host.
+ * The colourblind switch flips the chart palette and calls back to `rerender`
+ * so the active page can repaint with the new colours.
+ *
+ * @param {() => void} rerender Invoked after the colourblind palette flips.
+ */
 export function initControlsBar(rerender) {
     const bar = document.getElementById("controls-bar");
     if (!bar) return;

@@ -5,6 +5,76 @@
 
 import { DATA_PATH } from "../data.js";
 import { highlightFileContent } from "../highlight.js";
+import { adopt } from "../styles/adopt.js";
+import { tokensSheet } from "../styles/tokens.js";
+
+const css = `
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.46);
+    display: grid;
+    place-items: center;
+    z-index: 10000;
+    padding: 20px;
+}
+.modal-backdrop[hidden] { display: none !important; }
+
+.modal {
+    width: min(980px, 96vw);
+    height: 88vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 18px 48px rgba(15, 23, 42, 0.2);
+    padding: 14px;
+}
+.modal-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+.modal-title { font-size: 18px; font-weight: 700; }
+.modal-close {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    cursor: pointer;
+}
+.modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    overflow: hidden;
+    min-height: 0;
+    flex: 1;
+}
+
+.config-full-code {
+    margin: 0;
+    padding: 14px;
+    overflow: auto;
+    background: var(--slate-900);
+    color: var(--line);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.45;
+    white-space: pre;
+    border-radius: var(--radius-md);
+    height: calc(88vh - 200px);
+}
+`;
+
+const sheet = new CSSStyleSheet();
+sheet.replaceSync(css);
+adopt(tokensSheet, sheet);
 
 export class FileModal extends HTMLElement {
     connectedCallback() {

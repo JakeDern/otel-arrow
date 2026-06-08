@@ -3,6 +3,83 @@
 // per-run environment block in the detail panel.
 
 import { escapeHtml } from "./format.js";
+import { adopt } from "./styles/adopt.js";
+import { tokensSheet } from "./styles/tokens.js";
+import { WARNING_EMOJI_HTML } from "./icons.js";
+
+const css = `
+.env-summary {
+    margin: 12px 0 8px;
+    padding: 8px 12px;
+    background: var(--slate-100);
+    border-left: 3px solid var(--slate-500);
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--slate-900);
+}
+.env-summary-label {
+    font-weight: 600;
+    color: var(--slate-700);
+    margin-right: 6px;
+}
+.env-summary-value {
+    font-family: var(--font-mono);
+    font-size: 12px;
+}
+.env-summary-unknown {
+    background: #fef3c7;
+    border-left-color: #f59e0b;
+    color: #78350f;
+}
+
+.env-mismatch-banner {
+    margin: 12px 0;
+    padding: 12px 14px;
+    background: var(--bad-bg);
+    border: 1px solid var(--bad-border);
+    border-left: 4px solid #dc2626;
+    border-radius: 6px;
+    color: #7f1d1d;
+}
+.env-mismatch-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+.env-mismatch-reason { font-size: 12px; margin-bottom: 8px; }
+.env-mismatch-list {
+    margin: 0 0 6px 0;
+    padding-left: 18px;
+    font-size: 12px;
+    font-family: var(--font-mono);
+}
+.env-mismatch-list li { margin-bottom: 2px; }
+.env-mismatch-slug { font-weight: 600; }
+.env-mismatch-note {
+    font-size: 11px;
+    color: var(--bad-text);
+    font-style: italic;
+}
+
+.env-detail {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 4px 12px;
+    margin-top: 4px;
+    padding: 8px 10px;
+    background: var(--slate-50);
+    border: 1px solid var(--slate-200);
+    border-radius: 4px;
+    font-size: 12px;
+}
+.env-detail-row { display: contents; }
+.env-detail-key { color: var(--slate-500); font-weight: 600; }
+.env-detail-val {
+    color: var(--slate-900);
+    font-family: var(--font-mono);
+    word-break: break-word;
+}
+`;
+
+const sheet = new CSSStyleSheet();
+sheet.replaceSync(css);
+adopt(tokensSheet, sheet);
 
 export function renderComparisonEnvHeader(suiteData, comparison) {
     // If the build flagged a mismatch (only happens with --allow-env-mismatch),
@@ -29,7 +106,7 @@ export function renderEnvMismatchBanner(mm) {
     const ref = mm.reference || {};
     const con = mm.conflict || {};
     return `<div class="env-mismatch-banner" role="alert">
-    <div class="env-mismatch-title">&#9888;&#65039; Mismatched run environments</div>
+    <div class="env-mismatch-title">${WARNING_EMOJI_HTML} Mismatched run environments</div>
     <div class="env-mismatch-reason">This comparison mixes data collected on different hardware. Results are not apples-to-apples.</div>
     <ul class="env-mismatch-list">
       <li><span class="env-mismatch-slug">${escapeHtml(ref.slug || "?")}</span> (reference): ${escapeHtml(ref.fingerprintStr || "no env recorded")}</li>

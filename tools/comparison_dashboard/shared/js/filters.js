@@ -4,7 +4,70 @@
 
 import { getSuiteMeta } from "./data.js";
 import { escapeHtml } from "./format.js";
-import { showAxisHoverTooltip, hideAxisHoverTooltip } from "./charts/axis-hover.js";
+import { showTooltip, hideTooltip } from "./tooltip.js";
+import { adopt } from "./styles/adopt.js";
+import { tokensSheet } from "./styles/tokens.js";
+
+const css = `
+.chart-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 20px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 12px;
+}
+.chart-filter-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.chart-filter-label {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--muted);
+    white-space: nowrap;
+}
+.chart-filter-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+.chart-filter-option input[type="checkbox"] {
+    margin: 0;
+    cursor: pointer;
+    accent-color: var(--accent);
+}
+.chart-filter-reset { margin-left: auto; }
+
+/* Generic reset button used by the chart-filter bar. */
+.filter-reset {
+    appearance: none;
+    border: 1px solid #d8e0ee;
+    background: #fff;
+    color: var(--slate-600);
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.filter-reset:hover { background: var(--slate-100); }
+`;
+
+const sheet = new CSSStyleSheet();
+sheet.replaceSync(css);
+adopt(tokensSheet, sheet);
 
 const FILTER_LABELS = {
     protocols: "Protocol",
@@ -100,16 +163,16 @@ export function wireFilters(container, compSlug, categories, onChange) {
     for (const opt of container.querySelectorAll(".chart-filter-option[data-meta-description]")) {
         const desc = opt.dataset.metaDescription;
         if (!desc) continue;
-        opt.addEventListener("mouseenter", (e) => showAxisHoverTooltip(e.clientX, e.clientY, desc));
-        opt.addEventListener("mouseleave", hideAxisHoverTooltip);
+        opt.addEventListener("mouseenter", (e) => showTooltip(e.clientX, e.clientY, desc));
+        opt.addEventListener("mouseleave", hideTooltip);
         // Keyboard parity: focusin/focusout bubble from the nested <input>,
         // so tabbing reveals the description. Anchor to the option's box
         // since focus events have no pointer coordinates.
         opt.addEventListener("focusin", () => {
             const r = opt.getBoundingClientRect();
-            showAxisHoverTooltip(r.left, r.bottom, desc);
+            showTooltip(r.left, r.bottom, desc);
         });
-        opt.addEventListener("focusout", hideAxisHoverTooltip);
+        opt.addEventListener("focusout", hideTooltip);
     }
     const resetBtn = container.querySelector(".chart-filter-reset");
     if (resetBtn) {

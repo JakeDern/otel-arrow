@@ -1536,15 +1536,12 @@ def _url_relpath(target: Path, start: Path) -> str:
     return Path(os.path.relpath(target, start)).as_posix()
 
 
-# Boot block appended to every page-data.js. Injects the stylesheet and the
-# main.js module with the correct per-page relative paths. Kept here as a
-# constant since it does not vary across pages -- only PAGE_DATA does.
+# Boot block appended to every page-data.js. Injects the main.js module with
+# the correct per-page relative path. Stylesheets are now constructable: each
+# JS module adopts its own CSSStyleSheet onto document.adoptedStyleSheets, so
+# the boot block only has to load main.js -- no <link rel="stylesheet"> needed.
 _PAGE_DATA_BOOT = """
 (() => {
-  const link = document.createElement("link");
-  link.rel = "stylesheet";
-  link.href = window.PAGE_DATA.sharedHref + "/styles.css";
-  document.head.appendChild(link);
   const main = document.createElement("script");
   main.type = "module";
   main.src = window.PAGE_DATA.sharedHref + "/js/main.js";

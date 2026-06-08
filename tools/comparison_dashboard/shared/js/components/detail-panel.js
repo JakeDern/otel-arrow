@@ -13,6 +13,169 @@ import { hasBackpressure, DATA_LOSS_THRESHOLD } from "../backpressure.js";
 import { SCALAR_ONLY_METRICS, TIMESERIES_METRICS, tmTitle } from "../metrics.js";
 import { renderEnvDetail } from "../env.js";
 import { createLineChart } from "../charts/line.js";
+import { adopt } from "../styles/adopt.js";
+import { tokensSheet } from "../styles/tokens.js";
+import { WARNING_SIGN } from "../icons.js";
+
+const css = `
+.detail-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+.detail-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.detail-pill {
+    appearance: none;
+    border: 1px solid var(--slate-300);
+    background: #fff;
+    color: var(--slate-600);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    flex-shrink: 0;
+    min-width: 120px;
+    white-space: nowrap;
+    text-align: center;
+}
+.detail-pill:hover { background: var(--slate-50); }
+.detail-pill.active {
+    border-color: var(--pill-color, var(--blue-500));
+    background: color-mix(in srgb, var(--pill-color, var(--blue-500)) 10%, white);
+    color: color-mix(in srgb, var(--pill-color, var(--blue-500)) 80%, black);
+}
+.detail-test-select {
+    font-size: 0.85rem;
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--text);
+    min-width: 140px;
+}
+.detail-pane-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: 8px;
+}
+
+.files-section { margin-bottom: 16px; }
+.files-flex {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.file-list-item {
+    padding: 6px 10px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: #fff;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    cursor: pointer;
+    color: var(--accent);
+    transition: background 0.15s, border-color 0.15s;
+    white-space: nowrap;
+}
+.file-list-item:hover {
+    background: var(--slate-50);
+    border-color: var(--blue-200);
+}
+
+.metric-scalars {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.metric-scalar-card {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    background: #fff;
+}
+.metric-scalar-card.backpressure {
+    border-color: var(--bad-border);
+    background: var(--bad-bg);
+}
+.metric-scalar-card.backpressure .metric-scalar-name,
+.metric-scalar-card.backpressure .metric-scalar-value { color: var(--bad-text); }
+.metric-scalar-name {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+.metric-scalar-value {
+    font-size: 18px;
+    font-weight: 650;
+    margin-top: 2px;
+}
+
+.metric-chart-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+.metric-chart-card {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    background: #fff;
+}
+.metric-chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.metric-chart-name { font-size: 13px; font-weight: 600; }
+.metric-chart-values {
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    gap: 10px;
+}
+.metric-chart-values span { white-space: nowrap; }
+.metric-chart-body { position: relative; height: 120px; }
+@media (max-width: 768px) {
+    .metric-chart-grid { grid-template-columns: 1fr; }
+}
+
+.detail-backpressure-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 1px solid var(--bad-border);
+    border-radius: var(--radius-sm);
+    background: var(--bad-bg);
+    color: var(--bad-text);
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+`;
+
+const sheet = new CSSStyleSheet();
+sheet.replaceSync(css);
+adopt(tokensSheet, sheet);
 
 export class DetailPanel extends HTMLElement {
     setData(suiteData, comparison, tests, suiteIdx, testName) {
@@ -76,7 +239,7 @@ export class DetailPanel extends HTMLElement {
 
         const selTestCfg = tests.find((ct) => ct.name === this._selTest);
         const lr = selTestCfg ? selTestCfg.loadgen_rate : null;
-        const bpBadge = hasBackpressure(metrics, lr) ? '<div class="detail-backpressure-badge">\u26A0 Backpressure detected</div>' : "";
+        const bpBadge = hasBackpressure(metrics, lr) ? `<div class="detail-backpressure-badge">${WARNING_SIGN} Backpressure detected</div>` : "";
 
         let scalarsHtml = "";
         if (test && metrics.length) {
