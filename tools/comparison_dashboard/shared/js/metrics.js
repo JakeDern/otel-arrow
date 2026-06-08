@@ -1,6 +1,6 @@
 // ── Metric metadata + selection helpers ─────────────────────────────────────
 // Drives the metric dropdowns and the detail-panel metric cards. Display
-// labels come from window.METRICS_META (via metricLabel); units come from each
+// labels come from PAGE_DATA.metricsMeta (via metricLabel); units come from each
 // per-test metric record's `unit` field in the published JSON.
 
 import { getSuiteTests } from "./data.js";
@@ -38,7 +38,7 @@ export function findAvailableMetrics(suiteData, comparison) {
     const allowed = chartMetricsConfig(comparison).allowed;
     const candidates = allowed && allowed.length
         ? allowed
-        : Object.keys(window.METRICS_META || {});
+        : Object.keys((window.PAGE_DATA || {}).metricsMeta || {});
     return candidates.filter((mn) =>
         (comparison.suites || []).some((ref) =>
             getSuiteTests(suiteData, ref.slug).some((t) =>

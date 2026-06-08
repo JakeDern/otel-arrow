@@ -31,7 +31,7 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 
 import yaml
-from jinja2 import Environment, BaseLoader, FileSystemLoader, StrictUndefined
+from jinja2 import Environment, BaseLoader, StrictUndefined
 
 
 # ---------------------------------------------------------------------------
@@ -53,14 +53,12 @@ DEFAULT_DATA_DIR = DEFAULT_SITE_ROOT / DEFAULT_DATA_SUBDIR
 SHARED_DIR_NAME = "shared"
 SHARED_SOURCE_SUBDIR = Path(SHARED_DIR_NAME)
 
-# Page HTML is rendered from Jinja templates in <dashboard-dir>/templates/.
-# This is a separate Jinja environment from the orchestrator-config renderer
-# (see render_orchestrator_config): site templates are HTML and autoescape,
-# whereas orchestrator templates emit YAML and must not be HTML-escaped.
-SITE_TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
-
-# Path (relative to shared/) of the ES module entry point loaded by each page.
-ENTRY_SCRIPT = "js/main.js"
+# Page HTML is a single static asset shipped to every page directory unchanged.
+# Per-page state lives in a sibling `page-data.js` that dashboard.py emits via
+# json.dumps. The static HTML lives next to the JS modules under shared/ so
+# `copytree(shared_src, shared_dst)` already publishes a canonical copy that
+# the build then copies into each page directory.
+STATIC_INDEX_HTML_PATH = Path(__file__).resolve().parent / "shared" / "index.html"
 
 # File extensions included when scanning test directories during build
 ALLOWED_EXTENSIONS = {".toml", ".yaml", ".yml", ".json", ".txt"}
@@ -1538,70 +1536,21 @@ def _url_relpath(target: Path, start: Path) -> str:
     return Path(os.path.relpath(target, start)).as_posix()
 
 
-_SITE_JINJA_ENV: Environment | None = None
-
-
-def site_jinja_env() -> Environment:
-    """Lazily build the HTML page-rendering Jinja environment.
-
-    Distinct from the orchestrator-config renderer (render_orchestrator_config):
-    site templates are HTML and must autoescape interpolated values; orchestrator
-    templates emit YAML and must not be HTML-escaped. Pre-serialized JSON blobs
-    are injected with the `| safe` filter in the templates.
-    """
-    global _SITE_JINJA_ENV
-    if _SITE_JINJA_ENV is None:
-        _SITE_JINJA_ENV = Environment(
-            loader=FileSystemLoader(str(SITE_TEMPLATES_DIR)),
-            autoescape=True,
-            undefined=StrictUndefined,
-            trim_blocks=True,
-            lstrip_blocks=True,
-            keep_trailing_newline=True,
-        )
-    return _SITE_JINJA_ENV
-
-
-def _shell_context(paths: BuildPaths, shared_rel: str, data_rel: str, manifest: Manifest) -> dict:
-    """Context shared by every page template (shell, banner, common scripts)."""
-    metrics_meta = {m["name"]: {"label": m["label"]} for m in manifest.metrics}
-    return {
-        "shared_rel": shared_rel,
-        "data_rel": data_rel,
-        "entry_script": ENTRY_SCRIPT,
-        "banner_text": BANNER_TEXT,
-        "banner_link_text": BANNER_LINK_TEXT,
-        "issue_url": ISSUE_URL,
-        "data_path_json": json.dumps(f"{data_rel}/suite"),
-        "metrics_meta_json": json.dumps(metrics_meta),
-        "meta_descriptions_json": json.dumps(manifest.meta_descriptions),
-        "glossary_json": json.dumps(manifest.glossary),
-    }
-
-
-def generate_index_html(comparisons: list, suites: dict, paths: BuildPaths, manifest: Manifest) -> None:
-    """Generate <compare_dir>/index.html with comparison sections."""
-    shared_rel = _url_relpath(paths.shared_dst, paths.compare_dir)
-    data_rel = _url_relpath(paths.data_dir, paths.compare_dir)
-
-    referenced_slugs = set()
-    for comp in comparisons:
-        for suite_ref in comp["suites"]:
-            referenced_slugs.add(suite_ref["slug"])
-    available_slugs = sorted(slug for slug in referenced_slugs if slug in suites)
-
-    comparisons_public = [_strip_internal(c) for c in comparisons]
-
-    ctx = _shell_context(paths, shared_rel, data_rel, manifest)
-    ctx.update(
-        available_slugs=available_slugs,
-        comparisons_json=json.dumps(comparisons_public, indent=2),
-    )
-    html = site_jinja_env().get_template("index.html.j2").render(**ctx)
-
-    index_path = paths.compare_dir / "index.html"
-    index_path.write_text(html)
-    print(f"  Generated {index_path}")
+# Boot block appended to every page-data.js. Injects the stylesheet and the
+# main.js module with the correct per-page relative paths. Kept here as a
+# constant since it does not vary across pages -- only PAGE_DATA does.
+_PAGE_DATA_BOOT = """
+(() => {
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = window.PAGE_DATA.sharedHref + "/styles.css";
+  document.head.appendChild(link);
+  const main = document.createElement("script");
+  main.type = "module";
+  main.src = window.PAGE_DATA.sharedHref + "/js/main.js";
+  document.head.appendChild(main);
+})();
+"""
 
 
 def _strip_internal(comp: dict) -> dict:
@@ -1609,15 +1558,62 @@ def _strip_internal(comp: dict) -> dict:
     return {k: v for k, v in comp.items() if not (isinstance(k, str) and k.startswith("_"))}
 
 
+def _shell_payload(manifest: Manifest, shared_href: str, data_href: str) -> dict:
+    """Per-page PAGE_DATA fields that are identical for every page."""
+    metrics_meta = {m["name"]: {"label": m["label"]} for m in manifest.metrics}
+    return {
+        "sharedHref": shared_href,
+        "dataHref": data_href,
+        "dataPath": f"{data_href}/suite",
+        "metricsMeta": metrics_meta,
+        "metaDescriptions": manifest.meta_descriptions,
+        "glossary": manifest.glossary,
+        "bannerText": BANNER_TEXT,
+        "bannerLinkText": BANNER_LINK_TEXT,
+        "issueUrl": ISSUE_URL,
+    }
+
+
+def _write_page(page_dir: Path, payload: dict) -> None:
+    """Copy the static index.html into page_dir and write page-data.js next to it."""
+    page_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(STATIC_INDEX_HTML_PATH, page_dir / "index.html")
+    js = f"window.PAGE_DATA = {json.dumps(payload, indent=2)};\n{_PAGE_DATA_BOOT}"
+    (page_dir / "page-data.js").write_text(js)
+
+
+def generate_index_html(comparisons: list, suites: dict, paths: BuildPaths, manifest: Manifest) -> None:
+    """Generate the landing page at <compare_dir>/index.html + page-data.js."""
+    shared_href = _url_relpath(paths.shared_dst, paths.compare_dir)
+    data_href = _url_relpath(paths.data_dir, paths.compare_dir)
+
+    referenced_slugs = set()
+    for comp in comparisons:
+        for suite_ref in comp["suites"]:
+            referenced_slugs.add(suite_ref["slug"])
+    available_slugs = sorted(slug for slug in referenced_slugs if slug in suites)
+    suite_files = [f"{data_href}/suite/{slug}/data.js" for slug in available_slugs]
+
+    payload = {
+        "kind": "landing",
+        "title": "Telemetry Engine Benchmarks",
+        **_shell_payload(manifest, shared_href, data_href),
+        "suiteFiles": suite_files,
+        "comparisons": [_strip_internal(c) for c in comparisons],
+    }
+    _write_page(paths.compare_dir, payload)
+    print(f"  Generated {paths.compare_dir / 'index.html'}")
+    print(f"  Generated {paths.compare_dir / 'page-data.js'}")
+
+
 def generate_compare_stubs(comparisons: list, suites: dict, paths: BuildPaths, manifest: Manifest) -> None:
-    """Generate <compare_dir>/<slug>/index.html stub pages."""
+    """Generate <compare_dir>/<slug>/{index.html,page-data.js} for each comparison."""
     # Per-comparison pages are all siblings under compare_dir, so the
     # relpaths to shared/ and data/ are identical for every slug.
     sample_stub = paths.compare_page_dir("_")
-    shared_rel = _url_relpath(paths.shared_dst, sample_stub)
-    data_rel = _url_relpath(paths.data_dir, sample_stub)
-    template = site_jinja_env().get_template("comparison.html.j2")
-    base_ctx = _shell_context(paths, shared_rel, data_rel, manifest)
+    shared_href = _url_relpath(paths.shared_dst, sample_stub)
+    data_href = _url_relpath(paths.data_dir, sample_stub)
+    shared_payload = _shell_payload(manifest, shared_href, data_href)
 
     for comp in comparisons:
         comp_slug = comp["slug"]
@@ -1627,24 +1623,20 @@ def generate_compare_stubs(comparisons: list, suites: dict, paths: BuildPaths, m
         # reconcile_compare_dir.
         if stub_dir.exists():
             shutil.rmtree(stub_dir)
-        stub_dir.mkdir(parents=True, exist_ok=True)
 
-        suite_slugs = [
-            ref["slug"] for ref in comp["suites"] if ref["slug"] in suites
-        ]
+        suite_slugs = [ref["slug"] for ref in comp["suites"] if ref["slug"] in suites]
+        suite_files = [f"{data_href}/suite/{slug}/data.js" for slug in suite_slugs]
 
-        ctx = dict(base_ctx)
-        ctx.update(
-            title=comp.get("name", comp_slug),
-            comp_slug_json=json.dumps(comp_slug),
-            suite_slugs=suite_slugs,
-            comp_json=json.dumps(_strip_internal(comp), indent=2),
-        )
-        stub_html = template.render(**ctx)
-
-        stub_path = stub_dir / "index.html"
-        stub_path.write_text(stub_html)
-        print(f"  Generated {stub_path}")
+        payload = {
+            "kind": "comparison",
+            "title": f"{comp.get('name', comp_slug)} - Benchmark Dashboard",
+            **shared_payload,
+            "suiteFiles": suite_files,
+            "comparisonSlug": comp_slug,
+            "comparison": _strip_internal(comp),
+        }
+        _write_page(stub_dir, payload)
+        print(f"  Generated {stub_dir / 'index.html'}")
 
 
 # ===========================================================================

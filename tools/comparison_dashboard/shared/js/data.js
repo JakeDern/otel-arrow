@@ -1,15 +1,13 @@
 // ── Data loading + suite/test accessors ─────────────────────────────────────
-// Suite data is pre-loaded via <script> tags that populate window.SUITE_DATA
-// before any module runs. DATA_PATH is injected per-page by dashboard.py build
-// as the relative URL to the per-suite data root (e.g. ../data/suite). Per-test
+// Suite data is loaded by main.js bootstrap (async <script> insertion driven by
+// PAGE_DATA.suiteFiles) and ends up on window.SUITE_DATA before any rendering
+// runs. DATA_PATH comes from PAGE_DATA.dataPath, set by dashboard.py to the
+// relative URL of the per-suite data root (e.g. ../../data/suite). Per-test
 // files live at ${DATA_PATH}/<slug>/<test>/<file>.
 
-export const DATA_PATH = window.DATA_PATH;
+export const DATA_PATH = (window.PAGE_DATA || {}).dataPath;
 if (!DATA_PATH) {
-    console.warn(
-        "window.DATA_PATH not set; file viewer fetches will fail. " +
-        "This page should be served alongside the build-generated index/stub HTML."
-    );
+    console.warn("PAGE_DATA.dataPath not set; file viewer fetches will fail.");
 }
 
 export function loadSuiteData() { return window.SUITE_DATA || {}; }

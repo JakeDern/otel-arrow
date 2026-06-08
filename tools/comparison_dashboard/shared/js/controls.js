@@ -1,7 +1,7 @@
 // ── Controls bar + legend banner ───────────────────────────────────────────
 // Renders the page-level controls bar (display switches) and the pinned
-// glossary banner. Both are mounted once into placeholders in base.html.j2
-// and persist across page navigations. Switch state is persisted to
+// glossary banner. Both target placeholders (#controls-bar / #legend-banner)
+// rendered by <dashboard-shell>. Switch state is persisted to
 // localStorage. Colorblind switch flips the chart palette via shared state
 // in charts/colors.js and triggers a rerender of the active page.
 
@@ -14,7 +14,7 @@ const LEGEND_STORAGE_KEY = "legend-banner-expanded";
 export function initLegendBanner() {
     const banner = document.getElementById("legend-banner");
     if (!banner) return;
-    const glossary = (typeof window !== "undefined" && window.GLOSSARY) || [];
+    const glossary = ((window.PAGE_DATA || {}).glossary) || [];
     if (!Array.isArray(glossary) || glossary.length === 0) {
         banner.hidden = true;
         return;
@@ -30,7 +30,7 @@ export function initLegendBanner() {
 export function initControlsBar(rerender) {
     const bar = document.getElementById("controls-bar");
     if (!bar) return;
-    const glossary = (typeof window !== "undefined" && window.GLOSSARY) || [];
+    const glossary = ((window.PAGE_DATA || {}).glossary) || [];
     const hasGlossary = Array.isArray(glossary) && glossary.length > 0;
     const legendOn = readBoolPref(LEGEND_STORAGE_KEY, true);
     const parts = [];

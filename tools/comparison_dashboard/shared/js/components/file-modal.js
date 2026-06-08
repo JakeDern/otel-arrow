@@ -1,24 +1,33 @@
 // ── <file-modal> ─────────────────────────────────────────────────────────────
-// Controller over the static #run-detail-modal shell emitted in the page
-// template. Native custom element with no own markup: on connect it wires the
-// close button / backdrop / Escape key and listens for bubbling `open-file`
-// events (dispatched by <detail-panel>), then fetches and syntax-highlights the
-// requested config file.
+// Renders its own modal scaffolding into light DOM on mount. Listens for
+// bubbling `open-file` events (dispatched by <detail-panel>), then fetches
+// and syntax-highlights the requested config file.
 
 import { DATA_PATH } from "../data.js";
 import { highlightFileContent } from "../highlight.js";
 
 export class FileModal extends HTMLElement {
     connectedCallback() {
-        this._modal = document.getElementById("run-detail-modal");
-        this._body = document.getElementById("run-detail-body");
-        this._title = document.getElementById("run-detail-title");
+        this.innerHTML = `
+            <div class="modal-backdrop" hidden>
+                <div class="modal">
+                    <div class="modal-head">
+                        <div class="modal-title"></div>
+                        <button class="modal-close" type="button">Close</button>
+                    </div>
+                    <div class="modal-body"></div>
+                </div>
+            </div>
+        `;
+        this._modal = this.querySelector(".modal-backdrop");
+        this._body = this.querySelector(".modal-body");
+        this._title = this.querySelector(".modal-title");
 
-        const closeBtn = document.getElementById("run-detail-close");
+        const closeBtn = this.querySelector(".modal-close");
         if (closeBtn) closeBtn.onclick = () => this._hide();
-        if (this._modal) this._modal.addEventListener("click", (evt) => { if (evt.target === this._modal) this._hide(); });
+        this._modal.addEventListener("click", (evt) => { if (evt.target === this._modal) this._hide(); });
 
-        this._onKey = (evt) => { if (evt.key === "Escape" && this._modal && !this._modal.hidden) this._hide(); };
+        this._onKey = (evt) => { if (evt.key === "Escape" && !this._modal.hidden) this._hide(); };
         this._onOpen = (evt) => this.open(evt.detail.slug, evt.detail.test, evt.detail.file);
         document.addEventListener("keydown", this._onKey);
         document.addEventListener("open-file", this._onOpen);
@@ -29,20 +38,18 @@ export class FileModal extends HTMLElement {
         document.removeEventListener("open-file", this._onOpen);
     }
 
-    _hide() { if (this._modal) this._modal.hidden = true; }
+    _hide() { this._modal.hidden = true; }
 
     async open(suiteSlug, testName, fileName) {
-        if (!this._modal || !this._body || !this._title) return;
         this._title.textContent = fileName;
         this._modal.hidden = false;
-        this._body.innerHTML = '<pre class="config-full-code"><code id="file-modal-content">Loading...</code></pre>';
+        this._body.innerHTML = '<pre class="config-full-code"><code class="file-modal-content">Loading...</code></pre>';
+        const codeEl = this._body.querySelector(".file-modal-content");
         try {
             const content = await this._load(suiteSlug, testName, fileName);
-            const el = document.getElementById("file-modal-content");
-            if (el) el.innerHTML = highlightFileContent(fileName, content);
+            codeEl.innerHTML = highlightFileContent(fileName, content);
         } catch (e) {
-            const el = document.getElementById("file-modal-content");
-            if (el) el.textContent = `Error loading file: ${e.message}`;
+            codeEl.textContent = `Error loading file: ${e.message}`;
         }
     }
 

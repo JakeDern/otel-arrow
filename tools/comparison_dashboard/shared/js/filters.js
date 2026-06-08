@@ -71,7 +71,7 @@ export function filterComparison(comparison, suiteData, filterState) {
 }
 
 export function buildFilterHtml(categories, filterState) {
-    const descriptions = (typeof window !== "undefined" && window.META_DESCRIPTIONS) || {};
+    const descriptions = ((window.PAGE_DATA || {}).metaDescriptions) || {};
     const groups = Object.entries(categories).map(([cat, vals]) => {
         const checked = filterState.get(cat) || new Set();
         const catDescs = descriptions[cat] || {};

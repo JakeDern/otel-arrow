@@ -1,6 +1,6 @@
 // ── Formatting + escaping utilities ─────────────────────────────────────────
 // Pure helpers with no dependencies on other dashboard modules. Metric display
-// labels come from window.METRICS_META (emitted by dashboard.py from manifest).
+// labels come from PAGE_DATA.metricsMeta (emitted by dashboard.py from manifest).
 
 export function escapeHtml(text) {
     const div = document.createElement("div");
@@ -39,7 +39,7 @@ export function formatBytes(v) {
 }
 
 export function metricLabel(name) {
-    const meta = (window.METRICS_META || {})[name];
+    const meta = ((window.PAGE_DATA || {}).metricsMeta || {})[name];
     if (meta && meta.label) return meta.label;
     return name.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
