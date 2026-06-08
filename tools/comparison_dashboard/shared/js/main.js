@@ -12,7 +12,7 @@ import "./components/comparison-section.js";
 import "./components/comparison-page.js";
 import "./components/file-modal.js";
 import { escapeHtml } from "./format.js";
-import { renderColorblindToggle, wireColorblindToggle } from "./colorblind.js";
+import { initLegendBanner, initControlsBar } from "./controls.js";
 
 function mountFileModal() {
     if (!document.querySelector("file-modal")) {
@@ -20,14 +20,20 @@ function mountFileModal() {
     }
 }
 
+// Refs to the mounted page so the controls bar can repaint after a
+// colorblind toggle. Populated by mountLanding / mountComparisonPage.
+let landingSections = null;
+let comparisonPageEl = null;
+
 function mountLanding() {
     const app = document.getElementById("app");
     const cards = document.getElementById("comparison-cards");
     if (!app || !cards) return;
     const comparisons = window.COMPARISONS || [];
-    app.innerHTML = renderColorblindToggle();
+    app.innerHTML = "";
     if (!comparisons.length) {
         cards.innerHTML = '<div class="muted" style="padding:16px">No comparisons defined.</div>';
+        landingSections = [];
         return;
     }
     cards.innerHTML = "";
@@ -38,8 +44,7 @@ function mountLanding() {
         cards.appendChild(el);
         sections.push(el);
     }
-    // Palette toggle recreates each section's chart so new colors apply.
-    wireColorblindToggle(app, () => { for (const s of sections) s.refreshPalette(); });
+    landingSections = sections;
 }
 
 function mountComparisonPage() {
@@ -50,9 +55,17 @@ function mountComparisonPage() {
     el.comparison = window.COMPARISON;
     app.innerHTML = "";
     app.appendChild(el);
+    comparisonPageEl = el;
+}
+
+function rerenderCurrentPage() {
+    if (comparisonPageEl) comparisonPageEl.render();
+    else if (landingSections) for (const s of landingSections) s.refreshPalette();
 }
 
 function main() {
+    initLegendBanner();
+    initControlsBar(rerenderCurrentPage);
     mountFileModal();
     if (window.COMPARISON_SLUG) mountComparisonPage();
     else if (window.COMPARISONS) mountLanding();

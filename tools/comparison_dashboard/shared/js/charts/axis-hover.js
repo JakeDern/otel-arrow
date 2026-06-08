@@ -125,7 +125,7 @@ function nearestTickIndex(scale, px) {
 }
 
 let axisHoverTooltipEl = null;
-function showAxisHoverTooltip(clientX, clientY, text) {
+export function showAxisHoverTooltip(clientX, clientY, text) {
     if (!axisHoverTooltipEl) {
         axisHoverTooltipEl = document.createElement("div");
         axisHoverTooltipEl.className = "axis-hover-tooltip";
@@ -142,6 +142,6 @@ function showAxisHoverTooltip(clientX, clientY, text) {
     axisHoverTooltipEl.style.top = `${y}px`;
 }
 
-function hideAxisHoverTooltip() {
+export function hideAxisHoverTooltip() {
     if (axisHoverTooltipEl && !axisHoverTooltipEl.hidden) axisHoverTooltipEl.hidden = true;
 }

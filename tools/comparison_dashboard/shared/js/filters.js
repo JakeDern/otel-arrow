@@ -4,6 +4,7 @@
 
 import { getSuiteMeta } from "./data.js";
 import { escapeHtml } from "./format.js";
+import { showAxisHoverTooltip, hideAxisHoverTooltip } from "./charts/axis-hover.js";
 
 const FILTER_LABELS = {
     protocols: "Protocol",
@@ -70,11 +71,15 @@ export function filterComparison(comparison, suiteData, filterState) {
 }
 
 export function buildFilterHtml(categories, filterState) {
+    const descriptions = (typeof window !== "undefined" && window.META_DESCRIPTIONS) || {};
     const groups = Object.entries(categories).map(([cat, vals]) => {
         const checked = filterState.get(cat) || new Set();
-        const opts = vals.map((v) =>
-            `<label class="chart-filter-option"><input type="checkbox" data-filter-category="${escapeHtml(cat)}" data-filter-value="${escapeHtml(v)}" ${checked.has(v) ? "checked" : ""}> ${escapeHtml(v)}</label>`
-        ).join("");
+        const catDescs = descriptions[cat] || {};
+        const opts = vals.map((v) => {
+            const desc = catDescs[v];
+            const descAttr = desc ? ` data-meta-description="${escapeHtml(desc)}"` : "";
+            return `<label class="chart-filter-option"${descAttr}><input type="checkbox" data-filter-category="${escapeHtml(cat)}" data-filter-value="${escapeHtml(v)}" ${checked.has(v) ? "checked" : ""}> ${escapeHtml(v)}</label>`;
+        }).join("");
         const label = FILTER_LABELS[cat] || cat.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
         return `<div class="chart-filter-group"><span class="chart-filter-label">${escapeHtml(label)}:</span>${opts}</div>`;
     }).join("");
@@ -91,6 +96,20 @@ export function wireFilters(container, compSlug, categories, onChange) {
             cb.checked ? s.add(cb.dataset.filterValue) : s.delete(cb.dataset.filterValue);
             onChange();
         };
+    }
+    for (const opt of container.querySelectorAll(".chart-filter-option[data-meta-description]")) {
+        const desc = opt.dataset.metaDescription;
+        if (!desc) continue;
+        opt.addEventListener("mouseenter", (e) => showAxisHoverTooltip(e.clientX, e.clientY, desc));
+        opt.addEventListener("mouseleave", hideAxisHoverTooltip);
+        // Keyboard parity: focusin/focusout bubble from the nested <input>,
+        // so tabbing reveals the description. Anchor to the option's box
+        // since focus events have no pointer coordinates.
+        opt.addEventListener("focusin", () => {
+            const r = opt.getBoundingClientRect();
+            showAxisHoverTooltip(r.left, r.bottom, desc);
+        });
+        opt.addEventListener("focusout", hideAxisHoverTooltip);
     }
     const resetBtn = container.querySelector(".chart-filter-reset");
     if (resetBtn) {

@@ -1,13 +1,12 @@
 // ── <comparison-page> ────────────────────────────────────────────────────────
-// Detail-page orchestrator: header, env header, colorblind toggle, page-level
-// filter bar, the bar chart, and a child <detail-panel>. Native custom element.
+// Detail-page orchestrator: header, env header, page-level filter bar,
+// the bar chart, and a child <detail-panel>. Native custom element.
 // Owns the bar chart and coordinates it with the panel: a bar click drives the
 // panel; the panel's own pill/select changes are recorded but do not move the
 // chart (matching the original app behavior).
 
 import { loadSuiteData } from "../data.js";
 import { escapeHtml } from "../format.js";
-import { renderColorblindToggle, wireColorblindToggle } from "../colorblind.js";
 import {
     collectFilterCategories, getFilterState, buildFilterHtml,
     filterComparison, wireFilters,
@@ -46,7 +45,6 @@ export class ComparisonPage extends HTMLElement {
         <div class="sub">${escapeHtml(comparison.description || "")}</div>
       </div>
       ${envHeaderHtml}
-      ${renderColorblindToggle()}
       ${filterHtml}
       <div id="comparison-chart"></div>
       <detail-panel></detail-panel>`;
@@ -60,7 +58,6 @@ export class ComparisonPage extends HTMLElement {
         });
 
         const renderAll = () => this._renderAll(suiteData, comparison, filterState);
-        wireColorblindToggle(this, () => this.render());
         const fc = this.querySelector(".chart-filters");
         if (fc) wireFilters(fc, compSlug, categories, renderAll);
         renderAll();

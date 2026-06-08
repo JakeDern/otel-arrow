@@ -1574,6 +1574,8 @@ def _shell_context(paths: BuildPaths, shared_rel: str, data_rel: str, manifest: 
         "issue_url": ISSUE_URL,
         "data_path_json": json.dumps(f"{data_rel}/suite"),
         "metrics_meta_json": json.dumps(metrics_meta),
+        "meta_descriptions_json": json.dumps(manifest.meta_descriptions),
+        "glossary_json": json.dumps(manifest.glossary),
     }
 
 

@@ -13,6 +13,8 @@
    <span class="wip-text">{{ banner_text }} <a class="wip-link" href="{{ issue_url }}" target="_blank" rel="noopener">{{ banner_link_text }}</a></span>
     <span class="wip-icon" aria-hidden="true">&#9888;&#65039;</span>
   </div>
+  <div class="controls-bar" id="controls-bar" aria-label="Display controls"></div>
+  <div class="legend-banner" id="legend-banner" aria-label="Glossary"></div>
   <div class="wrap">
 {% block content %}{% endblock %}
   </div>
@@ -31,6 +33,8 @@
 {% block data_scripts %}{% endblock %}
   <script>window.DATA_PATH = {{ data_path_json | safe }};</script>
   <script>window.METRICS_META = {{ metrics_meta_json | safe }};</script>
+  <script>window.META_DESCRIPTIONS = {{ meta_descriptions_json | safe }};</script>
+  <script>window.GLOSSARY = {{ glossary_json | safe }};</script>
 {% block page_scripts %}{% endblock %}
   <script type="module" src="{{ shared_rel }}/{{ entry_script }}"></script>
 </body>
