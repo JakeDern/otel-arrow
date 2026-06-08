@@ -12,9 +12,9 @@ import { escapeHtml, formatMetricValue, metricLabel } from "../format.js";
 import { hasBackpressure, DATA_LOSS_THRESHOLD } from "../backpressure.js";
 import { SCALAR_ONLY_METRICS, TIMESERIES_METRICS, tmTitle } from "../metrics.js";
 import { renderEnvDetail } from "../env.js";
-import { createLineChart } from "../charts/line.js";
 import { adopt, tokensSheet } from "../styles.js";
 import { WARNING_SIGN } from "../icons.js";
+import "./line-chart.js";
 
 const css = `
 .detail-controls {
@@ -187,9 +187,6 @@ export class DetailPanel extends HTMLElement {
     }
 
     connectedCallback() { if (this._comparison) this.render(); }
-    disconnectedCallback() { this._destroyCharts(); }
-
-    _destroyCharts() { if (this._mini) { for (const c of this._mini) c.destroy(); } this._mini = []; }
 
     // Programmatic selection (bar click). Re-render but do not emit.
     setSelection(si, tn) { this._selSuite = si; this._selTest = tn; this.render(); }
@@ -203,7 +200,9 @@ export class DetailPanel extends HTMLElement {
     }
 
     render() {
-        this._destroyCharts();
+        // Re-rendering via innerHTML removes any prior <line-chart> children
+        // from the DOM, triggering their disconnectedCallback -- no explicit
+        // chart cleanup is required.
         const suiteData = this._suiteData;
         const comparison = this._comparison;
         const tests = this._tests || [];
@@ -257,7 +256,7 @@ export class DetailPanel extends HTMLElement {
                 if (tm.max) { const m = getAgg(tm.max); if (m) parts.push(`<span>Max: ${formatMetricValue(m.value, m.unit || tm.unit)}</span>`); }
                 if (!parts.length) return "";
                 const hasSeries = ts && ts[tm.key] && ts[tm.key].length > 1;
-                return `<div class="metric-chart-card" data-ts-key="${escapeHtml(tm.key)}"><div class="metric-chart-header"><div class="metric-chart-name">${escapeHtml(tmTitle(tm))}</div><div class="metric-chart-values">${parts.join("")}</div></div>${hasSeries ? '<div class="metric-chart-body"><canvas></canvas></div>' : '<div class="muted" style="font-size:12px">No time-series data available.</div>'}</div>`;
+                return `<div class="metric-chart-card" data-ts-key="${escapeHtml(tm.key)}"><div class="metric-chart-header"><div class="metric-chart-name">${escapeHtml(tmTitle(tm))}</div><div class="metric-chart-values">${parts.join("")}</div></div>${hasSeries ? '<div class="metric-chart-body"><line-chart></line-chart></div>' : '<div class="muted" style="font-size:12px">No time-series data available.</div>'}</div>`;
             }).filter(Boolean).join("");
             if (cards) chartsHtml = `<div class="metric-chart-grid">${cards}</div>`;
         }
@@ -278,8 +277,8 @@ export class DetailPanel extends HTMLElement {
             for (const card of this.querySelectorAll(".metric-chart-card[data-ts-key]")) {
                 const series = ts[card.dataset.tsKey];
                 if (!series || series.length < 2) continue;
-                const cv = card.querySelector("canvas");
-                if (cv) this._mini.push(createLineChart(cv, series, color));
+                const chart = card.querySelector("line-chart");
+                if (chart) chart.setData({ series, color });
             }
         }
     }

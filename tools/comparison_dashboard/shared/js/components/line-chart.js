@@ -1,0 +1,150 @@
+// ── <line-chart> ────────────────────────────────────────────────────────────
+// Custom element wrapping a Chart.js line chart -- used by <detail-panel> for
+// the per-metric sparklines. Owns its own <canvas>, the Chart instance, and
+// every Chart.js-specific option.
+//
+// Consumers use it like:
+//
+//     const el = document.createElement("line-chart");
+//     el.setData({ series, color });
+//     parent.appendChild(el);
+//
+// Subsequent setData() calls reuse the existing Chart instance and call
+// chart.update("none") so a colour / series swap is in-place.
+
+import { formatMetricValue } from "../format.js";
+import { adopt, tokensSheet } from "../styles.js";
+
+const css = `
+line-chart {
+    display: block;
+    position: relative;
+}
+line-chart canvas {
+    display: block;
+    width: 100%;
+}
+`;
+
+const sheet = new CSSStyleSheet();
+sheet.replaceSync(css);
+adopt(tokensSheet, sheet);
+
+/**
+ * Inputs accepted by `<line-chart>.setData()`.
+ *
+ * @typedef {Object} LineChartInput
+ * @property {Array<{t: number, value: number}>} series Time-series points.
+ * @property {string} color Stroke colour for the line.
+ */
+
+/**
+ * Line-chart custom element. Lazily creates the Chart on first setData() and
+ * reuses it on subsequent calls. Destroyed automatically on disconnect (so
+ * parents that re-render via innerHTML don't have to track instances).
+ */
+export class LineChart extends HTMLElement {
+    connectedCallback() {
+        if (!this._canvas) {
+            this._canvas = document.createElement("canvas");
+            this.appendChild(this._canvas);
+        }
+        if (this._pendingInput) {
+            const input = this._pendingInput;
+            this._pendingInput = null;
+            this.setData(input);
+        }
+    }
+
+    disconnectedCallback() { this._destroy(); }
+
+    /**
+     * Provide / replace the chart's data. Defers until the element is in the
+     * document if called before connectedCallback.
+     *
+     * @param {LineChartInput} input
+     */
+    setData(input) {
+        if (!this.isConnected || !this._canvas) {
+            this._pendingInput = input;
+            return;
+        }
+        if (this._chart) this._update(input);
+        else this._create(input);
+    }
+
+    _create({ series, color }) {
+        this._chart = new Chart(this._canvas, {
+            type: "line",
+            data: {
+                labels: series.map((p) => p.t),
+                datasets: [{
+                    data: series.map((p) => p.value),
+                    borderColor: color,
+                    borderWidth: 2,
+                    pointRadius: 2.5,
+                    pointHitRadius: 6,
+                    tension: 0.3,
+                    fill: false,
+                }],
+            },
+            options: chartOptions(),
+        });
+    }
+
+    _update({ series, color }) {
+        const ch = this._chart;
+        ch.data.labels = series.map((p) => p.t);
+        const ds = ch.data.datasets[0];
+        ds.data = series.map((p) => p.value);
+        ds.borderColor = color;
+        ch.update("none");
+    }
+
+    _destroy() {
+        if (this._chart) {
+            this._chart.destroy();
+            this._chart = null;
+        }
+    }
+}
+
+customElements.define("line-chart", LineChart);
+
+function chartOptions() {
+    return {
+        responsive: true, maintainAspectRatio: false, animation: false,
+        layout: { padding: { top: 4, right: 4 } },
+        scales: {
+            x: {
+                type: "linear",
+                grid: { display: false },
+                border: { display: true, color: "#e2e8f0" },
+                ticks: {
+                    maxTicksLimit: 5, color: "#94a3b8", font: { size: 9 },
+                    callback: (v) => `${Math.round(v)}s`,
+                },
+            },
+            y: {
+                beginAtZero: false,
+                grid: { color: "#f1f5f9" },
+                border: { display: false },
+                ticks: {
+                    maxTicksLimit: 4, color: "#94a3b8", font: { size: 9 },
+                    callback: (v) => formatMetricValue(v, ""),
+                },
+            },
+        },
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                backgroundColor: "rgba(15,23,42,0.9)", cornerRadius: 4, padding: 8,
+                titleFont: { size: 11 }, bodyFont: { size: 11 },
+                callbacks: {
+                    title: (items) => `${Math.round(items[0].parsed.x)}s`,
+                    label: (ctx) => formatMetricValue(ctx.parsed.y, ""),
+                },
+            },
+        },
+    };
+}
