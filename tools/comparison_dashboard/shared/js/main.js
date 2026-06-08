@@ -15,52 +15,52 @@ import { escapeHtml } from "./format.js";
 import { renderColorblindToggle, wireColorblindToggle } from "./colorblind.js";
 
 function mountFileModal() {
-  if (!document.querySelector("file-modal")) {
-    document.body.appendChild(document.createElement("file-modal"));
-  }
+    if (!document.querySelector("file-modal")) {
+        document.body.appendChild(document.createElement("file-modal"));
+    }
 }
 
 function mountLanding() {
-  const app = document.getElementById("app");
-  const cards = document.getElementById("comparison-cards");
-  if (!app || !cards) return;
-  const comparisons = window.COMPARISONS || [];
-  app.innerHTML = renderColorblindToggle();
-  if (!comparisons.length) {
-    cards.innerHTML = '<div class="muted" style="padding:16px">No comparisons defined.</div>';
-    return;
-  }
-  cards.innerHTML = "";
-  const sections = [];
-  for (const comp of comparisons) {
-    const el = document.createElement("comparison-section");
-    el.comparison = comp;
-    cards.appendChild(el);
-    sections.push(el);
-  }
-  // Palette toggle recreates each section's chart so new colors apply.
-  wireColorblindToggle(app, () => { for (const s of sections) s.refreshPalette(); });
+    const app = document.getElementById("app");
+    const cards = document.getElementById("comparison-cards");
+    if (!app || !cards) return;
+    const comparisons = window.COMPARISONS || [];
+    app.innerHTML = renderColorblindToggle();
+    if (!comparisons.length) {
+        cards.innerHTML = '<div class="muted" style="padding:16px">No comparisons defined.</div>';
+        return;
+    }
+    cards.innerHTML = "";
+    const sections = [];
+    for (const comp of comparisons) {
+        const el = document.createElement("comparison-section");
+        el.comparison = comp;
+        cards.appendChild(el);
+        sections.push(el);
+    }
+    // Palette toggle recreates each section's chart so new colors apply.
+    wireColorblindToggle(app, () => { for (const s of sections) s.refreshPalette(); });
 }
 
 function mountComparisonPage() {
-  const app = document.getElementById("app");
-  if (!app) return;
-  const el = document.createElement("comparison-page");
-  el.compSlug = window.COMPARISON_SLUG;
-  el.comparison = window.COMPARISON;
-  app.innerHTML = "";
-  app.appendChild(el);
+    const app = document.getElementById("app");
+    if (!app) return;
+    const el = document.createElement("comparison-page");
+    el.compSlug = window.COMPARISON_SLUG;
+    el.comparison = window.COMPARISON;
+    app.innerHTML = "";
+    app.appendChild(el);
 }
 
 function main() {
-  mountFileModal();
-  if (window.COMPARISON_SLUG) mountComparisonPage();
-  else if (window.COMPARISONS) mountLanding();
-  else { const app = document.getElementById("app"); if (app) app.innerHTML = '<div class="muted" style="padding:16px">No data loaded. Run build.py to generate dashboard data.</div>'; }
+    mountFileModal();
+    if (window.COMPARISON_SLUG) mountComparisonPage();
+    else if (window.COMPARISONS) mountLanding();
+    else { const app = document.getElementById("app"); if (app) app.innerHTML = '<div class="muted" style="padding:16px">No data loaded. Run build.py to generate dashboard data.</div>'; }
 }
 
 try { main(); } catch (err) {
-  const app = document.getElementById("app");
-  if (app) app.innerHTML = `<pre style="padding:16px;color:red">Failed to load dashboard: ${escapeHtml(String(err))}</pre>`;
-  console.error(err);
+    const app = document.getElementById("app");
+    if (app) app.innerHTML = `<pre style="padding:16px;color:red">Failed to load dashboard: ${escapeHtml(String(err))}</pre>`;
+    console.error(err);
 }

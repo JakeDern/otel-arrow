@@ -6,24 +6,24 @@
 
 export const DATA_PATH = window.DATA_PATH;
 if (!DATA_PATH) {
-  console.warn(
-    "window.DATA_PATH not set; file viewer fetches will fail. " +
-    "This page should be served alongside the build-generated index/stub HTML."
-  );
+    console.warn(
+        "window.DATA_PATH not set; file viewer fetches will fail. " +
+        "This page should be served alongside the build-generated index/stub HTML."
+    );
 }
 
 export function loadSuiteData() { return window.SUITE_DATA || {}; }
 
 export function getSuiteTests(suiteData, slug) {
-  const suite = suiteData[slug];
-  return suite ? suite.tests || [] : [];
+    const suite = suiteData[slug];
+    return suite ? suite.tests || [] : [];
 }
 
 export function getTestByName(suiteData, slug, testName) {
-  return getSuiteTests(suiteData, slug).find((t) => t.name === testName) || null;
+    return getSuiteTests(suiteData, slug).find((t) => t.name === testName) || null;
 }
 
 export function getSuiteMeta(suiteData, slug) {
-  const suite = suiteData[slug];
-  return suite ? suite.meta || {} : {};
+    const suite = suiteData[slug];
+    return suite ? suite.meta || {} : {};
 }
