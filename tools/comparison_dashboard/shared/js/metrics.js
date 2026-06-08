@@ -1,24 +1,18 @@
 // ── Metric metadata + selection helpers ─────────────────────────────────────
-// Drives the metric dropdowns and the detail-panel metric cards. Display
-// labels come from PAGE_DATA.metricsMeta (via metricLabel); units come from each
-// per-test metric record's `unit` field in the published JSON.
+// Drives the metric dropdowns (landing + detail page bar charts) and the
+// detail-panel scalar cards. Display labels come from PAGE_DATA.metricsMeta
+// (via metricLabel); units come from each per-test metric record's `unit`
+// field in the published JSON. Timeseries chart cards in <detail-panel> are
+// data-driven -- the timeseries object's keys + companion `<key>_avg` /
+// `<key>_max` scalars in test.metrics are all the metadata needed.
 
 import { getSuiteTests } from "./data.js";
 import { metricLabel } from "./format.js";
 
-export const TIMESERIES_METRICS = [
-    { key: "cpu_percentage_normalized", label: "CPU Normalized", unit: "%", avg: "cpu_percentage_normalized_avg", max: "cpu_percentage_normalized_max" },
-    { key: "ram_mib", label: "RAM", unit: "MiB", avg: "ram_mib_avg", max: "ram_mib_max" },
-    { key: "network_tx_bytes_rate", label: "Network TX Rate", unit: "bytes/sec", avg: "network_tx_bytes_rate_avg" },
-    { key: "network_rx_bytes_rate", label: "Network RX Rate", unit: "bytes/sec", avg: "network_rx_bytes_rate_avg" },
-    { key: "logs_produced_rate", label: "Offered Load Rate", unit: "logs/sec", avg: "logs_produced_rate" },
-    { key: "logs_received_rate", label: "Backend Received Rate", unit: "logs/sec", avg: "logs_received_rate" },
-    { key: "metrics_produced_rate", label: "Offered Load Rate", unit: "metrics/sec", avg: "metrics_produced_rate" },
-    { key: "metrics_received_rate", label: "Backend Received Rate", unit: "metrics/sec", avg: "metrics_received_rate" },
-    { key: "spans_produced_rate", label: "Offered Load Rate", unit: "spans/sec", avg: "spans_produced_rate" },
-    { key: "spans_received_rate", label: "Backend Received Rate", unit: "spans/sec", avg: "spans_received_rate" },
-];
-
+// Scalar-only metrics rendered as standalone cards in <detail-panel>. These
+// are the curated handful of "key health indicators" -- everything else either
+// lives inside a chart card's Avg/Max annotation or is a bar-chart dropdown
+// option only.
 export const SCALAR_ONLY_METRICS = [
     { name: "dropped_logs_percentage" },
     { name: "test_duration" },
@@ -27,8 +21,6 @@ export const SCALAR_ONLY_METRICS = [
 // Selected metric per comparison slug; shared between the landing sections and
 // the comparison detail page so the choice persists across re-renders.
 export const perComparisonMetrics = new Map();
-
-export function tmTitle(tm) { return tm.unit ? `${tm.label} (${tm.unit})` : tm.label; }
 
 export function chartMetricsConfig(comparison) {
     return (comparison.chart && comparison.chart.metrics) || {};

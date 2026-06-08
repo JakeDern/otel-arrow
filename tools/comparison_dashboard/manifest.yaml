@@ -76,9 +76,35 @@ palettes:
   ]
 
 # Display registry for dashboard metrics. Names must match the `name` field on
-# per-test metric records in published suite data; units come from those
-# records (manifest declares label only).
+# per-test metric records in published suite data (or the timeseries object's
+# key for timeseries-style metrics); units come from those records (manifest
+# declares label only). Order is preserved -- the detail panel sorts chart
+# cards by the order entries appear here.
 metrics:
+  # Timeseries-style metrics. The detail panel renders one chart card per
+  # entry whose key appears as a series in `test.timeseries`. Companion
+  # scalars (`<name>_avg`, `<name>_max`, or just `<name>`) drive the
+  # "Avg:" / "Max:" annotations on each card.
+  - name: cpu_percentage_normalized
+    label: CPU Normalized
+  - name: ram_mib
+    label: RAM
+  - name: network_tx_bytes_rate
+    label: Network TX Rate
+  - name: network_rx_bytes_rate
+    label: Network RX Rate
+  - name: logs_produced_rate
+    label: Offered Load Rate
+  - name: logs_received_rate
+    label: Collector Received Rate
+  - name: metrics_produced_rate
+    label: Offered Load Rate
+  - name: metrics_received_rate
+    label: Backend Received Rate
+  - name: spans_produced_rate
+    label: Offered Load Rate
+  - name: spans_received_rate
+    label: Backend Received Rate
   - name: cpu_percentage_normalized_avg
     label: CPU Average
   - name: cpu_percentage_normalized_max
@@ -95,12 +121,8 @@ metrics:
     label: Dropped Logs
   - name: logs_delivery_deviation_percentage
     label: Logs Delivery Deviation
-  - name: logs_produced_rate
-    label: Offered Load Rate
   - name: loadgen_logs_sent_rate
     label: Loadgen Sent Rate
-  - name: logs_received_rate
-    label: Collector Received Rate
   - name: collector_logs_sent_rate
     label: Collector Sent Rate
   - name: backend_logs_received_rate

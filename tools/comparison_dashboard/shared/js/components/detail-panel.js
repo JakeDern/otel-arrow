@@ -10,7 +10,7 @@ import { getTestByName } from "../data.js";
 import { getColor } from "../colors.js";
 import { escapeHtml, formatMetricValue, metricLabel } from "../format.js";
 import { hasBackpressure, DATA_LOSS_THRESHOLD } from "../backpressure.js";
-import { SCALAR_ONLY_METRICS, TIMESERIES_METRICS, tmTitle } from "../metrics.js";
+import { SCALAR_ONLY_METRICS } from "../metrics.js";
 import { renderEnvDetail } from "../env.js";
 import { adopt, tokensSheet } from "../styles.js";
 import { WARNING_SIGN } from "../icons.js";
@@ -249,15 +249,23 @@ export class DetailPanel extends HTMLElement {
         }
 
         let chartsHtml = "";
-        if (test) {
-            const cards = TIMESERIES_METRICS.map((tm) => {
-                const parts = [];
-                if (tm.avg) { const m = getAgg(tm.avg); if (m) parts.push(`<span>${tm.max ? "Avg: " : ""}${formatMetricValue(m.value, m.unit || tm.unit)}</span>`); }
-                if (tm.max) { const m = getAgg(tm.max); if (m) parts.push(`<span>Max: ${formatMetricValue(m.value, m.unit || tm.unit)}</span>`); }
-                if (!parts.length) return "";
-                const hasSeries = ts && ts[tm.key] && ts[tm.key].length > 1;
-                return `<div class="metric-chart-card" data-ts-key="${escapeHtml(tm.key)}"><div class="metric-chart-header"><div class="metric-chart-name">${escapeHtml(tmTitle(tm))}</div><div class="metric-chart-values">${parts.join("")}</div></div>${hasSeries ? '<div class="metric-chart-body"><line-chart></line-chart></div>' : '<div class="muted" style="font-size:12px">No time-series data available.</div>'}</div>`;
-            }).filter(Boolean).join("");
+        if (test && ts) {
+            // Chart cards are derived from the timeseries data itself. For
+            // each series key we look up scalar companions (<key>_avg /
+            // <key>_max / <key>) in test.metrics for the Avg:/Max: annotations
+            // and pull the unit + label from the same record (so manifest
+            // labels and per-metric units flow through automatically). Order
+            // follows manifest.metrics so the layout stays stable.
+            const orderedNames = Object.keys((window.PAGE_DATA || {}).metricsMeta || {});
+            const chartKeys = Object.keys(ts).filter((k) => ts[k] && ts[k].length > 1);
+            chartKeys.sort((a, b) => {
+                const ia = orderedNames.indexOf(a), ib = orderedNames.indexOf(b);
+                if (ia < 0 && ib < 0) return a.localeCompare(b);
+                if (ia < 0) return 1;
+                if (ib < 0) return -1;
+                return ia - ib;
+            });
+            const cards = chartKeys.map((key) => buildChartCard(key, getAgg)).filter(Boolean).join("");
             if (cards) chartsHtml = `<div class="metric-chart-grid">${cards}</div>`;
         }
 
@@ -285,3 +293,53 @@ export class DetailPanel extends HTMLElement {
 }
 
 customElements.define("detail-panel", DetailPanel);
+
+/**
+ * Build one chart-card HTML for a timeseries key. Looks up scalar companions
+ * (`<key>_avg`, `<key>_max`, then bare `<key>`) in the test's metric records
+ * for the Avg:/Max: annotation values. Title + unit come from the same metric
+ * records via metricTitle().
+ *
+ *   - Both _avg and _max present  -> "Avg: X | Max: Y"
+ *   - Only _avg present           -> just the value, no prefix
+ *   - Only _max present           -> "Max: X"
+ *   - Bare `<key>` only           -> just the value, no prefix
+ *   - Nothing                     -> still render the card (with empty
+ *                                    annotation row) since the timeseries
+ *                                    itself is the primary data.
+ *
+ * Unit on the annotation comes from the matching metric record; unit on the
+ * card title is whatever metricTitle() resolves (which walks the suite data
+ * to find any record carrying a unit for that name).
+ *
+ * @param {string} key                 Timeseries lookup key.
+ * @param {(name: string) => Object | null} getAgg
+ *        Looks up a scalar metric record by name in the current test's
+ *        metric records; returns null if missing or non-finite.
+ */
+function buildChartCard(key, getAgg) {
+    const avgM = getAgg(`${key}_avg`) || getAgg(key);
+    const maxM = getAgg(`${key}_max`);
+
+    const parts = [];
+    if (avgM && maxM) {
+        parts.push(`<span>Avg: ${formatMetricValue(avgM.value, avgM.unit)}</span>`);
+        parts.push(`<span>Max: ${formatMetricValue(maxM.value, maxM.unit)}</span>`);
+    } else if (avgM) {
+        parts.push(`<span>${formatMetricValue(avgM.value, avgM.unit)}</span>`);
+    } else if (maxM) {
+        parts.push(`<span>Max: ${formatMetricValue(maxM.value, maxM.unit)}</span>`);
+    }
+
+    const unit = (avgM && avgM.unit) || (maxM && maxM.unit) || "";
+    const label = metricLabel(key);
+    const title = unit ? `${label} (${unit})` : label;
+
+    return `<div class="metric-chart-card" data-ts-key="${escapeHtml(key)}">`
+        + `<div class="metric-chart-header">`
+        + `<div class="metric-chart-name">${escapeHtml(title)}</div>`
+        + `<div class="metric-chart-values">${parts.join("")}</div>`
+        + `</div>`
+        + `<div class="metric-chart-body"><line-chart></line-chart></div>`
+        + `</div>`;
+}
