@@ -51,6 +51,13 @@ export class ComparisonPage extends HTMLElement {
     connectedCallback() { this.render(); }
 
     /**
+     * Standard page-level repaint hook called by <dashboard-site> after the
+     * colourblind switch flips. A full re-render recreates the bar chart
+     * and detail panel with fresh palette colours.
+     */
+    repaint() { this.render(); }
+
+    /**
      * Top-level render. Rebuilds the page scaffolding (header, env header,
      * filter bar, chart container, detail panel) and wires interactions.
      */

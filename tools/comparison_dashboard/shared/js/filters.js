@@ -52,8 +52,8 @@ const css = `
 /* Generic reset button used by the chart-filter bar. */
 .filter-reset {
     appearance: none;
-    border: 1px solid #d8e0ee;
-    background: #fff;
+    border: 1px solid var(--slate-200);
+    background: var(--white);
     color: var(--slate-600);
     border-radius: var(--radius-sm);
     padding: 6px 12px;

@@ -14,15 +14,23 @@
 
 import { formatMetricValue } from "../format.js";
 import { adopt, tokensSheet } from "../styles.js";
+import { SLATE_100, SLATE_200, SLATE_400, TOOLTIP_BG } from "../colors.js";
 
 const css = `
+/* Fill the parent's box -- typically .metric-chart-body in <detail-panel>,
+ * which sets the actual height. Chart.js with maintainAspectRatio: false
+ * reads dimensions from the canvas's immediate parent (this element), so
+ * if we don't take up the parent's box the canvas can't size itself. */
 line-chart {
     display: block;
     position: relative;
+    width: 100%;
+    height: 100%;
 }
 line-chart canvas {
     display: block;
     width: 100%;
+    height: 100%;
 }
 `;
 
@@ -119,18 +127,18 @@ function chartOptions() {
             x: {
                 type: "linear",
                 grid: { display: false },
-                border: { display: true, color: "#e2e8f0" },
+                border: { display: true, color: SLATE_200 },
                 ticks: {
-                    maxTicksLimit: 5, color: "#94a3b8", font: { size: 9 },
+                    maxTicksLimit: 5, color: SLATE_400, font: { size: 9 },
                     callback: (v) => `${Math.round(v)}s`,
                 },
             },
             y: {
                 beginAtZero: false,
-                grid: { color: "#f1f5f9" },
+                grid: { color: SLATE_100 },
                 border: { display: false },
                 ticks: {
-                    maxTicksLimit: 4, color: "#94a3b8", font: { size: 9 },
+                    maxTicksLimit: 4, color: SLATE_400, font: { size: 9 },
                     callback: (v) => formatMetricValue(v, ""),
                 },
             },
@@ -138,7 +146,7 @@ function chartOptions() {
         plugins: {
             legend: { display: false },
             tooltip: {
-                backgroundColor: "rgba(15,23,42,0.9)", cornerRadius: 4, padding: 8,
+                backgroundColor: TOOLTIP_BG, cornerRadius: 4, padding: 8,
                 titleFont: { size: 11 }, bodyFont: { size: 11 },
                 callbacks: {
                     title: (items) => `${Math.round(items[0].parsed.x)}s`,

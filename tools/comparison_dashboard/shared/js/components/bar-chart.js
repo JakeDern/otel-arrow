@@ -13,8 +13,11 @@
 // Subsequent setData() calls reuse the existing Chart instance and call
 // chart.update() so the chart animates between data shapes.
 
-import { getColor } from "../charts/colors.js";
-import { createDiagonalPattern } from "../charts/pattern.js";
+import {
+    getColor,
+    SLATE_200, SLATE_300_TRACK, SLATE_400, SLATE_500, SLATE_600, SLATE_900,
+    RED_500, WHITE, TOOLTIP_BG,
+} from "../colors.js";
 import { getSuiteTests } from "../data.js";
 import { formatMetricValue } from "../format.js";
 import { hasBackpressure } from "../backpressure.js";
@@ -201,19 +204,19 @@ function chartOptions(onClick, xTitle) {
         datasets: { bar: { categoryPercentage: 0.85, barPercentage: 0.9 } },
         scales: {
             x: {
-                grid: { display: false }, border: { display: false }, ticks: { font: { size: 12, weight: "600" }, color: "#64748b" },
+                grid: { display: false }, border: { display: false }, ticks: { font: { size: 12, weight: "600" }, color: SLATE_500 },
                 title: axisTitleConfig(xTitle),
             },
             y: {
-                beginAtZero: true, border: { display: true, color: "#cbd5e1" },
-                ticks: { maxTicksLimit: 5, color: "#94a3b8", font: { size: 10 }, callback: (v) => formatMetricValue(v, "") },
-                grid: { color: "#e2e8f0" },
+                beginAtZero: true, border: { display: true, color: SLATE_300_TRACK },
+                ticks: { maxTicksLimit: 5, color: SLATE_400, font: { size: 10 }, callback: (v) => formatMetricValue(v, "") },
+                grid: { color: SLATE_200 },
             },
         },
         plugins: {
-            legend: { position: "bottom", labels: { boxWidth: 10, boxHeight: 10, borderRadius: 2, useBorderRadius: true, padding: 16, font: { size: 13 }, color: "#0f172a" } },
+            legend: { position: "bottom", labels: { boxWidth: 10, boxHeight: 10, borderRadius: 2, useBorderRadius: true, padding: 16, font: { size: 13 }, color: SLATE_900 } },
             tooltip: {
-                backgroundColor: "rgba(15,23,42,0.9)", cornerRadius: 6, padding: 10, titleFont: { size: 12 }, bodyFont: { size: 12 },
+                backgroundColor: TOOLTIP_BG, cornerRadius: 6, padding: 10, titleFont: { size: 12 }, bodyFont: { size: 12 },
                 callbacks: {
                     label: (ctx) => {
                         const ds = ctx.dataset;
@@ -232,7 +235,7 @@ function axisTitleConfig(text) {
     return {
         display: true,
         text,
-        color: "#475569",
+        color: SLATE_600,
         font: { size: 12, weight: "600" },
     };
 }
@@ -281,16 +284,16 @@ const barValueLabelsPlugin = {
                 ctx.font = font;
                 ctx.textAlign = "center";
                 ctx.textBaseline = "bottom";
-                ctx.fillStyle = flags[i] ? "#ef4444" : "#64748b";
+                ctx.fillStyle = flags[i] ? RED_500 : SLATE_500;
                 ctx.fillText(label, el.x, el.y - 4);
                 if (flags[i]) {
                     ctx.font = iconFont;
                     ctx.textBaseline = "middle";
                     const cy = (el.y + el.base) / 2;
                     ctx.lineWidth = 3;
-                    ctx.strokeStyle = "#ffffff";
+                    ctx.strokeStyle = WHITE;
                     ctx.strokeText(WARNING_SIGN, el.x, cy);
-                    ctx.fillStyle = "#ef4444";
+                    ctx.fillStyle = RED_500;
                     ctx.fillText(WARNING_SIGN, el.x, cy);
                 }
             }
@@ -404,4 +407,36 @@ function nearestTickIndex(scale, px) {
     // Cap: only count a hit when within half the inter-tick spacing.
     const halfSpan = n > 1 ? Math.abs(scale.getPixelForTick(1) - scale.getPixelForTick(0)) / 2 : (scale.right - scale.left) / 2;
     return bestDist <= halfSpan ? best : -1;
+}
+
+// ── Diagonal stripe pattern for missing-data bars ──────────────────────────
+// Patterns are cached per colour. clearPatternCache() is exported so the
+// colourblind switch can invalidate them when the palette swaps.
+
+const patternCache = new Map();
+
+/** Drop all cached stripe patterns. Called by <dashboard-site> on palette flip. */
+export function clearPatternCache() { patternCache.clear(); }
+
+function createDiagonalPattern(color) {
+    if (patternCache.has(color)) return patternCache.get(color);
+    const size = 8;
+    const cv = document.createElement("canvas");
+    cv.width = size;
+    cv.height = size;
+    const ctx = cv.getContext("2d");
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.globalAlpha = 0.35;
+    ctx.beginPath();
+    ctx.moveTo(0, size);
+    ctx.lineTo(size, 0);
+    ctx.moveTo(-size / 2, size / 2);
+    ctx.lineTo(size / 2, -size / 2);
+    ctx.moveTo(size / 2, size * 1.5);
+    ctx.lineTo(size * 1.5, size / 2);
+    ctx.stroke();
+    const pattern = document.createElement("canvas").getContext("2d").createPattern(cv, "repeat");
+    patternCache.set(color, pattern);
+    return pattern;
 }

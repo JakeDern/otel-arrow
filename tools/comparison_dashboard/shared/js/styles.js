@@ -1,17 +1,17 @@
 // ── Shared stylesheets + adopt helper ──────────────────────────────────────
-// Everything every component module needs to wire CSS lives here:
-//   - design tokens (--bg / --slate-* / --blue-* / --radius-* / --font-*)
-//   - global page rules (body, .wrap, .muted, yaml-highlight spans)
-//   - shared chart-section card styles (.scenario-section + descendants)
-//   - the `adopt()` helper that pushes sheets onto document.adoptedStyleSheets
+// Two responsibilities:
+//   1. The `adopt()` helper that pushes sheets onto document.adoptedStyleSheets
+//   2. Self-adopting sheets that don't belong to any single component:
+//      - tokensSheet -- :root CSS custom properties built from colors.js
+//      - globalSheet -- body / typography / .muted
+//      - sectionCardSheet -- .scenario-section card used on both pages
 //
-// Component modules construct their own sheets, then call:
-//
+// Component modules construct their own sheets and call:
 //     adopt(tokensSheet, sheet);
-//
 // passing tokens first so design-token rules cascade before component-local
-// rules read them. Shared sheets exported below (`sectionCardSheet`) self-adopt
-// at module load.
+// rules reference them.
+
+import { tokensCss } from "./colors.js";
 
 // ── adopt() helper ──────────────────────────────────────────────────────────
 // Idempotently appends sheets to document.adoptedStyleSheets in the given
@@ -29,66 +29,15 @@ export function adopt(...sheets) {
 }
 
 // ── Design tokens ──────────────────────────────────────────────────────────
-// Add a primitive here when the same hex appears in multiple component sheets.
-// Component-specific one-off colours stay inline in their component sheet.
-
-const tokensCss = `
-:root {
-    /* Surface + text */
-    --bg: #f6f8fb;
-    --card: #ffffff;
-    --text: #111827;
-    --muted: #6b7280;
-    --line: #e5e7eb;
-    --accent: #2563eb;
-
-    /* Status palettes (used by env-mismatch / metric-scalar-card.backpressure) */
-    --good-bg: #dcfce7;
-    --good-border: #86efac;
-    --good-text: #166534;
-    --bad-bg: #fee2e2;
-    --bad-border: #fca5a5;
-    --bad-text: #991b1b;
-    --neutral-bg: #f3f4f6;
-    --neutral-border: #d1d5db;
-    --neutral-text: #4b5563;
-
-    /* Slate ramp -- used heavily across env / detail / metric panels */
-    --slate-50: #f8fafc;
-    --slate-100: #f1f5f9;
-    --slate-200: #e2e8f0;
-    --slate-300: #dbe3ef;
-    --slate-400: #94a3b8;
-    --slate-500: #64748b;
-    --slate-600: #475569;
-    --slate-700: #334155;
-    --slate-900: #0f172a;
-
-    /* Accent ramp -- buttons, focus rings, chart highlights */
-    --blue-50: #eff6ff;
-    --blue-200: #bfdbfe;
-    --blue-300: #93c5fd;
-    --blue-500: #3b82f6;
-    --blue-600: #2563eb;
-
-    /* Layout */
-    --wrap-max: 1540px;
-    --radius-sm: 8px;
-    --radius-md: 10px;
-    --radius-lg: 14px;
-
-    /* Typography */
-    --font-sans: "SF Pro Text", "Segoe UI", system-ui, sans-serif;
-    --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-`;
+// tokensCss is built from JS constants in colors.js -- adding a new token
+// happens there, not here.
 
 export const tokensSheet = new CSSStyleSheet();
 tokensSheet.replaceSync(tokensCss);
 
 // ── Global page rules ──────────────────────────────────────────────────────
-// Body / typography / utilities / yaml-highlight spans. Self-adopts so an
-// `import "./styles.js"` from bootstrap.js is enough to wire it up.
+// Body / typography / utilities. Self-adopts so an `import "./styles.js"`
+// from pages.js is enough to wire it up.
 
 const globalCss = `
 * { box-sizing: border-box; }
@@ -114,13 +63,6 @@ h1 {
 }
 
 .muted { color: var(--muted); }
-
-/* yaml-* spans come from highlight.js inside the file modal pre/code. */
-.yaml-key { color: var(--blue-300); }
-.yaml-string { color: var(--good-border); }
-.yaml-number { color: #fcd34d; }
-.yaml-bool { color: #f9a8d4; }
-.yaml-comment { color: var(--slate-400); }
 `;
 
 const globalSheet = new CSSStyleSheet();

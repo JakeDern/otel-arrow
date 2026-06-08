@@ -10,5 +10,9 @@
   <div id="app"></div>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.js"></script>
   <script src="page-data.js"></script>
+  <script type="module">
+    const { bootstrapComparisonPage } = await import(`${window.PAGE_DATA.sharedHref}/js/pages.js`);
+    bootstrapComparisonPage();
+  </script>
 </body>
 </html>

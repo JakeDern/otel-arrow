@@ -7,7 +7,7 @@
 // (used by the chart's bar-click) re-renders without emitting.
 
 import { getTestByName } from "../data.js";
-import { getColor } from "../charts/colors.js";
+import { getColor } from "../colors.js";
 import { escapeHtml, formatMetricValue, metricLabel } from "../format.js";
 import { hasBackpressure, DATA_LOSS_THRESHOLD } from "../backpressure.js";
 import { SCALAR_ONLY_METRICS, TIMESERIES_METRICS, tmTitle } from "../metrics.js";
@@ -33,7 +33,7 @@ const css = `
 .detail-pill {
     appearance: none;
     border: 1px solid var(--slate-300);
-    background: #fff;
+    background: var(--white);
     color: var(--slate-600);
     border-radius: 999px;
     padding: 6px 14px;
@@ -59,7 +59,7 @@ const css = `
     padding: 6px 10px;
     border-radius: var(--radius-sm);
     border: 1px solid var(--line);
-    background: #fff;
+    background: var(--white);
     color: var(--text);
     min-width: 140px;
 }
@@ -82,7 +82,7 @@ const css = `
     padding: 6px 10px;
     border: 1px solid var(--line);
     border-radius: var(--radius-sm);
-    background: #fff;
+    background: var(--white);
     font-size: 12px;
     font-family: var(--font-mono);
     cursor: pointer;
@@ -105,7 +105,7 @@ const css = `
     border: 1px solid var(--line);
     border-radius: var(--radius-sm);
     padding: 8px 12px;
-    background: #fff;
+    background: var(--white);
 }
 .metric-scalar-card.backpressure {
     border-color: var(--bad-border);
@@ -134,7 +134,7 @@ const css = `
     border: 1px solid var(--line);
     border-radius: var(--radius-sm);
     padding: 12px;
-    background: #fff;
+    background: var(--white);
 }
 .metric-chart-header {
     display: flex;

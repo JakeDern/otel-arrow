@@ -1,8 +1,8 @@
 // ── <landing-page> ───────────────────────────────────────────────────────────
 // Top-level element for the landing page: heading, sub-heading, and one
 // <comparison-section> per entry in the `comparisons` property. Mounted by
-// shared/js/entries/landing.js. Repaints its children when the colourblind
-// switch flips (handled centrally by bootstrap.js + initControlsBar).
+// bootstrapLandingPage() in pages.js. Repaints its children when the
+// colourblind switch flips (driven centrally by <dashboard-site>).
 
 import { adopt, tokensSheet } from "../styles.js";
 import "./comparison-section.js";
@@ -52,10 +52,10 @@ export class LandingPage extends HTMLElement {
     }
 
     /**
-     * Repaint each child <comparison-section> in place. Called by bootstrap
-     * after the colourblind switch toggles.
+     * Standard page-level repaint hook (called by <dashboard-site> after the
+     * colourblind switch flips). Fans out to each child <comparison-section>.
      */
-    refreshPalette() {
+    repaint() {
         if (!this._sections) return;
         for (const s of this._sections) s.refreshPalette();
     }

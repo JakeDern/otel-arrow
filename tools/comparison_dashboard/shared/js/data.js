@@ -1,5 +1,5 @@
 // ── Data loading + suite/test accessors ─────────────────────────────────────
-// Suite data is loaded by bootstrap.js (async <script> insertion driven by
+// Suite data is loaded by pages.js (async <script> insertion driven by
 // PAGE_DATA.suiteFiles) and ends up on window.SUITE_DATA before any rendering
 // runs. DATA_PATH comes from PAGE_DATA.dataPath, set by dashboard.py to the
 // relative URL of the per-suite data root (e.g. ../../data/suite). Per-test

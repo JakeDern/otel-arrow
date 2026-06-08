@@ -88,6 +88,7 @@ class Manifest:
     meta_descriptions: dict       # per-value descriptions: key -> {value: description}
     glossary: list                # ordered list of {term, definition} for the legend banner
     metrics: list                 # ordered list of {name, label} for dashboard metrics
+    palettes: dict                # {"standard": [hex, ...], "colorblind": [hex, ...]}
 
 def load_manifest(manifest_path: Path) -> Manifest:
     """Load and validate the manifest file. Resolves all listed paths."""
@@ -106,7 +107,7 @@ def load_manifest(manifest_path: Path) -> Manifest:
         print(f"ERROR: manifest must be a mapping at top level: {manifest_path}")
         sys.exit(1)
 
-    for key in ("suites", "comparisons", "variables", "meta", "glossary", "metrics"):
+    for key in ("suites", "comparisons", "variables", "meta", "glossary", "metrics", "palettes"):
         if key not in data:
             print(f"ERROR: manifest missing required key '{key}': {manifest_path}")
             sys.exit(1)
@@ -200,6 +201,9 @@ def load_manifest(manifest_path: Path) -> Manifest:
         seen_metric_names.add(name)
         metrics.append({"name": name, "label": label})
 
+    palettes_raw = data["palettes"]
+    palettes = _load_palettes(palettes_raw, manifest_path)
+
     base = manifest_path.parent
     suite_files = [_resolve_listed_path(base, p, "suite") for p in data["suites"]]
     comparison_files = [_resolve_listed_path(base, p, "comparison") for p in data["comparisons"]]
@@ -214,7 +218,45 @@ def load_manifest(manifest_path: Path) -> Manifest:
         meta_descriptions=meta_descriptions,
         glossary=glossary,
         metrics=metrics,
+        palettes=palettes,
     )
+
+
+_HEX_RE = re.compile(r"^#[0-9a-fA-F]{3,8}$")
+
+
+def _load_palettes(raw, manifest_path: Path) -> dict:
+    """Validate and normalize the manifest's `palettes` block.
+
+    Expected shape: {"standard": [hex, ...], "colorblind": [hex, ...]}. Both
+    lists must be non-empty and the same length so a suite index maps to a
+    valid colour in either palette without wraparound surprises.
+    """
+    if not isinstance(raw, dict):
+        print(f"ERROR: manifest 'palettes' must be a mapping: {manifest_path}")
+        sys.exit(1)
+    required = ("standard", "colorblind")
+    for key in required:
+        if key not in raw:
+            print(f"ERROR: manifest palettes missing required key '{key}': {manifest_path}")
+            sys.exit(1)
+    out: dict[str, list[str]] = {}
+    for key in required:
+        entries = raw[key]
+        if not isinstance(entries, list) or not entries:
+            print(f"ERROR: manifest palettes.{key} must be a non-empty list of hex strings: {manifest_path}")
+            sys.exit(1)
+        normalized: list[str] = []
+        for i, c in enumerate(entries):
+            if not isinstance(c, str) or not _HEX_RE.match(c):
+                print(f"ERROR: manifest palettes.{key}[{i}] must be a hex colour like '#1F77B4': {manifest_path}")
+                sys.exit(1)
+            normalized.append(c)
+        out[key] = normalized
+    if len(out["standard"]) != len(out["colorblind"]):
+        print(f"ERROR: manifest palettes.standard and palettes.colorblind must have the same length: {manifest_path}")
+        sys.exit(1)
+    return out
 
 
 def _resolve_listed_path(base: Path, entry, kind: str) -> Path:
@@ -1532,34 +1574,26 @@ def generate_suite_data_js(suites: dict, paths: BuildPaths) -> None:
 
 def _url_relpath(target: Path, start: Path) -> str:
     """
-    Like os.path.relpath, but always returns POSIX-style separators so the
-    result is usable as a URL inside generated HTML/JS even when build runs
-    on a non-POSIX OS.
+    Like os.path.relpath, but always returns POSIX-style separators and always
+    prefixes paths with `./` (or `../`) so the result is a valid ES module
+    specifier as well as a usable HTML/JS URL. `os.path.relpath` returns bare
+    names like "shared" when target is a child of start; ES dynamic imports
+    treat those as bare module specifiers and reject them.
     """
-    return Path(os.path.relpath(target, start)).as_posix()
+    rel = Path(os.path.relpath(target, start)).as_posix()
+    if rel in ("", "."):
+        return "./"
+    if not rel.startswith(("/", "./", "../")):
+        return "./" + rel
+    return rel
 
 
-# Boot blocks appended to page-data.js. Inject the per-page-kind ES module
-# entry with the correct per-page relative path. Stylesheets are constructable
-# (each JS module adopts its own CSSStyleSheet), so the boot block only has to
-# load the entry script -- no <link rel="stylesheet"> needed.
-_LANDING_BOOT = """
-(() => {
-  const m = document.createElement("script");
-  m.type = "module";
-  m.src = window.PAGE_DATA.sharedHref + "/js/entries/landing.js";
-  document.head.appendChild(m);
-})();
-"""
-
-_COMPARISON_BOOT = """
-(() => {
-  const m = document.createElement("script");
-  m.type = "module";
-  m.src = window.PAGE_DATA.sharedHref + "/js/entries/comparison.js";
-  document.head.appendChild(m);
-})();
-"""
+# page-data.js was previously responsible for injecting the page bootstrap
+# script tag. Now each static HTML file (landing.html / comparison.html) has
+# its own inline `<script type="module">` that dynamic-imports pages.js with
+# the right relative path and calls the right bootstrap export. So page-data.js
+# is purely `window.PAGE_DATA = {...};` -- no boot block.
+_NO_BOOT = ""
 
 
 def _strip_internal(comp: dict) -> dict:
@@ -1577,6 +1611,7 @@ def _shell_payload(manifest: Manifest, shared_href: str, data_href: str) -> dict
         "metricsMeta": metrics_meta,
         "metaDescriptions": manifest.meta_descriptions,
         "glossary": manifest.glossary,
+        "palettes": manifest.palettes,
         "bannerText": BANNER_TEXT,
         "bannerLinkText": BANNER_LINK_TEXT,
         "issueUrl": ISSUE_URL,
@@ -1611,7 +1646,7 @@ def generate_index_html(comparisons: list, suites: dict, paths: BuildPaths, mani
         "suiteFiles": suite_files,
         "comparisons": [_strip_internal(c) for c in comparisons],
     }
-    _write_page(paths.compare_dir, payload, STATIC_LANDING_HTML_PATH, _LANDING_BOOT)
+    _write_page(paths.compare_dir, payload, STATIC_LANDING_HTML_PATH, _NO_BOOT)
     print(f"  Generated {paths.compare_dir / 'index.html'}")
     print(f"  Generated {paths.compare_dir / 'page-data.js'}")
 
@@ -1644,7 +1679,7 @@ def generate_compare_stubs(comparisons: list, suites: dict, paths: BuildPaths, m
             "comparisonSlug": comp_slug,
             "comparison": _strip_internal(comp),
         }
-        _write_page(stub_dir, payload, STATIC_COMPARISON_HTML_PATH, _COMPARISON_BOOT)
+        _write_page(stub_dir, payload, STATIC_COMPARISON_HTML_PATH, _NO_BOOT)
         print(f"  Generated {stub_dir / 'index.html'}")
 
 

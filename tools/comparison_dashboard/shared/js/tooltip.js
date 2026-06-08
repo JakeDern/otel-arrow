@@ -16,14 +16,14 @@ const css = `
     position: fixed;
     pointer-events: none;
     z-index: 1000;
-    background: rgba(15, 23, 42, 0.9);
-    color: #fff;
+    background: var(--tooltip-bg);
+    color: var(--white);
     padding: 6px 10px;
     border-radius: 4px;
     font-size: 12px;
     line-height: 1.3;
     max-width: 280px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 6px var(--switch-shadow);
 }
 .axis-hover-tooltip[hidden] { display: none; }
 `;

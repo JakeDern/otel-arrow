@@ -1,17 +1,17 @@
 // ── <file-modal> ─────────────────────────────────────────────────────────────
 // Renders its own modal scaffolding into light DOM on mount. Listens for
-// bubbling `open-file` events (dispatched by <detail-panel>), then fetches
-// and syntax-highlights the requested config file.
+// bubbling `open-file` events (dispatched by <detail-panel>), fetches the
+// requested config file, and shows its contents verbatim (no syntax
+// highlighting).
 
 import { DATA_PATH } from "../data.js";
-import { highlightFileContent } from "../highlight.js";
 import { adopt, tokensSheet } from "../styles.js";
 
 const css = `
 .modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(15, 23, 42, 0.46);
+    background: var(--modal-backdrop);
     display: grid;
     place-items: center;
     z-index: 10000;
@@ -25,10 +25,10 @@ const css = `
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    background: #fff;
+    background: var(--white);
     border: 1px solid var(--line);
     border-radius: var(--radius-lg);
-    box-shadow: 0 18px 48px rgba(15, 23, 42, 0.2);
+    box-shadow: 0 18px 48px var(--modal-shadow);
     padding: 14px;
 }
 .modal-head {
@@ -42,7 +42,7 @@ const css = `
 .modal-close {
     appearance: none;
     border: 1px solid var(--line);
-    background: #fff;
+    background: var(--white);
     border-radius: var(--radius-sm);
     padding: 6px 10px;
     cursor: pointer;
@@ -115,8 +115,7 @@ export class FileModal extends HTMLElement {
         this._body.innerHTML = '<pre class="config-full-code"><code class="file-modal-content">Loading...</code></pre>';
         const codeEl = this._body.querySelector(".file-modal-content");
         try {
-            const content = await this._load(suiteSlug, testName, fileName);
-            codeEl.innerHTML = highlightFileContent(fileName, content);
+            codeEl.textContent = await this._load(suiteSlug, testName, fileName);
         } catch (e) {
             codeEl.textContent = `Error loading file: ${e.message}`;
         }

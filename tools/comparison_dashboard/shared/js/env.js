@@ -26,9 +26,9 @@ const css = `
     font-size: 12px;
 }
 .env-summary-unknown {
-    background: #fef3c7;
-    border-left-color: #f59e0b;
-    color: #78350f;
+    background: var(--amber-50);
+    border-left-color: var(--amber-500);
+    color: var(--amber-900);
 }
 
 .env-mismatch-banner {
@@ -36,9 +36,9 @@ const css = `
     padding: 12px 14px;
     background: var(--bad-bg);
     border: 1px solid var(--bad-border);
-    border-left: 4px solid #dc2626;
+    border-left: 4px solid var(--red-600);
     border-radius: 6px;
-    color: #7f1d1d;
+    color: var(--red-900);
 }
 .env-mismatch-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
 .env-mismatch-reason { font-size: 12px; margin-bottom: 8px; }
