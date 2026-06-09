@@ -89,6 +89,9 @@ export class LineChart extends HTMLElement {
                 datasets: [{
                     data: series.map((p) => p.value),
                     borderColor: color,
+                    // Point fill defaults to the dataset's backgroundColor;
+                    // without this, Chart.js falls back to its built-in blue.
+                    backgroundColor: color,
                     borderWidth: 2,
                     pointRadius: 2.5,
                     pointHitRadius: 6,
@@ -106,6 +109,7 @@ export class LineChart extends HTMLElement {
         const ds = ch.data.datasets[0];
         ds.data = series.map((p) => p.value);
         ds.borderColor = color;
+        ds.backgroundColor = color;
         ch.update("none");
     }
 
@@ -124,7 +128,7 @@ export class LineChart extends HTMLElement {
     refreshPalette(color) {
         if (!this._chart) return;
         const ds = this._chart.data.datasets[0];
-        if (ds) ds.borderColor = color;
+        if (ds) { ds.borderColor = color; ds.backgroundColor = color; }
         this._chart.update("none");
     }
 }
