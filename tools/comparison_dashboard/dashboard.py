@@ -958,9 +958,7 @@ def cmd_build(args) -> int:
     print()
 
     if suites:
-        print("Generating data.js files...")
-        generate_suite_data_js(suites, paths)
-        print()
+        _prune_legacy_suite_data_js(suites, paths)
 
     total_tests = sum(len(s["tests"]) for s in suites.values())
     print(f"  {len(suites)} suites, {total_tests} total tests")
@@ -1557,19 +1555,17 @@ def check_comparison_env_consistency(
         sys.exit(1)
 
 
-def generate_suite_data_js(suites: dict, paths: BuildPaths) -> None:
-    """Generate <data_dir>/suite/<slug>/data.js for each suite."""
-    for slug, suite_data in suites.items():
-        data_js_path = paths.suite_dir(slug) / "data.js"
+def _prune_legacy_suite_data_js(suites: dict, paths: BuildPaths) -> None:
+    """Delete any leftover `data/suite/<slug>/data.js` from previous builds.
 
-        payload = json.dumps(suite_data, indent=2)
-        js_content = (
-            f"window.SUITE_DATA = window.SUITE_DATA || {{}};\n"
-            f"window.SUITE_DATA[{json.dumps(slug)}] = {payload};\n"
-        )
-
-        data_js_path.write_text(js_content)
-        print(f"  Generated {data_js_path}")
+    Suite data is now inlined into each page's page-data.js (see
+    generate_index_html / generate_compare_stubs), so the per-suite data.js
+    file is no longer emitted. Older build outputs may still have them.
+    """
+    for slug in suites:
+        leftover = paths.suite_dir(slug) / "data.js"
+        if leftover.exists():
+            leftover.unlink()
 
 
 def _url_relpath(target: Path, start: Path) -> str:
@@ -1621,7 +1617,12 @@ def _write_page(page_dir: Path, payload: dict, html_src: Path) -> None:
 
 
 def generate_index_html(comparisons: list, suites: dict, paths: BuildPaths, manifest: Manifest) -> None:
-    """Generate the landing page at <compare_dir>/index.html + page-data.js."""
+    """Generate the landing page at <compare_dir>/index.html + page-data.js.
+
+    Suite data for every suite referenced by any comparison is inlined into
+    page-data.js so the page loads in one HTTP fetch instead of waterfalling
+    across N per-suite scripts.
+    """
     shared_href = _url_relpath(paths.shared_dst, paths.compare_dir)
     data_href = _url_relpath(paths.data_dir, paths.compare_dir)
 
@@ -1630,12 +1631,11 @@ def generate_index_html(comparisons: list, suites: dict, paths: BuildPaths, mani
         for suite_ref in comp["suites"]:
             referenced_slugs.add(suite_ref["slug"])
     available_slugs = sorted(slug for slug in referenced_slugs if slug in suites)
-    suite_files = [f"{data_href}/suite/{slug}/data.js" for slug in available_slugs]
 
     payload = {
         "title": "Telemetry Engine Benchmarks",
         **_shell_payload(manifest, shared_href, data_href),
-        "suiteFiles": suite_files,
+        "suiteData": {slug: suites[slug] for slug in available_slugs},
         "comparisons": [_strip_internal(c) for c in comparisons],
     }
     _write_page(paths.compare_dir, payload, STATIC_LANDING_HTML_PATH)
@@ -1662,12 +1662,11 @@ def generate_compare_stubs(comparisons: list, suites: dict, paths: BuildPaths, m
             shutil.rmtree(stub_dir)
 
         suite_slugs = [ref["slug"] for ref in comp["suites"] if ref["slug"] in suites]
-        suite_files = [f"{data_href}/suite/{slug}/data.js" for slug in suite_slugs]
 
         payload = {
             "title": f"{comp.get('name', comp_slug)} - Benchmark Dashboard",
             **shared_payload,
-            "suiteFiles": suite_files,
+            "suiteData": {slug: suites[slug] for slug in suite_slugs},
             "comparisonSlug": comp_slug,
             "comparison": _strip_internal(comp),
         }
@@ -1695,8 +1694,11 @@ class _DashboardHandler(SimpleHTTPRequestHandler):
     """Serves site/ static files with no-cache headers for JSON."""
 
     def end_headers(self):
-        if self.path.endswith(".json"):
-            self.send_header("Cache-Control", "no-store")
+        # Dev-server: assume every served file is build output that may change
+        # between rebuilds. Without no-store, a rebuild's worth of changes
+        # (new page-data.js shape, edited JS modules, etc.) can mismatch a
+        # cached counterpart and crash the page.
+        self.send_header("Cache-Control", "no-store")
         super().end_headers()
 
     def log_message(self, format, *args):

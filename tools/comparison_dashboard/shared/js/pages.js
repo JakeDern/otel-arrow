@@ -4,8 +4,11 @@
 //   - bootstrapComparisonPage() -- called from comparison.html
 // Each HTML's inline <script type="module"> dynamic-imports this file (using
 // PAGE_DATA.sharedHref for the correct relative path) and invokes its own
-// bootstrap. Both share the chrome assembly + async suite-data load via the
-// internal `bootstrap()` helper; only the page element it builds differs.
+// bootstrap. Both share the chrome assembly via the internal `bootstrap()`
+// helper; only the page element they build differs.
+//
+// Suite data is inlined into PAGE_DATA.suiteData by the build, so there's no
+// async data-loading step here -- the bootstrap is fully synchronous.
 
 import "./styles.js";
 import "./components/dashboard-site.js";
@@ -33,29 +36,28 @@ export function bootstrapComparisonPage() {
 }
 
 /**
- * Shared bootstrap. Sets the document title, mounts <dashboard-site>, awaits
- * the suite-data file loads, then hands the site the page-specific element
- * via site.mountPage() (which atomically inserts it into the page slot and
- * registers it for colour-mode refresh callbacks).
+ * Shared bootstrap. Sets the document title, mounts <dashboard-site>, then
+ * hands the site the page-specific element via site.mountPage(). Always
+ * toggles `<html>.ready` at the end so the FOUC-blocker style reveals the
+ * page (even on error).
  *
  * @param {(pd: Object) => HTMLElement} buildPageElement
  *        Receives the parsed PAGE_DATA and returns a configured page element.
  */
 function bootstrap(buildPageElement) {
-    try { run(buildPageElement); } catch (err) { fatal(err); }
-}
-
-function run(buildPageElement) {
-    const pd = window.PAGE_DATA;
-    if (!pd) throw new Error("PAGE_DATA missing; page-data.js did not run before pages.js");
-
-    document.title = pd.title || "Benchmark Dashboard";
-    const site = mountSite(pd);
-
-    loadSuiteFiles(pd.suiteFiles || [])
-        .then(() => { site.mountPage(buildPageElement(pd)); })
-        .catch((err) => site.showError(errorHtml(err)))
-        .finally(() => document.documentElement.classList.add("ready"));
+    let site = null;
+    try {
+        const pd = window.PAGE_DATA;
+        if (!pd) throw new Error("PAGE_DATA missing; page-data.js did not run before pages.js");
+        document.title = pd.title || "Benchmark Dashboard";
+        site = mountSite(pd);
+        site.mountPage(buildPageElement(pd));
+    } catch (err) {
+        if (site) site.showError(errorHtml(err));
+        else fatal(err);
+    } finally {
+        document.documentElement.classList.add("ready");
+    }
 }
 
 /** Create <dashboard-site>, copy banner attributes from PAGE_DATA, swap into #app. */
@@ -70,29 +72,12 @@ function mountSite(pd) {
     return site;
 }
 
-/**
- * Append each suite-data <script> tag and resolve when they've all loaded.
- * The data.js files set entries on `window.SUITE_DATA[slug]`.
- */
-function loadSuiteFiles(urls) { return Promise.all(urls.map(loadScript)); }
-
-function loadScript(url) {
-    return new Promise((resolve, reject) => {
-        const s = document.createElement("script");
-        s.src = url;
-        s.onload = () => resolve();
-        s.onerror = () => reject(new Error(`Failed to load ${url}`));
-        document.head.appendChild(s);
-    });
-}
-
 function errorHtml(err) {
     return `<pre style="padding:16px;color:red">Failed to load dashboard: ${escapeHtml(String(err))}</pre>`;
 }
 
-/** Last-resort handler when even bootstrap throws synchronously (before site mounts). */
+/** Last-resort handler when bootstrap throws before the site mounts. */
 function fatal(err) {
-    document.documentElement.classList.add("ready");
     const body = document.body;
     if (body) body.innerHTML = errorHtml(err);
     console.error(err);

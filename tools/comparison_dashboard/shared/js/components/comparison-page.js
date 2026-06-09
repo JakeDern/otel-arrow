@@ -156,6 +156,14 @@ export class ComparisonPage extends HTMLElement {
             return;
         }
 
+        if (!sel) {
+            // No metric values found across any suite in the comparison.
+            // Most often this means PAGE_DATA.suiteData is missing or empty
+            // (e.g. a build that ran before `dashboard.py run` populated data).
+            target.innerHTML = '<div class="scenario-section"><div class="muted" style="padding:16px">No metric data available for the suites in this comparison.</div></div>';
+            return;
+        }
+
         target.innerHTML = `
       <div class="scenario-section">
         <div class="scenario-section-head">

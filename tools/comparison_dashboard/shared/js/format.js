@@ -39,6 +39,7 @@ export function formatBytes(v) {
 }
 
 export function metricLabel(name) {
+    if (!name) return "";
     const meta = ((window.PAGE_DATA || {}).metricsMeta || {})[name];
     if (meta && meta.label) return meta.label;
     return name.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
