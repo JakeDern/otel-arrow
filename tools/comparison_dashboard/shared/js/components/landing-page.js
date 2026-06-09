@@ -52,10 +52,11 @@ export class LandingPage extends HTMLElement {
     }
 
     /**
-     * Standard page-level repaint hook (called by <dashboard-site> after the
-     * colourblind switch flips). Fans out to each child <comparison-section>.
+     * Fast palette refresh: called by <dashboard-site> after the colourblind
+     * switch flips. Fans out to each child <comparison-section>; nothing in
+     * the landing page scaffolding needs to be rebuilt.
      */
-    repaint() {
+    refreshPalette() {
         if (!this._sections) return;
         for (const s of this._sections) s.refreshPalette();
     }

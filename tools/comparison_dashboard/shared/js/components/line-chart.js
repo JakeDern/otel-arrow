@@ -115,6 +115,18 @@ export class LineChart extends HTMLElement {
             this._chart = null;
         }
     }
+
+    /**
+     * Swap the line's stroke colour in place without rebuilding the chart.
+     * Caller derives the new colour from the page's palette state (the
+     * line chart has no own palette state -- the colour is passed in).
+     */
+    refreshPalette(color) {
+        if (!this._chart) return;
+        const ds = this._chart.data.datasets[0];
+        if (ds) ds.borderColor = color;
+        this._chart.update("none");
+    }
 }
 
 customElements.define("line-chart", LineChart);

@@ -1588,14 +1588,6 @@ def _url_relpath(target: Path, start: Path) -> str:
     return rel
 
 
-# page-data.js was previously responsible for injecting the page bootstrap
-# script tag. Now each static HTML file (landing.html / comparison.html) has
-# its own inline `<script type="module">` that dynamic-imports pages.js with
-# the right relative path and calls the right bootstrap export. So page-data.js
-# is purely `window.PAGE_DATA = {...};` -- no boot block.
-_NO_BOOT = ""
-
-
 def _strip_internal(comp: dict) -> dict:
     """Drop fields prefixed with '_' (internal bookkeeping)."""
     return {k: v for k, v in comp.items() if not (isinstance(k, str) and k.startswith("_"))}
@@ -1618,14 +1610,14 @@ def _shell_payload(manifest: Manifest, shared_href: str, data_href: str) -> dict
     }
 
 
-def _write_page(page_dir: Path, payload: dict, html_src: Path, boot: str) -> None:
+def _write_page(page_dir: Path, payload: dict, html_src: Path) -> None:
     """Copy `html_src` into page_dir as index.html and write page-data.js next
-    to it. `boot` is the JS snippet appended after the PAGE_DATA assignment;
-    it is responsible for injecting the per-page-kind ES module entry."""
+    to it. page-data.js is purely `window.PAGE_DATA = {...};` -- the inline
+    <script type="module"> in each static HTML imports pages.js and calls
+    its bootstrap function."""
     page_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(html_src, page_dir / "index.html")
-    js = f"window.PAGE_DATA = {json.dumps(payload, indent=2)};\n{boot}"
-    (page_dir / "page-data.js").write_text(js)
+    (page_dir / "page-data.js").write_text(f"window.PAGE_DATA = {json.dumps(payload, indent=2)};\n")
 
 
 def generate_index_html(comparisons: list, suites: dict, paths: BuildPaths, manifest: Manifest) -> None:
@@ -1646,7 +1638,7 @@ def generate_index_html(comparisons: list, suites: dict, paths: BuildPaths, mani
         "suiteFiles": suite_files,
         "comparisons": [_strip_internal(c) for c in comparisons],
     }
-    _write_page(paths.compare_dir, payload, STATIC_LANDING_HTML_PATH, _NO_BOOT)
+    _write_page(paths.compare_dir, payload, STATIC_LANDING_HTML_PATH)
     print(f"  Generated {paths.compare_dir / 'index.html'}")
     print(f"  Generated {paths.compare_dir / 'page-data.js'}")
 
@@ -1679,7 +1671,7 @@ def generate_compare_stubs(comparisons: list, suites: dict, paths: BuildPaths, m
             "comparisonSlug": comp_slug,
             "comparison": _strip_internal(comp),
         }
-        _write_page(stub_dir, payload, STATIC_COMPARISON_HTML_PATH, _NO_BOOT)
+        _write_page(stub_dir, payload, STATIC_COMPARISON_HTML_PATH)
         print(f"  Generated {stub_dir / 'index.html'}")
 
 

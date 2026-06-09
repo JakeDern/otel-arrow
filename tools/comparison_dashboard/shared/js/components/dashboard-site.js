@@ -1,7 +1,7 @@
 // ── <dashboard-site> ────────────────────────────────────────────────────────
 // Top-level page container. Owns the chrome (wip-banner, controls bar with
 // display switches, glossary banner, page-root, file-modal) and drives the
-// colour-mode repaint via the `pageElement` property set by the entry script
+// colour-mode refresh via the `pageElement` property set by the entry script
 // after the page child is mounted into pageRoot.
 //
 // Colour mode lives in colors.js (module-scoped + localStorage); glossary
@@ -159,17 +159,34 @@ adopt(tokensSheet, sheet);
  *   1. Entry script creates `<dashboard-site banner-text="..." ...>` and
  *      appends it to the document. connectedCallback renders the chrome and
  *      initializes the controls bar + legend banner.
- *   2. Entry script appends its page element into `site.pageRoot`.
- *   3. Entry script sets `site.pageElement = pageEl`. The site keeps a ref
- *      so the colour-mode switch can call `.repaint()` on it.
+ *   2. Entry script calls `site.mountPage(pageEl)` once suite-data has loaded.
+ *      mountPage inserts the element into the page slot AND registers it for
+ *      colour-mode refresh callbacks in one atomic operation.
  */
 export class DashboardSite extends HTMLElement {
-    /** Page element registered for colour-mode repaint callbacks. */
-    set pageElement(el) { this._pageEl = el; }
-    get pageElement() { return this._pageEl; }
+    /**
+     * Insert `el` into the page slot and register it for colour-mode refresh
+     * callbacks. Single entry point for mounting a page child -- the slot
+     * insertion and the refreshPalette ref must stay in sync, so they're
+     * driven together here.
+     */
+    mountPage(el) {
+        const root = this.querySelector("#page-root");
+        if (!root) throw new Error("dashboard-site: page-root not present (connectedCallback hasn't run yet?)");
+        root.replaceChildren(el);
+        this._pageEl = el;
+    }
 
-    /** Slot for the page-specific element. */
-    get pageRoot() { return this.querySelector("#page-root"); }
+    /**
+     * Replace the page slot's content with an error notice. The chrome
+     * (banner / controls / glossary) stays visible. Used by pages.js when
+     * suite-data load fails.
+     */
+    showError(errorHtml) {
+        const root = this.querySelector("#page-root");
+        if (root) root.innerHTML = errorHtml;
+        this._pageEl = null;
+    }
 
     connectedCallback() {
         const bannerText = this.getAttribute("banner-text") || "";
@@ -238,7 +255,7 @@ export class DashboardSite extends HTMLElement {
             toggleColorblindMode();
             setSwitchState(cbBtn, isColorblindMode());
             clearPatternCache();
-            if (this._pageEl && this._pageEl.repaint) this._pageEl.repaint();
+            if (this._pageEl && this._pageEl.refreshPalette) this._pageEl.refreshPalette();
         });
     }
 }

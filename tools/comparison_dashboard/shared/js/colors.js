@@ -154,16 +154,27 @@ export const tokensCss = `
 
 // ── Palette runtime ────────────────────────────────────────────────────────
 // The active chart palette toggles between PAGE_DATA.palettes.standard and
-// PAGE_DATA.palettes.colorblind; persisted to localStorage.
+// PAGE_DATA.palettes.colorblind; persisted to localStorage. Both calls are
+// guarded -- accessing localStorage throws SecurityError in some private /
+// disabled-storage configurations, and setItem additionally throws
+// QuotaExceededError when storage is full. We swallow both: the in-memory
+// `colorblindMode` flip is the source of truth for the active session, and
+// failing to persist it just means the choice doesn't survive a reload.
 
-let colorblindMode = localStorage.getItem("colorblindMode") === "true";
+let colorblindMode = readColorblindMode();
+
+function readColorblindMode() {
+    try { return localStorage.getItem("colorblindMode") === "true"; }
+    catch { return false; }
+}
 
 export function isColorblindMode() { return colorblindMode; }
 
 /** Flip the palette, persist the choice, and return the new value. */
 export function toggleColorblindMode() {
     colorblindMode = !colorblindMode;
-    localStorage.setItem("colorblindMode", String(colorblindMode));
+    try { localStorage.setItem("colorblindMode", String(colorblindMode)); }
+    catch { /* private mode / quota: keep in-memory flip, drop persistence */ }
     return colorblindMode;
 }
 

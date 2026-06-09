@@ -111,17 +111,40 @@ export class BarChart extends HTMLElement {
         const { suiteData, comparison, tests, selectedMetric } = input;
         const d = buildChartData(suiteData, comparison, tests, selectedMetric);
         this._chart.data.labels = d.labels;
+
+        // Resize the dataset array in place. Shrink by truncating length,
+        // grow by pushing the trailing dataset objects, and mutate the
+        // overlap so Chart.js keeps animation / interaction state tied to
+        // the existing dataset references. Without the truncate, a filter
+        // change that drops suites would leave stale datasets in the legend
+        // and stale bars on the chart.
+        const cur = this._chart.data.datasets;
+        if (cur.length > d.datasets.length) cur.length = d.datasets.length;
         for (let i = 0; i < d.datasets.length; i++) {
             const src = d.datasets[i];
-            const dst = this._chart.data.datasets[i];
-            if (!dst) continue;
-            dst.data = src.data;
-            dst._hasBackpressure = src._hasBackpressure;
-            dst._missing = src._missing;
-            dst.backgroundColor = src.backgroundColor;
-            dst.borderColor = src.borderColor;
+            const dst = cur[i];
+            if (dst) {
+                dst.label = src.label;
+                dst.data = src.data;
+                dst._hasBackpressure = src._hasBackpressure;
+                dst._missing = src._missing;
+                dst.backgroundColor = src.backgroundColor;
+                dst.borderColor = src.borderColor;
+            } else {
+                cur.push(src);
+            }
         }
         this._chart.update("none");
+    }
+
+    /**
+     * Refresh the rendered palette in place. Re-runs _update with the last
+     * input -- buildChartData re-invokes getColor() / createDiagonalPattern(),
+     * so the new colourblind state and the freshly-cleared pattern cache
+     * (see clearPatternCache) are picked up without rebuilding any DOM.
+     */
+    refreshPalette() {
+        if (this._chart && this._lastInput) this._update(this._lastInput);
     }
 
     _destroy() {

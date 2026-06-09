@@ -117,8 +117,15 @@ export class ComparisonSection extends HTMLElement {
         if (bpEl) bpEl.style.display = anyComparisonBackpressure(suiteData, filtered) ? "" : "none";
     }
 
-    /** Called by the landing bootstrap when the colourblind palette toggles. */
-    refreshPalette() { if (this._comparison) this.render(); }
+    /**
+     * Fast palette refresh: just nudge the existing <bar-chart> to redraw
+     * with fresh colours, no innerHTML rebuild. Called by <landing-page>
+     * after the colourblind switch flips (the page already cleared the
+     * shared pattern cache).
+     */
+    refreshPalette() {
+        if (this._bar && this._bar.refreshPalette) this._bar.refreshPalette();
+    }
 }
 
 customElements.define("comparison-section", ComparisonSection);

@@ -51,11 +51,16 @@ export class ComparisonPage extends HTMLElement {
     connectedCallback() { this.render(); }
 
     /**
-     * Standard page-level repaint hook called by <dashboard-site> after the
-     * colourblind switch flips. A full re-render recreates the bar chart
-     * and detail panel with fresh palette colours.
+     * Fast palette refresh: ask the existing <bar-chart> and <detail-panel>
+     * to redraw with fresh colours in place. Called by <dashboard-site>
+     * after the colourblind switch flips. (Full re-renders go through
+     * `render()` for other reasons -- data, slug change, etc.)
      */
-    repaint() { this.render(); }
+    refreshPalette() {
+        const bar = this.querySelector("bar-chart");
+        if (bar && bar.refreshPalette) bar.refreshPalette();
+        if (this._detail && this._detail.refreshPalette) this._detail.refreshPalette();
+    }
 
     /**
      * Top-level render. Rebuilds the page scaffolding (header, env header,
@@ -135,7 +140,7 @@ export class ComparisonPage extends HTMLElement {
         perComparisonMetrics.set(compSlug, sel);
         const optsHtml = metrics.map((n) => `<option value="${escapeHtml(n)}" ${n === sel ? "selected" : ""}>${escapeHtml(metricTitle(n, suiteData, comparison))}</option>`).join("");
 
-        const onClick = (event, elements) => {
+        const onClick = (_, elements) => {
             if (!elements.length) return;
             const { datasetIndex, index } = elements[0];
             const ref = (comparison.suites || [])[datasetIndex];

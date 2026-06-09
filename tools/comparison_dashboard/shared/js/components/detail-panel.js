@@ -189,20 +189,124 @@ export class DetailPanel extends HTMLElement {
     connectedCallback() { if (this._comparison) this.render(); }
 
     // Programmatic selection (bar click). Re-render but do not emit.
-    setSelection(si, tn) { this._selSuite = si; this._selTest = tn; this.render(); }
+    setSelection(si, tn) {
+        this._selSuite = si;
+        this._selTest = tn;
+        this._syncSelection();
+    }
 
     // User-driven selection (pill / test select). Emit then re-render.
     _select(si, tn) {
         this._selSuite = si;
         this._selTest = tn;
         this.dispatchEvent(new CustomEvent("selection-change", { detail: { suiteIdx: si, testName: tn }, bubbles: true }));
-        this.render();
+        this._syncSelection();
     }
 
+    /**
+     * Surgical update for selection-only changes (pill / test-select / bar
+     * click). Updates the dynamic regions in place and reuses the existing
+     * `<line-chart>` Chart.js instances via setData(), avoiding the destroy +
+     * recreate cycle on every interaction. Falls back to full render() when
+     * the scaffold doesn't match the new selection (chart key list differs,
+     * pill count differs, or scaffold doesn't exist yet).
+     */
+    _syncSelection() {
+        const pillsContainer = this.querySelector(".detail-pills");
+        if (!pillsContainer) { this.render(); return; }
+
+        const refs = (this._comparison && this._comparison.suites) || [];
+        const existingPills = pillsContainer.querySelectorAll(".detail-pill");
+        if (existingPills.length !== refs.length) { this.render(); return; }
+
+        const ref = refs[this._selSuite];
+        const test = ref ? getTestByName(this._suiteData, ref.slug, this._selTest) : null;
+
+        // If the chart key list differs between the prior and new selection,
+        // the chart card grid has to be rebuilt -- bail to full render.
+        const newKeys = computeChartKeys(test);
+        const currentKeys = [...this.querySelectorAll(".metric-chart-card[data-ts-key]")].map((c) => c.dataset.tsKey);
+        if (!arraysEqual(newKeys, currentKeys)) { this.render(); return; }
+
+        // From here on: surgical updates to existing DOM nodes.
+        for (const pill of existingPills) {
+            const i = Number(pill.dataset.suiteIdx);
+            pill.classList.toggle("active", i === this._selSuite);
+        }
+        const testSelect = this.querySelector(".detail-test-select");
+        if (testSelect) testSelect.value = this._selTest;
+
+        const metrics = test ? (test.metrics || []) : [];
+        const ts = test ? (test.timeseries || null) : null;
+        const getAgg = makeGetAgg(metrics);
+        const selTestCfg = (this._tests || []).find((ct) => ct.name === this._selTest);
+        const lr = selTestCfg ? selTestCfg.loadgen_rate : null;
+
+        this.querySelector("[data-slot=bp]").innerHTML = buildBpBadgeHtml(metrics, lr);
+        this.querySelector("[data-slot=files-body]").innerHTML = buildFilesBodyHtml(test);
+        this.querySelector("[data-slot=env]").innerHTML = buildEnvHtml(ref, this._suiteData);
+        this.querySelector("[data-slot=scalars]").innerHTML = buildScalarsHtml(test, getAgg);
+        // The "Metrics" head + "No metrics available" fallback live in the
+        // metrics-empty slot; only one of (scalars / charts / fallback) is
+        // populated. Toggle the fallback visibility based on actual content.
+        const hasAnyMetric = !!(test && (newKeys.length || hasAnyScalar(getAgg)));
+        const fallback = this.querySelector("[data-slot=metrics-fallback]");
+        if (fallback) fallback.innerHTML = hasAnyMetric ? "" : '<div class="muted">No metrics available.</div>';
+
+        // Chart cards: update headers in place, then re-wire data on each
+        // existing <line-chart>. The line-chart elements stay mounted, so
+        // Chart.js destroy/create is avoided.
+        const origIdx = this._comparison._originalIndices || null;
+        const activeCi = origIdx ? origIdx[this._selSuite] : this._selSuite;
+        const color = getColor(activeCi);
+        for (const card of this.querySelectorAll(".metric-chart-card[data-ts-key]")) {
+            const key = card.dataset.tsKey;
+            const titleEl = card.querySelector(".metric-chart-name");
+            const valuesEl = card.querySelector(".metric-chart-values");
+            if (titleEl) titleEl.textContent = chartCardTitle(key, getAgg);
+            if (valuesEl) valuesEl.innerHTML = chartCardValuesHtml(key, getAgg);
+            const series = ts && ts[key];
+            const chart = card.querySelector("line-chart");
+            if (chart && series && series.length > 1) chart.setData({ series, color });
+        }
+
+        // Files-list click handlers are re-wired because the file list itself
+        // was rebuilt by buildFilesBodyHtml above.
+        this._wireFileClicks(ref);
+    }
+
+    /**
+     * Repaint pills + line-chart strokes with the active palette without
+     * rebuilding the panel. Drives both the `--pill-color` CSS variable on
+     * each `.detail-pill` and the active suite's colour into each
+     * `<line-chart>` child via its own refreshPalette().
+     */
+    refreshPalette() {
+        const comparison = this._comparison;
+        if (!comparison) return;
+        const origIdx = comparison._originalIndices || null;
+
+        for (const pill of this.querySelectorAll(".detail-pill")) {
+            const i = Number(pill.dataset.suiteIdx);
+            const ci = origIdx ? origIdx[i] : i;
+            pill.style.setProperty("--pill-color", getColor(ci));
+        }
+
+        const activeCi = origIdx ? origIdx[this._selSuite] : this._selSuite;
+        const color = getColor(activeCi);
+        for (const chart of this.querySelectorAll("line-chart")) {
+            chart.refreshPalette(color);
+        }
+    }
+
+    /**
+     * Full scaffold rebuild. Called on first connect, on setData (comparison
+     * / tests changed), and as a fall-back from _syncSelection when the
+     * scaffold can't be reused. Re-rendering via innerHTML removes any
+     * prior <line-chart> children, triggering their disconnectedCallback --
+     * no explicit chart cleanup is required.
+     */
     render() {
-        // Re-rendering via innerHTML removes any prior <line-chart> children
-        // from the DOM, triggering their disconnectedCallback -- no explicit
-        // chart cleanup is required.
         const suiteData = this._suiteData;
         const comparison = this._comparison;
         const tests = this._tests || [];
@@ -218,67 +322,60 @@ export class DetailPanel extends HTMLElement {
         const test = ref ? getTestByName(suiteData, ref.slug, this._selTest) : null;
         const metrics = test ? (test.metrics || []) : [];
         const ts = test ? (test.timeseries || null) : null;
-        const getAgg = (n) => { const m = metrics.find((x) => x.name === n); return m && typeof m.value === "number" && Number.isFinite(m.value) ? m : null; };
-
-        const pillsHtml = refs.map((r, i) => {
-            const ci = origIdx ? origIdx[i] : i;
-            return `<button class="detail-pill ${i === this._selSuite ? "active" : ""}" style="--pill-color: ${getColor(ci)}" data-suite-idx="${i}" type="button">${escapeHtml(r.short || r.name)}</button>`;
-        }).join("");
-
-        const testOptsHtml = tests.map((ct) => `<option value="${escapeHtml(ct.name)}" ${ct.name === this._selTest ? "selected" : ""}>${escapeHtml(ct.label)}</option>`).join("");
-
-        let filesHtml = '<div class="muted">No files available.</div>';
-        if (test) {
-            const files = [...(test.configFiles || [])].sort();
-            if (files.length) filesHtml = `<div class="files-flex">${files.map((f) => `<div class="file-list-item" data-file="${escapeHtml(f)}">${escapeHtml(f)}</div>`).join("")}</div>`;
-        }
-
-        const envHtml = ref ? renderEnvDetail(suiteData[ref.slug] ? suiteData[ref.slug].env : null) : "";
-
+        const getAgg = makeGetAgg(metrics);
         const selTestCfg = tests.find((ct) => ct.name === this._selTest);
         const lr = selTestCfg ? selTestCfg.loadgen_rate : null;
-        const bpBadge = hasBackpressure(metrics, lr) ? `<div class="detail-backpressure-badge">${WARNING_SIGN} Backpressure detected</div>` : "";
 
-        let scalarsHtml = "";
-        if (test && metrics.length) {
-            const cards = SCALAR_ONLY_METRICS.map((sm) => {
-                const m = getAgg(sm.name); if (!m) return ""; const bad = sm.name === "dropped_logs_percentage" && m.value > DATA_LOSS_THRESHOLD;
-                return `<div class="metric-scalar-card${bad ? " backpressure" : ""}"><div class="metric-scalar-name">${escapeHtml(metricLabel(sm.name))}</div><div class="metric-scalar-value">${formatMetricValue(m.value, m.unit)}</div></div>`;
-            }).filter(Boolean).join("");
-            if (cards) scalarsHtml = `<div class="metric-scalars">${cards}</div>`;
-        }
-
-        let chartsHtml = "";
-        if (test && ts) {
-            // Chart cards are derived from the timeseries data itself. For
-            // each series key we look up scalar companions (<key>_avg /
-            // <key>_max / <key>) in test.metrics for the Avg:/Max: annotations
-            // and pull the unit + label from the same record (so manifest
-            // labels and per-metric units flow through automatically). Order
-            // follows manifest.metrics so the layout stays stable.
-            const orderedNames = Object.keys((window.PAGE_DATA || {}).metricsMeta || {});
-            const chartKeys = Object.keys(ts).filter((k) => ts[k] && ts[k].length > 1);
-            chartKeys.sort((a, b) => {
-                const ia = orderedNames.indexOf(a), ib = orderedNames.indexOf(b);
-                if (ia < 0 && ib < 0) return a.localeCompare(b);
-                if (ia < 0) return 1;
-                if (ib < 0) return -1;
-                return ia - ib;
-            });
-            const cards = chartKeys.map((key) => buildChartCard(key, getAgg)).filter(Boolean).join("");
-            if (cards) chartsHtml = `<div class="metric-chart-grid">${cards}</div>`;
-        }
+        const pillsHtml = buildPillsHtml(refs, this._selSuite, origIdx);
+        const testOptsHtml = buildTestOptsHtml(tests, this._selTest);
+        const bpHtml = buildBpBadgeHtml(metrics, lr);
+        const filesBodyHtml = buildFilesBodyHtml(test);
+        const envHtml = buildEnvHtml(ref, suiteData);
+        const scalarsHtml = buildScalarsHtml(test, getAgg);
+        const chartKeys = computeChartKeys(test);
+        const chartsHtml = chartKeys.length
+            ? `<div class="metric-chart-grid">${chartKeys.map((k) => buildChartCard(k, getAgg)).join("")}</div>`
+            : "";
+        const metricsFallback = !chartKeys.length && !hasAnyScalar(getAgg)
+            ? '<div class="muted">No metrics available.</div>'
+            : "";
 
         if (!test) {
-            this.innerHTML = `<div class="scenario-section"><div class="scenario-section-head"><div class="scenario-section-title">Test Details</div></div><div class="detail-controls"><div class="detail-pills">${pillsHtml}</div><select class="detail-test-select">${testOptsHtml}</select></div>${envHtml}<div class="muted" style="padding:12px 0">No data available for this selection.</div></div>`;
+            this.innerHTML = `<div class="scenario-section">
+                <div class="scenario-section-head"><div class="scenario-section-title">Test Details</div></div>
+                <div class="detail-controls">
+                    <div class="detail-pills">${pillsHtml}</div>
+                    <select class="detail-test-select">${testOptsHtml}</select>
+                </div>
+                <div data-slot="env">${envHtml}</div>
+                <div class="muted" style="padding:12px 0">No data available for this selection.</div>
+            </div>`;
         } else {
-            this.innerHTML = `<div class="scenario-section"><div class="scenario-section-head"><div class="scenario-section-title">Test Details</div></div><div class="detail-controls"><div class="detail-pills">${pillsHtml}</div><select class="detail-test-select">${testOptsHtml}</select></div>${bpBadge}<div class="files-section"><div class="detail-pane-title">Files</div>${filesHtml}</div>${envHtml}<div class="detail-pane-title" style="margin-top:16px">Metrics</div>${scalarsHtml}${chartsHtml || '<div class="muted">No metrics available.</div>'}</div>`;
+            this.innerHTML = `<div class="scenario-section">
+                <div class="scenario-section-head"><div class="scenario-section-title">Test Details</div></div>
+                <div class="detail-controls">
+                    <div class="detail-pills">${pillsHtml}</div>
+                    <select class="detail-test-select">${testOptsHtml}</select>
+                </div>
+                <div data-slot="bp">${bpHtml}</div>
+                <div class="files-section">
+                    <div class="detail-pane-title">Files</div>
+                    <div data-slot="files-body">${filesBodyHtml}</div>
+                </div>
+                <div data-slot="env">${envHtml}</div>
+                <div class="detail-pane-title" style="margin-top:16px">Metrics</div>
+                <div data-slot="scalars">${scalarsHtml}</div>
+                <div data-slot="charts">${chartsHtml}</div>
+                <div data-slot="metrics-fallback">${metricsFallback}</div>
+            </div>`;
         }
 
-        for (const pill of this.querySelectorAll(".detail-pill")) pill.onclick = () => this._select(Number(pill.dataset.suiteIdx), this._selTest);
+        for (const pill of this.querySelectorAll(".detail-pill")) {
+            pill.onclick = () => this._select(Number(pill.dataset.suiteIdx), this._selTest);
+        }
         const ts2 = this.querySelector(".detail-test-select");
         if (ts2) ts2.onchange = () => this._select(this._selSuite, ts2.value);
-        if (test && ref) for (const item of this.querySelectorAll(".file-list-item")) item.onclick = () => this.dispatchEvent(new CustomEvent("open-file", { detail: { slug: ref.slug, test: this._selTest, file: item.dataset.file }, bubbles: true }));
+        this._wireFileClicks(ref);
         if (test && ts) {
             const ci = origIdx ? origIdx[this._selSuite] : this._selSuite;
             const color = getColor(ci);
@@ -288,6 +385,17 @@ export class DetailPanel extends HTMLElement {
                 const chart = card.querySelector("line-chart");
                 if (chart) chart.setData({ series, color });
             }
+        }
+    }
+
+    /** Re-wire `open-file` event dispatch from the (possibly rebuilt) file list. */
+    _wireFileClicks(ref) {
+        if (!ref) return;
+        for (const item of this.querySelectorAll(".file-list-item")) {
+            item.onclick = () => this.dispatchEvent(new CustomEvent("open-file", {
+                detail: { slug: ref.slug, test: this._selTest, file: item.dataset.file },
+                bubbles: true,
+            }));
         }
     }
 }
@@ -318,9 +426,26 @@ customElements.define("detail-panel", DetailPanel);
  *        metric records; returns null if missing or non-finite.
  */
 function buildChartCard(key, getAgg) {
+    return `<div class="metric-chart-card" data-ts-key="${escapeHtml(key)}">`
+        + `<div class="metric-chart-header">`
+        + `<div class="metric-chart-name">${escapeHtml(chartCardTitle(key, getAgg))}</div>`
+        + `<div class="metric-chart-values">${chartCardValuesHtml(key, getAgg)}</div>`
+        + `</div>`
+        + `<div class="metric-chart-body"><line-chart></line-chart></div>`
+        + `</div>`;
+}
+
+function chartCardTitle(key, getAgg) {
     const avgM = getAgg(`${key}_avg`) || getAgg(key);
     const maxM = getAgg(`${key}_max`);
+    const unit = (avgM && avgM.unit) || (maxM && maxM.unit) || "";
+    const label = metricLabel(key);
+    return unit ? `${label} (${unit})` : label;
+}
 
+function chartCardValuesHtml(key, getAgg) {
+    const avgM = getAgg(`${key}_avg`) || getAgg(key);
+    const maxM = getAgg(`${key}_max`);
     const parts = [];
     if (avgM && maxM) {
         parts.push(`<span>Avg: ${formatMetricValue(avgM.value, avgM.unit)}</span>`);
@@ -330,16 +455,92 @@ function buildChartCard(key, getAgg) {
     } else if (maxM) {
         parts.push(`<span>Max: ${formatMetricValue(maxM.value, maxM.unit)}</span>`);
     }
+    return parts.join("");
+}
 
-    const unit = (avgM && avgM.unit) || (maxM && maxM.unit) || "";
-    const label = metricLabel(key);
-    const title = unit ? `${label} (${unit})` : label;
+// ── Section builders ───────────────────────────────────────────────────────
+// Pure HTML producers shared by both render() (full scaffold) and
+// _syncSelection() (in-place updates). Keeping them as plain functions
+// instead of methods lets the surgical path target individual slots without
+// rebuilding the rest.
 
-    return `<div class="metric-chart-card" data-ts-key="${escapeHtml(key)}">`
-        + `<div class="metric-chart-header">`
-        + `<div class="metric-chart-name">${escapeHtml(title)}</div>`
-        + `<div class="metric-chart-values">${parts.join("")}</div>`
-        + `</div>`
-        + `<div class="metric-chart-body"><line-chart></line-chart></div>`
-        + `</div>`;
+function buildPillsHtml(refs, selSuite, origIdx) {
+    return refs.map((r, i) => {
+        const ci = origIdx ? origIdx[i] : i;
+        return `<button class="detail-pill ${i === selSuite ? "active" : ""}" style="--pill-color: ${getColor(ci)}" data-suite-idx="${i}" type="button">${escapeHtml(r.short || r.name)}</button>`;
+    }).join("");
+}
+
+function buildTestOptsHtml(tests, selTest) {
+    return tests.map((ct) =>
+        `<option value="${escapeHtml(ct.name)}" ${ct.name === selTest ? "selected" : ""}>${escapeHtml(ct.label)}</option>`
+    ).join("");
+}
+
+function buildBpBadgeHtml(metrics, lr) {
+    return hasBackpressure(metrics, lr)
+        ? `<div class="detail-backpressure-badge">${WARNING_SIGN} Backpressure detected</div>`
+        : "";
+}
+
+function buildFilesBodyHtml(test) {
+    if (!test) return '<div class="muted">No files available.</div>';
+    const files = [...(test.configFiles || [])].sort();
+    if (!files.length) return '<div class="muted">No files available.</div>';
+    return `<div class="files-flex">${files.map((f) =>
+        `<div class="file-list-item" data-file="${escapeHtml(f)}">${escapeHtml(f)}</div>`
+    ).join("")}</div>`;
+}
+
+function buildEnvHtml(ref, suiteData) {
+    if (!ref) return "";
+    return renderEnvDetail(suiteData[ref.slug] ? suiteData[ref.slug].env : null);
+}
+
+function buildScalarsHtml(test, getAgg) {
+    if (!test) return "";
+    const cards = SCALAR_ONLY_METRICS.map((sm) => {
+        const m = getAgg(sm.name);
+        if (!m) return "";
+        const bad = sm.name === "dropped_logs_percentage" && m.value > DATA_LOSS_THRESHOLD;
+        return `<div class="metric-scalar-card${bad ? " backpressure" : ""}"><div class="metric-scalar-name">${escapeHtml(metricLabel(sm.name))}</div><div class="metric-scalar-value">${formatMetricValue(m.value, m.unit)}</div></div>`;
+    }).filter(Boolean).join("");
+    return cards ? `<div class="metric-scalars">${cards}</div>` : "";
+}
+
+function hasAnyScalar(getAgg) {
+    return SCALAR_ONLY_METRICS.some((sm) => getAgg(sm.name));
+}
+
+/**
+ * The chart-card list for a test: timeseries keys with at least 2 points,
+ * sorted by manifest.metrics order (so layout stays stable when keys differ
+ * between tests).
+ */
+function computeChartKeys(test) {
+    const ts = test && test.timeseries;
+    if (!ts) return [];
+    const orderedNames = Object.keys((window.PAGE_DATA || {}).metricsMeta || {});
+    const position = new Map(orderedNames.map((n, i) => [n, i]));
+    const keys = Object.keys(ts).filter((k) => ts[k] && ts[k].length > 1);
+    keys.sort((a, b) => {
+        const ia = position.has(a) ? position.get(a) : Infinity;
+        const ib = position.has(b) ? position.get(b) : Infinity;
+        if (ia === Infinity && ib === Infinity) return a.localeCompare(b);
+        return ia - ib;
+    });
+    return keys;
+}
+
+function makeGetAgg(metrics) {
+    return (name) => {
+        const m = metrics.find((x) => x.name === name);
+        return m && typeof m.value === "number" && Number.isFinite(m.value) ? m : null;
+    };
+}
+
+function arraysEqual(a, b) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+    return true;
 }

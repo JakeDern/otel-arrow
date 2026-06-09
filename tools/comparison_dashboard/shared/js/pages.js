@@ -5,7 +5,7 @@
 // Each HTML's inline <script type="module"> dynamic-imports this file (using
 // PAGE_DATA.sharedHref for the correct relative path) and invokes its own
 // bootstrap. Both share the chrome assembly + async suite-data load via the
-// internal `bootstrap()` helper; only the page-element type differs.
+// internal `bootstrap()` helper; only the page element it builds differs.
 
 import "./styles.js";
 import "./components/dashboard-site.js";
@@ -15,21 +15,19 @@ import { escapeHtml } from "./format.js";
 
 /** Mount the landing page (heading + comparison-section cards). */
 export function bootstrapLandingPage() {
-    bootstrap((pageRoot, pd) => {
+    bootstrap((pd) => {
         const el = document.createElement("landing-page");
         el.comparisons = pd.comparisons || [];
-        pageRoot.replaceChildren(el);
         return el;
     });
 }
 
 /** Mount the comparison detail page (header + chart + detail panel). */
 export function bootstrapComparisonPage() {
-    bootstrap((pageRoot, pd) => {
+    bootstrap((pd) => {
         const el = document.createElement("comparison-page");
         el.compSlug = pd.comparisonSlug;
         el.comparison = pd.comparison;
-        pageRoot.replaceChildren(el);
         return el;
     });
 }
@@ -37,15 +35,17 @@ export function bootstrapComparisonPage() {
 /**
  * Shared bootstrap. Sets the document title, mounts <dashboard-site>, awaits
  * the suite-data file loads, then hands the site the page-specific element
- * (whose `repaint()` method drives colour-mode refreshes).
+ * via site.mountPage() (which atomically inserts it into the page slot and
+ * registers it for colour-mode refresh callbacks).
  *
- * @param {(pageRoot: HTMLElement, pd: Object) => HTMLElement} mountPage
+ * @param {(pd: Object) => HTMLElement} buildPageElement
+ *        Receives the parsed PAGE_DATA and returns a configured page element.
  */
-function bootstrap(mountPage) {
-    try { run(mountPage); } catch (err) { fatal(err); }
+function bootstrap(buildPageElement) {
+    try { run(buildPageElement); } catch (err) { fatal(err); }
 }
 
-function run(mountPage) {
+function run(buildPageElement) {
     const pd = window.PAGE_DATA;
     if (!pd) throw new Error("PAGE_DATA missing; page-data.js did not run before pages.js");
 
@@ -53,8 +53,8 @@ function run(mountPage) {
     const site = mountSite(pd);
 
     loadSuiteFiles(pd.suiteFiles || [])
-        .then(() => { site.pageElement = mountPage(site.pageRoot, pd); })
-        .catch((err) => showError(site, err))
+        .then(() => { site.mountPage(buildPageElement(pd)); })
+        .catch((err) => site.showError(errorHtml(err)))
         .finally(() => document.documentElement.classList.add("ready"));
 }
 
@@ -86,17 +86,14 @@ function loadScript(url) {
     });
 }
 
-/** Recoverable failure during page mount: replace the page-root with a notice. */
-function showError(site, err) {
-    const root = site.pageRoot || site;
-    root.innerHTML = `<pre style="padding:16px;color:red">Failed to load dashboard: ${escapeHtml(String(err))}</pre>`;
-    console.error(err);
+function errorHtml(err) {
+    return `<pre style="padding:16px;color:red">Failed to load dashboard: ${escapeHtml(String(err))}</pre>`;
 }
 
-/** Last-resort handler when even bootstrap throws synchronously. */
+/** Last-resort handler when even bootstrap throws synchronously (before site mounts). */
 function fatal(err) {
     document.documentElement.classList.add("ready");
     const body = document.body;
-    if (body) body.innerHTML = `<pre style="padding:16px;color:red">Failed to load dashboard: ${escapeHtml(String(err))}</pre>`;
+    if (body) body.innerHTML = errorHtml(err);
     console.error(err);
 }
