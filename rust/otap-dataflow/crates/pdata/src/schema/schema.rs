@@ -4,13 +4,11 @@
 //! OTAP schema definition types. These can be used to describe the schema of
 //! any otap payload type. See [crate::schema::payloads::get]
 
-use arrow::array::{Array, ArrayRef, AsArray, RecordBatch};
+use std::sync::{Arc, LazyLock};
+
+use arrow::array::{Array, ArrayRef, AsArray, GenericListArray, RecordBatch};
 
 use crate::schema::error::Error;
-
-/// The canonical inner-field name Arrow's `ListBuilder` assigns to list items,
-/// and the name the OTAP encoder therefore produces for every list column.
-const LIST_ITEM_FIELD_NAME: &str = "item";
 
 /// Leaf Arrow data types used in OTAP schemas.
 ///
@@ -60,15 +58,23 @@ impl SimpleType {
     #[must_use]
     fn matches(&self, arrow_dt: &arrow::datatypes::DataType) -> bool {
         use arrow::datatypes::{DataType as ArrowDT, TimeUnit};
+
         match self {
             // OTAP timestamps are nanoseconds since the Unix epoch (UTC). Arrow
-            // can technically express nanoseconds since UTC in any timezone, but
-            // the OTAP encoder omits the timezone and downstream concatenation
-            // requires a single concrete Arrow type per field. We therefore
-            // require the timezone to be absent so that "matches the spec"
-            // implies "identical Arrow DataType" across batches.
+            // can technically express nanoseconds since UTC in any timezone,
             Self::TimestampNanosecond => {
-                matches!(arrow_dt, ArrowDT::Timestamp(TimeUnit::Nanosecond, None))
+                let ArrowDT::Timestamp(unit, offset) = arrow_dt else {
+                    return false;
+                };
+
+                let Some(offset) = offset else {
+                    return false;
+                };
+
+                let unit_matches = unit == &TimeUnit::Nanosecond;
+                let offset_matches = offset.as_ref() == "UTC" || offset.as_ref() == "+00:00";
+
+                offset_matches && unit_matches
             }
             _ => self.to_arrow() == *arrow_dt,
         }
@@ -156,25 +162,10 @@ impl DataType {
                 true
             }
             DataType::List(inner_dt) => {
-                let ArrowDT::List(list_field) = arrow_dt else {
+                let Some(list_array) = array.as_any().downcast_ref::<GenericListArray<i32>>()
+                else {
                     return false;
                 };
-
-                // Pin the inner field name to the canonical value the OTAP
-                // encoder produces ("item"). The encoder varies the inner
-                // field's nullability by column (list-of-primitive columns are
-                // marked non-nullable via `no_nulls`, list-of-struct columns are
-                // nullable), so nullability is not checked here; concatenation
-                // handles inner-field nullability agreement across batches
-                // directly.
-                if list_field.name() != LIST_ITEM_FIELD_NAME {
-                    return false;
-                }
-
-                // safety: We verified this is a list type.
-                // note: i32 is not the type of the list, but the type of
-                // offsets into the list.
-                let list_array = array.as_list::<i32>();
                 inner_dt.matches(list_array.values())
             }
         }
