@@ -69,6 +69,7 @@ from .....core.telemetry.telemetry_client import TelemetryClient
 from .....runner.registry import hook_registry, PluginMeta, ReportMeta
 from .....runner.schema.reporting_hook_config import StandardReportingHookStrategyConfig
 from .standard_reporting_strategy import StandardReportingStrategy
+from ..otlp_metrics_sink import PUSHED_METRIC_COLUMNS, get_otlp_metrics_sink
 
 
 STRATEGY_NAME = "sql_report"
@@ -338,6 +339,28 @@ hooks:
         events = flatten_columns(events, ["attributes"])
         self.conn.register("events", events)
 
+    def _register_pushed_metrics_table(self, ctx: BaseContext):
+        """Register metrics pushed via OTLP to the suite's metrics sink.
+
+        The table is always registered (empty when no sink is running) so
+        report queries can reference it unconditionally. Attribute dicts are
+        flattened into 'resource_attributes.<key>', 'scope_attributes.<key>'
+        and 'metric_attributes.<key>' columns.
+        """
+        sink = get_otlp_metrics_sink(ctx)
+        pushed = (
+            sink.to_dataframe()
+            if sink is not None
+            else pd.DataFrame(columns=PUSHED_METRIC_COLUMNS)
+        )
+        pushed = flatten_columns(
+            pushed.reset_index(drop=True),
+            ["resource_attributes", "scope_attributes", "metric_attributes"],
+        )
+        for col in ("value", "count"):
+            pushed[col] = pd.to_numeric(pushed[col], errors="coerce")
+        self.conn.register("pushed_metrics", pushed)
+
     def _build_result_dataframes(self):
         """Loop through the result_tables config and convert them to result dataframes"""
         results = {}
@@ -476,6 +499,7 @@ hooks:
             where=lambda df: df[df["name"] != "log"].reset_index(drop=True)
         )
         self._register_in_memory_tables(metrics, spans, events)
+        self._register_pushed_metrics_table(ctx)
 
         self._run_sql_queries(logger)
 
