@@ -5,7 +5,7 @@ description: >-
   protobuf logs to the broker; the benchmarked rotel Kafka receiver consumes
   them and forwards to a DFE backend. Isolates rotel Kafka receiver
   performance.
-orchestrator_template: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/orchestrator/rotel-kafka-recv-single-core-multi-rate.yaml
+orchestrator_template: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/orchestrator/rotel-kafka-recv-single-core-multi-rate-push.yaml
 
 meta:
   binary: rotel
@@ -14,7 +14,7 @@ meta:
   compression: none
 
 variables:
-  report: ../pipeline_perf_test/test_suites/comparison_dashboard/reports/report_logs.yaml
+  report: ../pipeline_perf_test/test_suites/comparison_dashboard/reports/report_logs_push.yaml
   # Fixed DFE reference producer (loadgen side). rotel is the consumer.
   loadgen_config: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/engine/kafka-loadgen-otlp.yaml.j2
   backend_config: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/backend/otlp.yaml.j2
