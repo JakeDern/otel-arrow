@@ -1,10 +1,19 @@
 name: {{suite_name}}
+hooks:
+  run:
+    pre:
+      - start_otlp_metrics_sink:
+          endpoint: 0.0.0.0:14317
+    post:
+      - stop_otlp_metrics_sink: {}
 components:
   load-generator:
     deployment:
       docker:
         image: {{df_engine_image}}
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "8085:8080"
         volumes:
@@ -17,13 +26,13 @@ components:
     monitoring:
       docker_component:
         allocated_cores: 1
-      prometheus:
-        endpoint: http://localhost:8085/api/v1/telemetry/metrics?format=prometheus&reset=false
   fluent-bit:
     deployment:
       docker:
         image: {{fluent_bit_image}}
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "8086:2020"
         volumes:
@@ -34,13 +43,13 @@ components:
     monitoring:
       docker_component:
         allocated_cores: 1
-      prometheus:
-        endpoint: http://localhost:8086/api/v1/metrics/prometheus
   backend-service:
     deployment:
       docker:
         image: {{df_engine_image}}
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "8087:8080"
         volumes:
@@ -53,8 +62,6 @@ components:
     monitoring:
       docker_component:
         allocated_cores: 1
-      prometheus:
-        endpoint: http://localhost:8087/api/v1/telemetry/metrics?format=prometheus&reset=false
 
 {%- set signal = variables.signal | default("logs") %}
 {%- if signal == "logs" %}

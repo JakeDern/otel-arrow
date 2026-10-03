@@ -1,10 +1,19 @@
 name: Nightly - 100kLRPS Batch Size Variations
+hooks:
+  run:
+    pre:
+      - start_otlp_metrics_sink:
+          endpoint: 0.0.0.0:14317
+    post:
+      - stop_otlp_metrics_sink: {}
 components:
   load-generator:
     deployment:
       docker:
         image: df_engine:latest
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "8085:8080"
         volumes:
@@ -19,13 +28,13 @@ components:
     monitoring:
       docker_component:
         allocated_cores: 1  # Matches core-id-range: 2-2
-      prometheus:
-        endpoint: http://localhost:8085/api/v1/telemetry/metrics?format=prometheus&reset=false
   df-engine:
     deployment:
       docker:
         image: df_engine:latest
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "8086:8080"
         volumes:
@@ -40,13 +49,13 @@ components:
     monitoring:
       docker_component:
         allocated_cores: 1  # Matches core-id-range: 3-3
-      prometheus:
-        endpoint: http://localhost:8086/api/v1/telemetry/metrics?format=prometheus&reset=false
   backend-service:
     deployment:
       docker:
         image: df_engine:latest
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "8087:8080"
         volumes:
@@ -61,8 +70,6 @@ components:
     monitoring:
       docker_component:
         allocated_cores: 1  # Matches core-id-range: 1-1
-      prometheus:
-        endpoint: http://localhost:8087/api/v1/telemetry/metrics?format=prometheus&reset=false
 
 tests:
   # OTLP -> OTLP tests with varying batch sizes
@@ -70,6 +77,7 @@ tests:
     from_template:
       path: test_suites/integration/templates/test_steps/df-loadgen-steps-docker.yaml
       variables:
+        test_name: OTLP-ATTR-OTLP-BATCH10
         result_dir: nightly_100klrps_batch_sizes
         engine_config_template: test_suites/integration/templates/configs/engine/continuous/otlp-attr-otlp.yaml.j2
         loadgen_exporter_type: otlp
@@ -80,6 +88,7 @@ tests:
     from_template:
       path: test_suites/integration/templates/test_steps/df-loadgen-steps-docker.yaml
       variables:
+        test_name: OTLP-ATTR-OTLP-BATCH100
         result_dir: nightly_100klrps_batch_sizes
         engine_config_template: test_suites/integration/templates/configs/engine/continuous/otlp-attr-otlp.yaml.j2
         loadgen_exporter_type: otlp
@@ -90,6 +99,7 @@ tests:
     from_template:
       path: test_suites/integration/templates/test_steps/df-loadgen-steps-docker.yaml
       variables:
+        test_name: OTLP-ATTR-OTLP-BATCH512
         result_dir: nightly_100klrps_batch_sizes
         engine_config_template: test_suites/integration/templates/configs/engine/continuous/otlp-attr-otlp.yaml.j2
         loadgen_exporter_type: otlp
@@ -100,6 +110,7 @@ tests:
     from_template:
       path: test_suites/integration/templates/test_steps/df-loadgen-steps-docker.yaml
       variables:
+        test_name: OTLP-ATTR-OTLP-BATCH1024
         result_dir: nightly_100klrps_batch_sizes
         engine_config_template: test_suites/integration/templates/configs/engine/continuous/otlp-attr-otlp.yaml.j2
         loadgen_exporter_type: otlp
@@ -110,6 +121,7 @@ tests:
     from_template:
       path: test_suites/integration/templates/test_steps/df-loadgen-steps-docker.yaml
       variables:
+        test_name: OTLP-ATTR-OTLP-BATCH4096
         result_dir: nightly_100klrps_batch_sizes
         engine_config_template: test_suites/integration/templates/configs/engine/continuous/otlp-attr-otlp.yaml.j2
         loadgen_exporter_type: otlp
@@ -120,6 +132,7 @@ tests:
     from_template:
       path: test_suites/integration/templates/test_steps/df-loadgen-steps-docker.yaml
       variables:
+        test_name: OTLP-ATTR-OTLP-BATCH8192
         result_dir: nightly_100klrps_batch_sizes
         engine_config_template: test_suites/integration/templates/configs/engine/continuous/otlp-attr-otlp.yaml.j2
         loadgen_exporter_type: otlp

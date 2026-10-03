@@ -1,10 +1,24 @@
 name: CI 100kLRPS
+# Push-based variant of 100klrps-docker.yaml: the load generator, engine and
+# backend push internal metrics over OTLP to an embedded sink in the
+# orchestrator. Loss is computed from exact whole-run totals (including the
+# engines' final post-drain flush) instead of scraped counters.
+# Prometheus scraping is kept temporarily so the report can show both.
+hooks:
+  run:
+    pre:
+      - start_otlp_metrics_sink:
+          endpoint: 0.0.0.0:14317
+    post:
+      - stop_otlp_metrics_sink: {}
 components:
   load-generator:
     deployment:
       docker:
         image: df_engine:latest
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "8085:8080"
         # Build doesn't support extra contexts, which are currently needed to get the protos compiled.
@@ -28,13 +42,13 @@ components:
     monitoring:
       docker_component:
         allocated_cores: 1  # Matches core-id-range: 2-2
-      prometheus:
-        endpoint: http://localhost:8085/api/v1/telemetry/metrics?format=prometheus&reset=false
   df-engine:
     deployment:
       docker:
         image: df_engine:latest
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "8086:8080"
         volumes:
@@ -49,13 +63,13 @@ components:
     monitoring:
       docker_component:
         allocated_cores: 1  # Matches core-id-range: 3-3
-      prometheus:
-        endpoint: http://localhost:8086/api/v1/telemetry/metrics?format=prometheus&reset=false
   backend-service:
     deployment:
       docker:
         image: df_engine:latest
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "8087:8080"
         volumes:
@@ -70,14 +84,13 @@ components:
     monitoring:
       docker_component:
         allocated_cores: 1  # Matches core-id-range: 1-1
-      prometheus:
-        endpoint: http://localhost:8087/api/v1/telemetry/metrics?format=prometheus&reset=false
 
 tests:
   - name: OTLP-ATTR-OTLP
     from_template:
       path: test_suites/integration/templates/test_steps/df-loadgen-steps-docker.yaml
       variables:
+        test_name: OTLP-ATTR-OTLP
         engine_config_template: test_suites/integration/templates/configs/engine/continuous/otlp-attr-otlp.yaml.j2
         loadgen_exporter_type: otlp
         backend_receiver_type: otlp
@@ -86,6 +99,7 @@ tests:
     from_template:
       path: test_suites/integration/templates/test_steps/df-loadgen-steps-docker.yaml
       variables:
+        test_name: OTLP-ATTR-OTAP
         engine_config_template: test_suites/integration/templates/configs/engine/continuous/otlp-attr-otap.yaml.j2
         loadgen_exporter_type: otlp
         backend_receiver_type: otap
@@ -94,6 +108,7 @@ tests:
     from_template:
       path: test_suites/integration/templates/test_steps/df-loadgen-steps-docker.yaml
       variables:
+        test_name: OTAP-ATTR-OTAP
         engine_config_template: test_suites/integration/templates/configs/engine/continuous/otap-attr-otap.yaml.j2
         loadgen_exporter_type: otap
         backend_receiver_type: otap
@@ -102,6 +117,7 @@ tests:
     from_template:
       path: test_suites/integration/templates/test_steps/df-loadgen-steps-docker.yaml
       variables:
+        test_name: OTAP-ATTR-OTLP
         engine_config_template: test_suites/integration/templates/configs/engine/continuous/otap-attr-otlp.yaml.j2
         loadgen_exporter_type: otap
         backend_receiver_type: otlp
@@ -110,6 +126,7 @@ tests:
     from_template:
       path: test_suites/integration/templates/test_steps/df-loadgen-steps-docker.yaml
       variables:
+        test_name: OTLP-BATCH-OTLP
         engine_config_template: test_suites/integration/templates/configs/engine/batch_processor/otlp-batch-otlp.yaml.j2
         loadgen_exporter_type: otlp
         backend_receiver_type: otlp
@@ -120,6 +137,7 @@ tests:
     from_template:
       path: test_suites/integration/templates/test_steps/df-loadgen-steps-docker.yaml
       variables:
+        test_name: OTAP-BATCH-OTAP
         engine_config_template: test_suites/integration/templates/configs/engine/batch_processor/otap-batch-otap.yaml.j2
         loadgen_exporter_type: otap
         backend_receiver_type: otap

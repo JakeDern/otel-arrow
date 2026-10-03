@@ -135,7 +135,7 @@ steps:
           - print_container_logs: {}
           - sql_report:
               name: Otelcol Syslog Report - Logs
-              report_config_file: ./test_suites/integration/configs/integration_report_logs.yaml
+              report_config_file: ./test_suites/integration/configs/integration_report_logs_scrape.yaml
               output:
                 - format:
                     template: {}

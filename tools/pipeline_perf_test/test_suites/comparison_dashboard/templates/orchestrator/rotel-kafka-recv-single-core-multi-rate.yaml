@@ -16,6 +16,13 @@
 {%- set max_partition_fetch = variables.kafka_consumer_max_partition_fetch_bytes | default(1048576) %}
 {%- set fetch_wait = variables.kafka_consumer_fetch_max_wait_ms | default(500) %}
 name: {{suite_name}}
+hooks:
+  run:
+    pre:
+      - start_otlp_metrics_sink:
+          endpoint: 0.0.0.0:14317
+    post:
+      - stop_otlp_metrics_sink: {}
 # Receiver-isolation topology (rotel receiver under test).
 #
 #   load-generator (DFE traffic_generator -> DFE kafka EXPORTER)   [fixed ref]
@@ -28,6 +35,8 @@ components:
       docker:
         image: {{df_engine_image}}
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "8085:8080"
         volumes:
@@ -40,13 +49,13 @@ components:
     monitoring:
       docker_component:
         allocated_cores: 1
-      prometheus:
-        endpoint: http://localhost:8085/api/v1/telemetry/metrics?format=prometheus&reset=false
   kafka-broker:
     deployment:
       docker:
         image: {{kafka_image}}
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "9094:9094"
         environment:
@@ -73,6 +82,8 @@ components:
       docker:
         image: {{rotel_image}}
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         cpuset_cpus: "1"
         environment:
           - RUST_LOG=info
@@ -129,6 +140,8 @@ components:
       docker:
         image: {{df_engine_image}}
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "8087:8080"
         volumes:
@@ -141,8 +154,6 @@ components:
     monitoring:
       docker_component:
         allocated_cores: 1
-      prometheus:
-        endpoint: http://localhost:8087/api/v1/telemetry/metrics?format=prometheus&reset=false
 
 {% macro forward_variables() -%}
 {%- for k, v in variables.items() %}
@@ -158,6 +169,7 @@ tests:
     from_template:
       path: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/steps/rotel-kafka-recv.yaml
       variables:{{ forward_variables() }}
+        test_name: {{rate}}
         data_dir: {{data_dir}}
         test_dir: {{data_dir}}/tests/{{rate}}
         report_name: "Rotel Kafka Receiver {{rate}} - {{suite_name}}"

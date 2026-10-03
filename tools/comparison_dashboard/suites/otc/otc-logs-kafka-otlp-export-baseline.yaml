@@ -5,7 +5,7 @@ description: >-
   OpenTelemetry Collector Kafka exporter, which produces to the broker; a fixed
   DFE Kafka receiver in the backend consumes them. Isolates the Go collector
   Kafka exporter performance.
-orchestrator_template: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/orchestrator/otc-kafka-export-single-core-multi-rate-push.yaml
+orchestrator_template: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/orchestrator/otc-kafka-export-single-core-multi-rate.yaml
 
 meta:
   binary: otc
@@ -14,7 +14,7 @@ meta:
   compression: none
 
 variables:
-  report: ../pipeline_perf_test/test_suites/comparison_dashboard/reports/report_logs_push.yaml
+  report: ../pipeline_perf_test/test_suites/comparison_dashboard/reports/report_logs.yaml
   loadgen_config: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/loadgen/otlp.yaml.j2
   # Benchmarked Go collector Kafka exporter (producer side).
   kafka_producer_config: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/otelcol/kafka-producer-otlp.yaml.j2

@@ -1,4 +1,11 @@
 name: {{suite_name}}
+hooks:
+  run:
+    pre:
+      - start_otlp_metrics_sink:
+          endpoint: 0.0.0.0:14317
+    post:
+      - stop_otlp_metrics_sink: {}
 # Exporter-isolation topology.
 #
 #   load-generator (DFE traffic_generator -> otlp exporter)
@@ -14,6 +21,8 @@ components:
       docker:
         image: {{df_engine_image}}
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "8085:8080"
         volumes:
@@ -26,13 +35,13 @@ components:
     monitoring:
       docker_component:
         allocated_cores: 1
-      prometheus:
-        endpoint: http://localhost:8085/api/v1/telemetry/metrics?format=prometheus&reset=false
   kafka-producer:
     deployment:
       docker:
         image: {{df_engine_image}}
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "8086:8080"
         volumes:
@@ -45,13 +54,13 @@ components:
     monitoring:
       docker_component:
         allocated_cores: 1
-      prometheus:
-        endpoint: http://localhost:8086/api/v1/telemetry/metrics?format=prometheus&reset=false
   kafka-broker:
     deployment:
       docker:
         image: {{kafka_image}}
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "9094:9094"
         environment:
@@ -78,6 +87,8 @@ components:
       docker:
         image: {{df_engine_image}}
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "8087:8080"
         volumes:
@@ -90,8 +101,6 @@ components:
     monitoring:
       docker_component:
         allocated_cores: 1
-      prometheus:
-        endpoint: http://localhost:8087/api/v1/telemetry/metrics?format=prometheus&reset=false
 
 {%- set signal = variables.signal | default("logs") %}
 {%- if signal == "logs" %}
@@ -116,6 +125,7 @@ tests:
     from_template:
       path: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/steps/df-engine-kafka-export.yaml
       variables:{{ forward_variables() }}
+        test_name: {{rate}}
         data_dir: {{data_dir}}
         test_dir: {{data_dir}}/tests/{{rate}}
         report_name: "DF Engine Kafka Exporter {{rate}} - {{suite_name}}"

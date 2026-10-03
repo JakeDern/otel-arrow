@@ -5,7 +5,7 @@ description: >-
   protobuf logs to the broker; the benchmarked OpenTelemetry Collector Kafka
   receiver consumes them and forwards to a DFE backend. Isolates the Go
   collector Kafka receiver performance.
-orchestrator_template: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/orchestrator/otc-kafka-recv-single-core-multi-rate-push.yaml
+orchestrator_template: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/orchestrator/otc-kafka-recv-single-core-multi-rate.yaml
 
 meta:
   binary: otc
@@ -14,7 +14,7 @@ meta:
   compression: none
 
 variables:
-  report: ../pipeline_perf_test/test_suites/comparison_dashboard/reports/report_logs_push.yaml
+  report: ../pipeline_perf_test/test_suites/comparison_dashboard/reports/report_logs.yaml
   # Fixed DFE reference producer (loadgen side).
   loadgen_config: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/engine/kafka-loadgen-otlp.yaml.j2
   # Benchmarked Go collector Kafka receiver (consumer side).

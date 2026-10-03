@@ -5,7 +5,7 @@ description: >-
   exporter produces OTAP logs to the broker; the benchmarked DFE Kafka receiver
   consumes them and forwards to a DFE backend. Isolates DFE Kafka receiver
   performance for the OTAP encoding.
-orchestrator_template: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/orchestrator/dfe-kafka-recv-single-core-multi-rate-push.yaml
+orchestrator_template: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/orchestrator/dfe-kafka-recv-single-core-multi-rate.yaml
 
 meta:
   binary: dfe
@@ -14,7 +14,7 @@ meta:
   compression: none
 
 variables:
-  report: ../pipeline_perf_test/test_suites/comparison_dashboard/reports/report_logs_push.yaml
+  report: ../pipeline_perf_test/test_suites/comparison_dashboard/reports/report_logs.yaml
   loadgen_config: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/engine/kafka-loadgen-otap.yaml.j2
   kafka_consumer_config: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/engine/kafka-consumer-otap.yaml.j2
   backend_config: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/backend/otap.yaml.j2
