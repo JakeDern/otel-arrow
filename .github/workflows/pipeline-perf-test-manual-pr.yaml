@@ -4,6 +4,7 @@
 name: Pipeline Performance Tests - Manual PR
 permissions:
   contents: read
+  statuses: write
 
 on:
   workflow_dispatch:
@@ -25,7 +26,7 @@ concurrency:
 
 jobs:
   pipeline-perf-test:
-    runs-on: oracle-bare-metal-64cpu-1024gb-x86-64-ubuntu-24
+    runs-on: ubuntu-latest
     steps:
       # Route tool-created temp files to RUNNER_TEMP, which GitHub Actions empties
       # at the start and end of every job. Required when running directly on the
