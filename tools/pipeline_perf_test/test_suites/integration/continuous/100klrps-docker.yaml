@@ -36,12 +36,12 @@ components:
           - "--config"
           - "./config.yaml"
           - "--core-id-range"
-          - "2-2"
+          - "0-0"
           - "--http-admin-bind"
           - "0.0.0.0:8080"
     monitoring:
       docker_component:
-        allocated_cores: 1  # Matches core-id-range: 2-2
+        allocated_cores: 1  # Matches core-id-range: 0-0
   df-engine:
     deployment:
       docker:
@@ -57,12 +57,12 @@ components:
           - "--config"
           - "./config.yaml"
           - "--core-id-range"
-          - "3-3"
+          - "0-0"
           - "--http-admin-bind"
           - "0.0.0.0:8080"
     monitoring:
       docker_component:
-        allocated_cores: 1  # Matches core-id-range: 3-3
+        allocated_cores: 1  # Matches core-id-range: 0-0
   backend-service:
     deployment:
       docker:
