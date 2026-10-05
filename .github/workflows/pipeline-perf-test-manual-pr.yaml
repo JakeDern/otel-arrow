@@ -4,6 +4,7 @@
 name: Pipeline Performance Tests - Manual PR
 permissions:
   contents: read
+  statuses: write
 
 on:
   workflow_dispatch:
