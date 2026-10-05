@@ -1,10 +1,19 @@
 name: {{suite_name}}
+hooks:
+  run:
+    pre:
+      - start_otlp_metrics_sink:
+          endpoint: 0.0.0.0:14317
+    post:
+      - stop_otlp_metrics_sink: {}
 components:
   load-generator:
     deployment:
       docker:
         image: {{df_engine_image}}
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "8085:8080"
         volumes:
@@ -17,13 +26,13 @@ components:
     monitoring:
       docker_component:
         allocated_cores: 1
-      prometheus:
-        endpoint: http://localhost:8085/api/v1/telemetry/metrics?format=prometheus&reset=false
   fluent-bit:
     deployment:
       docker:
         image: {{fluent_bit_image}}
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "8086:2020"
         volumes:
@@ -34,13 +43,13 @@ components:
     monitoring:
       docker_component:
         allocated_cores: 1
-      prometheus:
-        endpoint: http://localhost:8086/api/v1/metrics/prometheus
   backend-service:
     deployment:
       docker:
         image: {{df_engine_image}}
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "8087:8080"
         volumes:
@@ -53,8 +62,6 @@ components:
     monitoring:
       docker_component:
         allocated_cores: 1
-      prometheus:
-        endpoint: http://localhost:8087/api/v1/telemetry/metrics?format=prometheus&reset=false
 
 {%- set signal = variables.signal | default("logs") %}
 {%- if signal == "logs" %}
@@ -82,6 +89,7 @@ tests:
     from_template:
       path: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/steps/fluent-bit.yaml
       variables:{{ forward_variables() }}
+        test_name: 100k
         data_dir: {{data_dir}}
         test_dir: {{data_dir}}/tests/100k
         report_name: "Fluent Bit 100k - {{suite_name}}"
@@ -100,6 +108,7 @@ tests:
     from_template:
       path: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/steps/fluent-bit.yaml
       variables:{{ forward_variables() }}
+        test_name: 200k
         data_dir: {{data_dir}}
         test_dir: {{data_dir}}/tests/200k
         report_name: "Fluent Bit 200k - {{suite_name}}"
@@ -118,6 +127,7 @@ tests:
     from_template:
       path: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/steps/fluent-bit.yaml
       variables:{{ forward_variables() }}
+        test_name: 300k
         data_dir: {{data_dir}}
         test_dir: {{data_dir}}/tests/300k
         report_name: "Fluent Bit 300k - {{suite_name}}"
@@ -136,6 +146,7 @@ tests:
     from_template:
       path: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/steps/fluent-bit.yaml
       variables:{{ forward_variables() }}
+        test_name: 400k
         data_dir: {{data_dir}}
         test_dir: {{data_dir}}/tests/400k
         report_name: "Fluent Bit 400k - {{suite_name}}"
@@ -153,6 +164,7 @@ tests:
     from_template:
       path: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/steps/fluent-bit.yaml
       variables:{{ forward_variables() }}
+        test_name: 600k
         data_dir: {{data_dir}}
         test_dir: {{data_dir}}/tests/600k
         report_name: "Fluent Bit 600k - {{suite_name}}"
@@ -170,6 +182,7 @@ tests:
     from_template:
       path: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/steps/fluent-bit.yaml
       variables:{{ forward_variables() }}
+        test_name: 800k
         data_dir: {{data_dir}}
         test_dir: {{data_dir}}/tests/800k
         report_name: "Fluent Bit 800k - {{suite_name}}"
@@ -187,6 +200,7 @@ tests:
     from_template:
       path: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/steps/fluent-bit.yaml
       variables:{{ forward_variables() }}
+        test_name: 1000k
         data_dir: {{data_dir}}
         test_dir: {{data_dir}}/tests/1000k
         report_name: "Fluent Bit 1000k - {{suite_name}}"

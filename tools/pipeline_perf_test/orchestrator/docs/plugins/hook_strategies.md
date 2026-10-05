@@ -3,13 +3,16 @@
 ## Plugin Summary
 
 | Type Name | Module | Class | Config Class | Description Summary |
-| --------- | ------ | ----- | ------------ | -------------------- |
+|-----------|--------|-------|--------------|----------------------|
 | `build_docker_images` | `lib.impl.strategies.hooks.docker.build_docker_image` | `BuildDockerImages` | `BuildDockerImagesConfig` | Hook strategy to build Docker images for multiple components locally |
 | `build_docker_image` | `lib.impl.strategies.hooks.docker.build_docker_image` | `BuildDockerImage` | `BuildDockerImageConfig` | Hook strategy implementation for building a single Docker image |
 | `create_docker_network` | `lib.impl.strategies.hooks.docker.network` | `CreateDockerNetwork` | `CreateDockerNetworkConfig` | Hook strategy to create a Docker network for a component if it does not already exist |
 | `delete_docker_network` | `lib.impl.strategies.hooks.docker.network` | `DeleteDockerNetwork` | `DeleteDockerNetworkConfig` | Hook strategy to delete a Docker network associated with a component |
+| `print_container_logs` | `lib.impl.strategies.hooks.docker.print_container_logs` | `PrintContainerLogs` | `PrintContainerLogsConfig` | Hook strategy to print Docker container logs for all deployed components |
 | `tidy_existing_container` | `lib.impl.strategies.hooks.docker.tidy_existing_container` | `TidyExistingContainer` | `TidyExistingContainerConfig` | Hook strategy to remove an existing Docker container with the same name as the current component |
 | `wait_for_status` | `lib.impl.strategies.hooks.docker.wait_for_status` | `WaitForDockerStatus` | `WaitForDockerStatusConfig` | Hook strategy to wait for a Docker container to reach a specific status |
+| `start_otlp_metrics_sink` | `lib.impl.strategies.hooks.otlp_metrics_sink` | `StartOtlpMetricsSinkHook` | `StartOtlpMetricsSinkConfig` | Start an embedded OTLP/gRPC metrics sink and attach it to the suite |
+| `stop_otlp_metrics_sink` | `lib.impl.strategies.hooks.otlp_metrics_sink` | `StopOtlpMetricsSinkHook` | `StopOtlpMetricsSinkConfig` | Stop the suite's embedded OTLP/gRPC metrics sink |
 | `raise_exception` | `lib.impl.strategies.hooks.raise_exception` | `RaiseExceptionHook` | `RaiseExceptionConfig` | Hook strategy that raises an exception |
 | `record_event` | `lib.impl.strategies.hooks.record_event` | `RecordEventHook` | `RecordEventConfig` | Hook strategy that records an event to the context's current span |
 | `run_command` | `lib.impl.strategies.hooks.run_command` | `RunCommandHook` | `RunCommandConfig` | Hook strategy that runs a specified shell command |
@@ -36,7 +39,7 @@
 **Docker Options:**
 
 | Flag | Description | Default | Required |
-| ---- | ----------- | ------- | -------- |
+|------|-------------|---------|----------|
 | `--docker.no-build` | Skip build of Docker containers. | - | - |
 
 **Description:**
@@ -235,6 +238,65 @@ components:
                 network: foo-network
 ```
 
+## `print_container_logs`
+
+**Class**: `lib.impl.strategies.hooks.docker.print_container_logs.PrintContainerLogs`
+
+**Config Class**: `lib.impl.strategies.hooks.docker.print_container_logs.PrintContainerLogsConfig`
+
+**Supported Contexts:**
+
+- StepContext
+
+**Description:**
+
+```python
+"""
+Hook strategy to print Docker container logs for all deployed components.
+
+This hook iterates through all components in the test suite, retrieves their
+stored container logs (if any), and prints them in an organized manner. This
+provides a consolidated view of all container output at the end of test execution.
+
+Features:
+    - Prints logs for all components or a specified subset
+    - Clearly separates logs by component name
+    - Handles cases where no logs are available
+    - Non-blocking: always returns SUCCESS status
+
+Typical usage:
+    Add as a post-hook after test reports to print all container diagnostics:
+
+    ```yaml
+    - name: Run Report
+      action:
+        wait:
+          delay_seconds: 0
+      hooks:
+        run:
+          post:
+            - sql_report: ...
+            - print_container_logs: {}
+    ```
+"""
+```
+
+**Example YAML:**
+
+```yaml
+- name: Print Container Logs
+    action:
+      wait:
+        delay_seconds: 0
+    hooks:
+      run:
+        post:
+          - print_container_logs: {}
+          # Or specify specific components:
+          # - print_container_logs:
+          #     components: [backend-service, df-engine]
+```
+
 ## `tidy_existing_container`
 
 **Class**: `lib.impl.strategies.hooks.docker.tidy_existing_container.TidyExistingContainer`
@@ -354,6 +416,63 @@ components:
                 status: running
                 timeout: 30
                 interval: 1
+```
+
+## `start_otlp_metrics_sink`
+
+**Class**: `lib.impl.strategies.hooks.otlp_metrics_sink.StartOtlpMetricsSinkHook`
+
+**Config Class**: `lib.impl.strategies.hooks.otlp_metrics_sink.StartOtlpMetricsSinkConfig`
+
+**Supported Contexts:**
+
+- FrameworkElementHookContext
+
+**Description:**
+
+```python
+"""
+Start an embedded OTLP/gRPC metrics sink and attach it to the suite.
+"""
+```
+
+**Example YAML:**
+
+```yaml
+hooks:
+  run:
+    pre:
+      - start_otlp_metrics_sink:
+          endpoint: 0.0.0.0:14317
+    post:
+      - stop_otlp_metrics_sink: {}
+```
+
+## `stop_otlp_metrics_sink`
+
+**Class**: `lib.impl.strategies.hooks.otlp_metrics_sink.StopOtlpMetricsSinkHook`
+
+**Config Class**: `lib.impl.strategies.hooks.otlp_metrics_sink.StopOtlpMetricsSinkConfig`
+
+**Supported Contexts:**
+
+- FrameworkElementHookContext
+
+**Description:**
+
+```python
+"""
+Stop the suite's embedded OTLP/gRPC metrics sink.
+"""
+```
+
+**Example YAML:**
+
+```yaml
+hooks:
+  run:
+    post:
+      - stop_otlp_metrics_sink: {}
 ```
 
 ## `raise_exception`

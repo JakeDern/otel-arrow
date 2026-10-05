@@ -1,12 +1,21 @@
 # Template for core scaling saturation tests
 # This template is instantiated by the saturation-*cores.yaml wrapper files
 name: Continuous - Saturation - {{num_cores}} Core(s)
+hooks:
+  run:
+    pre:
+      - start_otlp_metrics_sink:
+          endpoint: 0.0.0.0:14317
+    post:
+      - stop_otlp_metrics_sink: {}
 components:
   load-generator:
     deployment:
       docker:
         image: df_engine:latest
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "8085:8080"
         volumes:
@@ -21,13 +30,13 @@ components:
     monitoring:
       docker_component:
         allocated_cores: {{loadgen_cores}}
-      prometheus:
-        endpoint: http://localhost:8085/api/v1/telemetry/metrics?format=prometheus&reset=false
   df-engine:
     deployment:
       docker:
         image: df_engine:latest
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "8086:8080"
         volumes:
@@ -42,13 +51,13 @@ components:
     monitoring:
       docker_component:
         allocated_cores: {{num_cores}}  # The cores we're testing
-      prometheus:
-        endpoint: http://localhost:8086/api/v1/telemetry/metrics?format=prometheus&reset=false
   backend-service:
     deployment:
       docker:
         image: df_engine:latest
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "8087:8080"
         volumes:
@@ -63,14 +72,13 @@ components:
     monitoring:
       docker_component:
         allocated_cores: {{backend_cores}}
-      prometheus:
-        endpoint: http://localhost:8087/api/v1/telemetry/metrics?format=prometheus&reset=false
 
 tests:
   - name: OTLP-ATTR-OTLP
     from_template:
       path: test_suites/integration/templates/test_steps/df-loadgen-steps-docker.yaml
       variables:
+        test_name: OTLP-ATTR-OTLP
         result_dir: "continuous_saturation_{{num_cores}}core_otlp"
         engine_config_template: test_suites/integration/templates/configs/engine/backpressure/otlp-attr-otlp.yaml.j2
         loadgen_exporter_type: otlp

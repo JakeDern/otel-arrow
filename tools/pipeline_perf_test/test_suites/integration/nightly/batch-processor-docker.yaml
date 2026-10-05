@@ -1,10 +1,19 @@
 name: Nightly - Batch Processor
+hooks:
+  run:
+    pre:
+      - start_otlp_metrics_sink:
+          endpoint: 0.0.0.0:14317
+    post:
+      - stop_otlp_metrics_sink: {}
 components:
   load-generator:
     deployment:
       docker:
         image: df_engine:latest
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "8085:8080"
         volumes:
@@ -19,13 +28,13 @@ components:
     monitoring:
       docker_component:
         allocated_cores: 1
-      prometheus:
-        endpoint: http://localhost:8085/api/v1/telemetry/metrics?format=prometheus&reset=false
   df-engine:
     deployment:
       docker:
         image: df_engine:latest
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "8086:8080"
         volumes:
@@ -40,13 +49,13 @@ components:
     monitoring:
       docker_component:
         allocated_cores: 1
-      prometheus:
-        endpoint: http://localhost:8086/api/v1/telemetry/metrics?format=prometheus&reset=false
   backend-service:
     deployment:
       docker:
         image: df_engine:latest
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "8087:8080"
         volumes:
@@ -61,8 +70,6 @@ components:
     monitoring:
       docker_component:
         allocated_cores: 1
-      prometheus:
-        endpoint: http://localhost:8087/api/v1/telemetry/metrics?format=prometheus&reset=false
 
 tests:
   # --- Logs ---
@@ -70,6 +77,7 @@ tests:
     from_template:
       path: test_suites/integration/templates/test_steps/df-loadgen-steps-docker.yaml
       variables:
+        test_name: Logs-OTAP-BATCH-OTAP
         result_dir: nightly_batch_processor
         engine_config_template: test_suites/integration/templates/configs/engine/batch_processor/otap-batch-otap.yaml.j2
         loadgen_exporter_type: otap
@@ -84,6 +92,7 @@ tests:
     from_template:
       path: test_suites/integration/templates/test_steps/df-loadgen-steps-docker.yaml
       variables:
+        test_name: Logs-OTLP-BATCH-OTLP
         result_dir: nightly_batch_processor
         engine_config_template: test_suites/integration/templates/configs/engine/batch_processor/otlp-batch-otlp.yaml.j2
         loadgen_exporter_type: otlp
@@ -101,6 +110,7 @@ tests:
     from_template:
       path: test_suites/integration/templates/test_steps/df-loadgen-steps-docker.yaml
       variables:
+        test_name: Metrics-OTAP-BATCH-OTAP
         result_dir: nightly_batch_processor
         engine_config_template: test_suites/integration/templates/configs/engine/batch_processor/otap-batch-otap.yaml.j2
         loadgen_exporter_type: otap
@@ -116,6 +126,7 @@ tests:
     from_template:
       path: test_suites/integration/templates/test_steps/df-loadgen-steps-docker.yaml
       variables:
+        test_name: Metrics-OTLP-BATCH-OTLP
         result_dir: nightly_batch_processor
         engine_config_template: test_suites/integration/templates/configs/engine/batch_processor/otlp-batch-otlp.yaml.j2
         loadgen_exporter_type: otlp
@@ -134,6 +145,7 @@ tests:
     from_template:
       path: test_suites/integration/templates/test_steps/df-loadgen-steps-docker.yaml
       variables:
+        test_name: Traces-OTAP-BATCH-OTAP
         result_dir: nightly_batch_processor
         engine_config_template: test_suites/integration/templates/configs/engine/batch_processor/otap-batch-otap.yaml.j2
         loadgen_exporter_type: otap
@@ -149,6 +161,7 @@ tests:
     from_template:
       path: test_suites/integration/templates/test_steps/df-loadgen-steps-docker.yaml
       variables:
+        test_name: Traces-OTLP-BATCH-OTLP
         result_dir: nightly_batch_processor
         engine_config_template: test_suites/integration/templates/configs/engine/batch_processor/otlp-batch-otlp.yaml.j2
         loadgen_exporter_type: otlp

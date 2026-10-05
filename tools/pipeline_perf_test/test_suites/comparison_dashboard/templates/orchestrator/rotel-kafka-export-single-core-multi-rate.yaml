@@ -15,6 +15,13 @@
 {%- set batch_num_messages = variables.kafka_producer_batch_num_messages | default(10000) %}
 {%- set queue_buffering = variables.kafka_producer_queue_buffering_max_messages | default(100000) %}
 name: {{suite_name}}
+hooks:
+  run:
+    pre:
+      - start_otlp_metrics_sink:
+          endpoint: 0.0.0.0:14317
+    post:
+      - stop_otlp_metrics_sink: {}
 # Exporter-isolation topology (rotel exporter under test).
 #
 #   load-generator (DFE traffic_generator -> otlp exporter)
@@ -27,6 +34,8 @@ components:
       docker:
         image: {{df_engine_image}}
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "8085:8080"
         volumes:
@@ -39,13 +48,13 @@ components:
     monitoring:
       docker_component:
         allocated_cores: 1
-      prometheus:
-        endpoint: http://localhost:8085/api/v1/telemetry/metrics?format=prometheus&reset=false
   kafka-producer:
     deployment:
       docker:
         image: {{rotel_image}}
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         cpuset_cpus: "0"
         ports:
           - "4317:4317"
@@ -92,6 +101,8 @@ components:
       docker:
         image: {{kafka_image}}
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "9094:9094"
         environment:
@@ -118,6 +129,8 @@ components:
       docker:
         image: {{df_engine_image}}
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "8087:8080"
         volumes:
@@ -130,8 +143,6 @@ components:
     monitoring:
       docker_component:
         allocated_cores: 1
-      prometheus:
-        endpoint: http://localhost:8087/api/v1/telemetry/metrics?format=prometheus&reset=false
 
 {% macro forward_variables() -%}
 {%- for k, v in variables.items() %}
@@ -147,6 +158,7 @@ tests:
     from_template:
       path: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/steps/rotel-kafka-export.yaml
       variables:{{ forward_variables() }}
+        test_name: {{rate}}
         data_dir: {{data_dir}}
         test_dir: {{data_dir}}/tests/{{rate}}
         report_name: "Rotel Kafka Exporter {{rate}} - {{suite_name}}"

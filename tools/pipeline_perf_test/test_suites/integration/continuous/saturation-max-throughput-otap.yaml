@@ -7,12 +7,21 @@
 # Layout: SUT=1 core, Backend=4 cores, Loadgen=8 cores (13 total)
 # OTAP is significantly faster than OTLP, so needs more loadgen/backend to saturate.
 name: Continuous - Saturation - Max Throughput OTAP
+hooks:
+  run:
+    pre:
+      - start_otlp_metrics_sink:
+          endpoint: 0.0.0.0:14317
+    post:
+      - stop_otlp_metrics_sink: {}
 components:
   load-generator:
     deployment:
       docker:
         image: df_engine:latest
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "8085:8080"
         volumes:
@@ -27,13 +36,13 @@ components:
     monitoring:
       docker_component:
         allocated_cores: 8
-      prometheus:
-        endpoint: http://localhost:8085/api/v1/telemetry/metrics?format=prometheus&reset=false
   df-engine:
     deployment:
       docker:
         image: df_engine:latest
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "8086:8080"
         volumes:
@@ -48,13 +57,13 @@ components:
     monitoring:
       docker_component:
         allocated_cores: 1
-      prometheus:
-        endpoint: http://localhost:8086/api/v1/telemetry/metrics?format=prometheus&reset=false
   backend-service:
     deployment:
       docker:
         image: df_engine:latest
         network: testbed
+        extra_hosts:
+          host.docker.internal: host-gateway
         ports:
           - "8087:8080"
         volumes:
@@ -69,14 +78,13 @@ components:
     monitoring:
       docker_component:
         allocated_cores: 4
-      prometheus:
-        endpoint: http://localhost:8087/api/v1/telemetry/metrics?format=prometheus&reset=false
 
 tests:
   - name: OTAP-ATTR-OTAP
     from_template:
       path: test_suites/integration/templates/test_steps/df-loadgen-steps-docker.yaml
       variables:
+        test_name: OTAP-ATTR-OTAP
         result_dir: "continuous_saturation_max_throughput_otap"
         engine_config_template: test_suites/integration/templates/configs/engine/backpressure/otap-attr-otap.yaml.j2
         loadgen_exporter_type: otap

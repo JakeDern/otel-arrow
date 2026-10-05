@@ -14,7 +14,12 @@ policies:
         - start: {{core_start}}
           end: {{core_end}}
 
+{%- if push_metrics_endpoint is defined and push_metrics_endpoint %}
+{%- set push_service_name = "backend-service" %}
+{% include "push_metrics_engine.yaml.j2" %}
+{%- else %}
 engine: {}
+{%- endif %}
 
 groups:
   default:

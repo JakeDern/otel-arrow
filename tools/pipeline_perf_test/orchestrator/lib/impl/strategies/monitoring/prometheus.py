@@ -1,3 +1,17 @@
+# Prometheus scrape-based monitoring.
+#
+# The dataflow-engine benchmarks have migrated to push-based metrics (the engine
+# pushes its internal telemetry over OTLP to an embedded receiver; see
+# otlp_metrics_sink.py and the *_push reports). This scrape strategy is retained
+# only for the suites that cannot push dfengine internal metrics:
+#   - syslog suites, which use the Python load generator (no dfengine loadgen)
+#   - the otel-collector SUT suites (the collector does not speak the dfengine
+#     internal-telemetry push)
+#   - the ClickHouse suites, whose "received" count comes from ClickHouse row
+#     queries rather than a perf exporter
+#   - the idle-state suites, which only observe engine self-metrics
+# It is also still used to collect the collectors' own /metrics where relevant.
+# Do not remove until those suites are migrated or retired.
 import threading
 import time
 from dataclasses import dataclass
