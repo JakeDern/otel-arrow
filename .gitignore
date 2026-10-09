@@ -1,6 +1,9 @@
 bin/
 dist/
 
+# ai
+.claude
+
 # GoLand IDEA
 /.idea/
 *.iml

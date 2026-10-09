@@ -1699,7 +1699,61 @@ impl WrittenDictValues {
 /// True if two dictionary values arrays are the same physical array: the
 /// same `Arc`, or the same buffers, offset, length and null buffer (as
 /// Arrow's own concat checks). Never compares values.
+///
+/// This runs several times per input per dictionary column, so the common
+/// value types compare buffer pointers directly instead of going through
+/// `to_data()`, which allocates and clones the data type for both sides.
+/// Other types fall back to [same_values_to_data].
 fn same_values(a: &ArrayRef, b: &ArrayRef) -> bool {
+    if Arc::ptr_eq(a, b) {
+        return true;
+    }
+    if a.len() != b.len() || a.data_type() != b.data_type() {
+        return false;
+    }
+    if !same_nulls(a.nulls(), b.nulls()) {
+        return false;
+    }
+
+    match a.data_type() {
+        DataType::Utf8 => same_bytes_buffers(a.as_string::<i32>(), b.as_string::<i32>()),
+        DataType::Binary => same_bytes_buffers(a.as_binary::<i32>(), b.as_binary::<i32>()),
+        DataType::UInt8 => same_primitive_buffer::<UInt8Type>(a, b),
+        DataType::UInt16 => same_primitive_buffer::<UInt16Type>(a, b),
+        DataType::UInt32 => same_primitive_buffer::<UInt32Type>(a, b),
+        DataType::UInt64 => same_primitive_buffer::<UInt64Type>(a, b),
+        DataType::Int32 => same_primitive_buffer::<Int32Type>(a, b),
+        DataType::Int64 => same_primitive_buffer::<Int64Type>(a, b),
+        DataType::Float64 => same_primitive_buffer::<Float64Type>(a, b),
+        _ => same_values_to_data(a, b),
+    }
+}
+
+/// Null buffers match if both are absent or both share one allocation and
+/// window.
+fn same_nulls(a: Option<&NullBuffer>, b: Option<&NullBuffer>) -> bool {
+    match (a, b) {
+        (None, None) => true,
+        (Some(a), Some(b)) => a.inner().ptr_eq(b.inner()),
+        _ => false,
+    }
+}
+
+/// Byte arrays keep their slice window in the offsets buffer, so equal
+/// offsets and values pointers mean the same window over the same data.
+fn same_bytes_buffers<T: ByteArrayType>(a: &GenericByteArray<T>, b: &GenericByteArray<T>) -> bool {
+    a.offsets().inner().inner().as_ptr() == b.offsets().inner().inner().as_ptr()
+        && a.values().as_ptr() == b.values().as_ptr()
+}
+
+/// Primitive arrays keep their slice window in the values buffer.
+fn same_primitive_buffer<T: ArrowPrimitiveType>(a: &ArrayRef, b: &ArrayRef) -> bool {
+    a.as_primitive::<T>().values().inner().as_ptr()
+        == b.as_primitive::<T>().values().inner().as_ptr()
+}
+
+/// Generic [same_values] through `ArrayData`. Allocates for both sides.
+fn same_values_to_data(a: &ArrayRef, b: &ArrayRef) -> bool {
     Arc::ptr_eq(a, b) || (a.len() == b.len() && a.to_data().ptr_eq(&b.to_data()))
 }
 
@@ -5088,5 +5142,108 @@ mod write_tests {
         let actual = cast(out.as_ref(), &DataType::UInt32).unwrap();
         let expected = UInt32Array::from(vec![0u32, 1, 2, 103, 101, 100]);
         assert_eq!(actual.as_primitive::<UInt32Type>(), &expected);
+    }
+
+    /// Scenario: `same_values` is asked whether two dictionary values arrays
+    /// are the same physical array, across the value types OTAP uses plus a
+    /// type without a fast path.
+    /// Guarantees: true only for the same `Arc`, or for distinct `Arc`s over
+    /// the same buffers with the same type, offset, length and null buffer;
+    /// equal contents in separate buffers are never treated as shared.
+    #[test]
+    fn test_same_values_physical_identity() {
+        use arrow::array::{FixedSizeBinaryArray, Int64Array, StringViewArray};
+        use arrow::buffer::NullBuffer;
+
+        let utf8 = StringArray::from(vec![Some("a"), None, Some("ccc"), Some("d")]);
+        let int64 = Int64Array::from(vec![1, 2, 3, 4]);
+        let f64s = Float64Array::from(vec![1.0, 2.0, 3.0, 4.0]);
+        let bin = BinaryArray::from(vec![&b"x"[..], b"yy", b"z", b"w"]);
+        let fsb = FixedSizeBinaryArray::from(vec![&[1u8, 2][..], &[3, 4], &[5, 6], &[7, 8]]);
+        let view = StringViewArray::from(vec!["a", "b", "c", "d"]);
+
+        let arrays: Vec<ArrayRef> = vec![
+            Arc::new(utf8.clone()),
+            Arc::new(int64.clone()),
+            Arc::new(f64s.clone()),
+            Arc::new(bin.clone()),
+            Arc::new(fsb.clone()),
+            Arc::new(view.clone()),
+        ];
+        // Equal contents, separately allocated.
+        let copies: Vec<ArrayRef> = vec![
+            Arc::new(StringArray::from(vec![
+                Some("a"),
+                None,
+                Some("ccc"),
+                Some("d"),
+            ])),
+            Arc::new(Int64Array::from(vec![1, 2, 3, 4])),
+            Arc::new(Float64Array::from(vec![1.0, 2.0, 3.0, 4.0])),
+            Arc::new(BinaryArray::from(vec![&b"x"[..], b"yy", b"z", b"w"])),
+            Arc::new(FixedSizeBinaryArray::from(vec![
+                &[1u8, 2][..],
+                &[3, 4],
+                &[5, 6],
+                &[7, 8],
+            ])),
+            Arc::new(StringViewArray::from(vec!["a", "b", "c", "d"])),
+        ];
+
+        for (a, copy) in arrays.iter().zip(&copies) {
+            let dt = a.data_type();
+            for (x, y) in [
+                (a.clone(), a.clone()),
+                (a.clone(), make_array(a.to_data())),
+                (a.clone(), copy.clone()),
+                (a.slice(1, 2), a.slice(1, 2)),
+                (a.slice(0, 2), a.slice(1, 2)),
+                (a.slice(0, 2), a.slice(0, 3)),
+            ] {
+                assert_eq!(same_values(&x, &y), same_values_to_data(&x, &y), "{dt}");
+            }
+            assert!(same_values(a, &Arc::clone(a)), "same Arc: {dt}");
+            // A new Arc over the same buffers.
+            let rewrapped = make_array(a.to_data());
+            assert!(same_values(a, &rewrapped), "same buffers: {dt}");
+            assert!(!same_values(a, copy), "separate buffers: {dt}");
+            // Zero-copy slices: same window is shared, shifted window is not.
+            assert!(
+                same_values(&a.slice(1, 2), &a.slice(1, 2)),
+                "same slice: {dt}"
+            );
+            assert!(
+                !same_values(&a.slice(0, 2), &a.slice(1, 2)),
+                "shifted slice: {dt}"
+            );
+            assert!(
+                !same_values(&a.slice(0, 2), &a.slice(0, 3)),
+                "longer slice: {dt}"
+            );
+        }
+
+        // Same buffers, different null buffer.
+        let (offsets, values, _) = utf8.clone().into_parts();
+        let no_nulls: ArrayRef = Arc::new(StringArray::new(offsets.clone(), values.clone(), None));
+        let other_nulls: ArrayRef = Arc::new(StringArray::new(
+            offsets,
+            values,
+            Some(NullBuffer::from(vec![true, true, false, true])),
+        ));
+        let with_nulls: ArrayRef = Arc::new(utf8);
+        assert!(!same_values(&with_nulls, &no_nulls));
+        assert!(!same_values(&with_nulls, &other_nulls));
+
+        // Same buffer, different type.
+        let as_i64: ArrayRef = Arc::new(int64);
+        let reinterpreted = make_array(
+            as_i64
+                .to_data()
+                .into_builder()
+                .data_type(DataType::UInt64)
+                .build()
+                .unwrap(),
+        );
+        assert!(!same_values(&as_i64, &reinterpreted));
     }
 }

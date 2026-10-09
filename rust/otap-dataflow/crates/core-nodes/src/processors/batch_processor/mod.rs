@@ -1119,9 +1119,12 @@ where
         self.metrics
             .flush_pending_requests
             .record(self.buffer.inputs.requests() as f64);
-        if let Some(bytes) = self.buffer.inputs.known_bytes() {
-            self.metrics.flush_pending_bytes.record(bytes as f64);
-        }
+        // TODO(perf experiment): flush_pending_bytes disabled. known_bytes()
+        // calls to_data() on every column of every pending input, which
+        // dominates flush cost when there are ~1000 small inputs.
+        // if let Some(bytes) = self.buffer.inputs.known_bytes() {
+        //     self.metrics.flush_pending_bytes.record(bytes as f64);
+        // }
         if let Some(arrival) = self.buffer.arrival {
             self.metrics
                 .flush_age_duration
