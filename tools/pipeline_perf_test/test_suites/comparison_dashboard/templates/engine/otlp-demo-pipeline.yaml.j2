@@ -1,0 +1,102 @@
+# Must stay semantically identical to ../otelcol/otlp-demo-pipeline.yaml.j2.
+#
+# Reproduction of an external DFE vs OTC benchmark pipeline. Deviations from
+# the original config (harness plumbing, plus one filter change):
+#   - core pinning and channel capacities (policies block)
+#   - wait_for_result on the receiver is templated (suite variable)
+#   - exporter endpoint points at the harness backend instead of an env var
+#   - traces exclude sets `span_names: []` (required by the filter config)
+#   - logs filter adds an exclude rule for ERROR+ so it drops something (see below)
+version: otel_dataflow/v1
+policies:
+  channel_capacity:
+    control:
+      node: 100
+      pipeline: 100
+    pdata: 100
+  resources:
+    core_allocation:
+      type: core_set
+      set:
+        - start: {{core_start}}
+          end: {{core_end}}
+engine:
+  telemetry:
+    logs:
+      level: info
+groups:
+  default:
+    pipelines:
+      main:
+        nodes:
+          otlp/ingest:
+            type: receiver:otlp
+            config:
+              protocols:
+                grpc:
+                  listening_addr: "0.0.0.0:4317"
+                  wait_for_result: {% if wait_for_result | default(false) %}true{% else %}false{% endif %}
+                http:
+                  listening_addr: "0.0.0.0:4318"
+                  wait_for_result: {% if wait_for_result | default(false) %}true{% else %}false{% endif %}
+
+          # Logs only (the query is scoped by its leading `logs`); traces and metrics bypass it.
+          # OPL has no regex-replace, so redaction hashes the whole body. The Collector does the same.
+          transform/logs:
+            type: processor:transform
+            config:
+              opl_query: |
+                logs
+                | if (matches(body, r"(?i)(error|exception|panic|fatal)")) { set severity_text = "ERROR" }
+                | if (matches(body, r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9._-]+")) { set attributes["pii.email.detected"] = "true", body = concat("REDACTED:", encode(sha256(body), "hex")) }
+
+          # Static enrichment only: the engine has no k8sattributes equivalent.
+          enrich/resource:
+            type: processor:attribute
+            config:
+              apply_to: ["resource"]
+              actions:
+                - { action: upsert, key: k8s.cluster.name, value: otel-arrow-demo }
+                - { action: upsert, key: benchmark.engine, value: df-engine }
+
+          # Logs: keep INFO and above, plus records with no severity, then drop ERROR and above.
+          # The exclude rule is not in the original config: the synthetic loadgen emits no records
+          # below INFO, so without it the filter would never drop anything. It drops the 5% of
+          # records generated as ERROR (severity_number 17); the transform above only changes
+          # severity_text, so it does not affect this rule. Traces: drop health checks.
+          # Metrics pass through (no rules), matching the Collector config.
+          filter/drop:
+            type: processor:filter
+            config:
+              logs:
+                include:
+                  severity_number: { min: 9, match_undefined: true }
+                exclude:
+                  severity_number: { min: 17, match_undefined: false }
+              traces:
+                exclude:
+                  span_names: []
+                  span_attributes:
+                    - { key: url.path, value: /health }
+
+          # Mirrors the Collector batch processor defaults: 8192 items or 200ms, no upper bound.
+          batch:
+            type: processor:batch
+            config:
+              format: otap
+              otap: { min_size: 8192, max_size: null, sizer: items }
+              max_batch_duration: 200ms
+
+          otlp_http/out:
+            type: exporter:otlp_http
+            config:
+              endpoint: "http://{{backend_hostname}}:1235"
+              client_pool_size: 1
+              http:
+                compression: gzip
+        connections:
+          - { from: otlp/ingest, to: transform/logs }
+          - { from: transform/logs, to: enrich/resource }
+          - { from: enrich/resource, to: filter/drop }
+          - { from: filter/drop, to: batch }
+          - { from: batch, to: otlp_http/out }

@@ -210,6 +210,11 @@ suites:
   - suites/otc/otc-logs-otlp-none-transform-rename-multi-transform.yaml
   - suites/otc/otc-logs-otap-none-attr-insert-multi-transform.yaml
   - suites/otc/otc-logs-otap-none-attr-rename-multi-transform.yaml
+  # Demo pipeline reproduction (regex transform + enrich + filter + batch).
+  - suites/dfe/dfe-logs-otlp-gzip-demo-pipeline.yaml
+  - suites/dfe/dfe-logs-otlp-gzip-demo-pipeline-nowait.yaml
+  - suites/otc/otc-logs-otlp-gzip-demo-pipeline.yaml
+  - suites/otc/otc-logs-otlp-gzip-demo-pipeline-nowait.yaml
 
   # Rotel
   - suites/rotel/rotel-logs-otlp-gzip-baseline.yaml
@@ -245,3 +250,5 @@ comparisons:
   - comparisons/log_attr_processor_rename_multi_batch.yaml
   - comparisons/log_transform_attr_processor_insert_multi_transform.yaml
   - comparisons/log_transform_attr_processor_rename_multi_transform.yaml
+  - comparisons/log_demo_pipeline.yaml
+  - comparisons/log_demo_pipeline_multi_batch.yaml

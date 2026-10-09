@@ -1,0 +1,36 @@
+name: DFE OTLP Demo Pipeline No Wait (Logs)
+slug: dfe_logs_otlp_gzip_demo_pipeline_nowait
+description: Dataflow Engine OTLP logs through a regex transform (OPL), resource enrichment, severity filter, batch (8192 / 200ms) and OTLP/HTTP gzip export; wait_for_result=false
+orchestrator_template: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/orchestrator/dfe-single-core-multi-rate.yaml
+
+meta:
+  binary: dfe
+  protocols: [otlp]
+  signals: [logs]
+  compression: gzip
+
+variables:
+  report: ../pipeline_perf_test/test_suites/comparison_dashboard/reports/report_logs.yaml
+  engine_config: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/engine/otlp-demo-pipeline.yaml.j2
+  loadgen_config: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/loadgen/otlp.yaml.j2
+  backend_config: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/backend/otlp-http.yaml.j2
+  protocol: otlp
+  signal: logs
+  loadgen_max_batch_size: 1000
+  # Synthetic bodies are required: 3/50 templates match the error regex and
+  # 2/50 match the email regex.
+  data_source: synthetic
+  # Applies to loadgen -> engine only; engine -> backend is always gzip.
+  compression_method: none
+  wait_for_result: false
+  # Extra tests below the OTC single-core saturation point (~75k logs/sec),
+  # optionally overriding the loadgen batch size (default above).
+  extra_tests:
+    - {rate: 10000}
+    - {rate: 50000}
+    - {rate: 50000, batch_size: 1024}
+    - {rate: 50000, batch_size: 256}
+    - {rate: 50000, batch_size: 128}
+    - {rate: 50000, batch_size: 64}
+    - {rate: 50000, batch_size: 16}
+    - {rate: 50000, batch_size: 8}

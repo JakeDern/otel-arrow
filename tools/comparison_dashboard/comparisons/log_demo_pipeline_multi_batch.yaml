@@ -1,0 +1,47 @@
+slug: log_demo_pipeline_multi_batch
+name: Log Demo Pipeline (Multi Batch, 50k)
+description: >
+  Same pipeline as the Log Demo Pipeline comparison, at a fixed 50k logs/sec
+  (below OTC single-core saturation) while varying the load generator's
+  request batch size. Smaller batches mean more, smaller OTLP requests into
+  the engine for the same log rate.
+
+chart:
+  axes:
+    x:
+      title: Loadgen Batch Size (logs/request)
+      description: Maximum number of logs per OTLP request sent by the load generator. All tests run at a fixed 50k logs/sec generated load.
+
+tests:
+  - name: 50k-batch-8
+    label: "8"
+    loadgen_rate: 50000
+  - name: 50k-batch-16
+    label: "16"
+    loadgen_rate: 50000
+  - name: 50k-batch-64
+    label: "64"
+    loadgen_rate: 50000
+  - name: 50k-batch-128
+    label: "128"
+    loadgen_rate: 50000
+  - name: 50k-batch-256
+    label: "256"
+    loadgen_rate: 50000
+  - name: 50k-batch-1024
+    label: "1024"
+    loadgen_rate: 50000
+
+suites:
+  - name: DFE OTLP Demo Pipeline
+    slug: dfe_logs_otlp_gzip_demo_pipeline
+    short: DFE/Wait
+  - name: DFE OTLP Demo Pipeline No Wait
+    slug: dfe_logs_otlp_gzip_demo_pipeline_nowait
+    short: DFE/No Wait
+  - name: OTC OTLP Demo Pipeline
+    slug: otc_logs_otlp_gzip_demo_pipeline
+    short: OTC/Wait
+  - name: OTC OTLP Demo Pipeline No Wait
+    slug: otc_logs_otlp_gzip_demo_pipeline_nowait
+    short: OTC/No Wait

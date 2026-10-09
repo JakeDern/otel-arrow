@@ -22,7 +22,7 @@ components:
   go-collector:
     deployment:
       docker:
-        image: {{otelcol_image}}
+        image: {{ variables.otelcol_image | default(otelcol_image) }}
         network: testbed
         ports:
           - "8086:8086"
@@ -82,6 +82,33 @@ overrides below the spread win on key collision. #}
 {%- endmacro -%}
 
 tests:
+{#- Opt-in extra tests (suite variable `extra_tests`), each on 1 loadgen core.
+Entries are {rate: <logs/sec>, batch_size: <optional loadgen max batch size>};
+the test is named "<rate>k" or "<rate>k-batch-<batch_size>". #}
+{%- for t in variables.extra_tests | default([]) %}
+{%- set rate = t.rate %}
+{%- set rate_name = (rate // 1000) ~ "k" ~ (("-batch-" ~ t.batch_size) if t.batch_size is defined else "") %}
+  - name: {{rate_name}}
+    from_template:
+      path: ../pipeline_perf_test/test_suites/comparison_dashboard/templates/steps/otelcol.yaml
+      variables:{{ forward_variables() }}
+        data_dir: {{data_dir}}
+        test_dir: {{data_dir}}/tests/{{rate_name}}
+        report_name: "OTel Collector {{rate_name}} - {{suite_name}}"
+        observation_interval: {{observation_interval}}
+        signals_per_second: {{rate}}
+{%- if t.batch_size is defined %}
+        loadgen_max_batch_size: {{t.batch_size}}
+{%- endif %}
+        log_weight: {{log_weight}}
+        metric_weight: {{metric_weight}}
+        trace_weight: {{trace_weight}}
+        backend_core_start: 1
+        backend_core_end: 1
+        loadgen_core_start: 2
+        loadgen_core_end: 2
+{%- endfor %}
+
   # 100k: 1 loadgen core
   - name: 100k
     from_template:
