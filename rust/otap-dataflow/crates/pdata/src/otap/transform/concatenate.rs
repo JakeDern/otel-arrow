@@ -1698,13 +1698,10 @@ impl WrittenDictValues {
 
 /// True if two dictionary values arrays are the same physical array: the
 /// same `Arc`, or the same buffers, offset, length and null buffer (as
-/// Arrow's own concat checks). Never compares values.
+/// Arrow's own concat checks).
 ///
-/// Equivalent to `a.to_data().ptr_eq(&b.to_data())`, but compares buffer
-/// pointers on the typed arrays for the value types OTAP dictionaries use.
-/// Building `ArrayData` allocates, and this runs several times per dictionary
-/// column for every pair of adjacent inputs, which dominated concatenation of
-/// many small independently encoded batches.
+/// Equivalent to `a.to_data().ptr_eq(&b.to_data())`, but without allocating
+/// to produce [`ArrayData`].
 fn same_values(a: &ArrayRef, b: &ArrayRef) -> bool {
     if Arc::ptr_eq(a, b) {
         return true;
