@@ -1,3 +1,23 @@
+{#-
+Load generator -> Go collector -> backend steps.
+
+Push-based metrics (opt-in):
+  Set `push_metrics: true` to have the load generator and backend push their
+  internal metrics over OTLP. The Go collector is not reconfigured; its resource
+  usage still comes from docker monitoring. When off (the default), metrics are
+  exposed over a prometheus endpoint for scraping instead.
+
+Variables:
+  - push_metrics: when true, enable the push wiring (default false).
+  - push_metrics_endpoint: OTLP/gRPC endpoint the engines export to. Defaults to
+    http://host.docker.internal:14317.
+  - collector_drain_secs: with push enabled, seconds to wait after the load
+    generator drains so the collector can flush in-flight data to the backend
+    before the backend is shut down (default 5).
+
+-#}
+{%- set push_metrics = push_metrics | default(false) %}
+{%- set push_endpoint = push_metrics_endpoint | default("http://host.docker.internal:14317") %}
 steps:
   - name: Deploy Backend Engine
     action:
@@ -11,8 +31,13 @@ steps:
           - render_template:
               template_path: './test_suites/integration/templates/configs/backend/config.yaml.j2'
               output_path: ./test_suites/integration/configs/backend/config.rendered.yaml
+              search_paths:
+                - ./test_suites/integration/templates/configs/common
               variables:
                 backend_receiver_type: '{{backend_receiver_type}}'
+                {%- if push_metrics %}
+                push_metrics_endpoint: '{{push_endpoint}}'
+                {%- endif %}
         post:
           # Wait for the telemetry endpoint to be active (TODO: switch to healthcheck endpoint when available).
           - ready_check_http:
@@ -51,9 +76,14 @@ steps:
           - render_template:
               template_path: './test_suites/integration/templates/configs/loadgen/config.yaml.j2'
               output_path: ./test_suites/integration/configs/loadgen/config.rendered.yaml
+              search_paths:
+                - ./test_suites/integration/templates/configs/common
               variables:
                 engine_hostname: go-collector
                 loadgen_exporter_type: '{{loadgen_exporter_type}}'
+                {%- if push_metrics %}
+                push_metrics_endpoint: '{{push_endpoint}}'
+                {%- endif %}
                 max_batch_size: {{max_batch_size | default(512)}}
                 signals_per_second: {% if signals_per_second is none %}null{% else %}{{signals_per_second | default(100000)}}{% endif %}
         post:
@@ -103,6 +133,35 @@ steps:
                 continue: true
     action:
       no_op: {}
+  {%- if push_metrics %}
+  # The collector has no drain endpoint, so give it time to flush in-flight
+  # data to the backend before the backend is stopped.
+  - name: Wait For Collector Drain
+    action:
+      wait:
+        delay_seconds: {{collector_drain_secs | default(5)}}
+  # Stop the backend-service gracefully so its final metrics are pushed.
+  - name: Stop Backend
+    hooks:
+      run:
+        pre:
+          - send_http_request:
+              url: http://localhost:8087/api/v1/groups/shutdown?wait=true&timeout_secs={{drain_timeout_secs | default(60)}}
+              method: POST
+              headers:
+                "Content-Type": "application/json"
+              timeout: {{drain_timeout_secs | default(60) | int + 5}}  # Client timeout slightly longer than server
+              raise_for_status: false
+              on_error:
+                continue: true
+    action:
+      no_op: {}
+  # Brief wait so the final pushed metrics are received by the sink.
+  - name: Wait For Metrics Update
+    action:
+      wait:
+        delay_seconds: 1
+  {%- endif %}
   # Stop monitoring all components.
   - name: Stop Monitoring All
     action:
@@ -133,7 +192,11 @@ steps:
           - print_container_logs: {}
           - sql_report:
               name: Otelcol Report - Logs Filtered
-              report_config_file: ./test_suites/integration/configs/integration_report_logs.yaml
+              {%- if push_metrics %}
+              report_config_file: {{report_config | default('./test_suites/integration/configs/integration_report_logs_push.yaml')}}
+              {%- else %}
+              report_config_file: {{report_config | default('./test_suites/integration/configs/integration_report_logs.yaml')}}
+              {%- endif %}
               output:
                 - format:
                     template: {}
