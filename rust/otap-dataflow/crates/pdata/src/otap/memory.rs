@@ -538,7 +538,7 @@ mod tests {
 }
 
 /// Parity between [`array_slice_memory_size`] and arrow's
-/// `to_data().get_slice_memory_size()` (kept in `memory_old`).
+/// `to_data().get_slice_memory_size()`.
 #[cfg(test)]
 mod slice_size_parity_tests {
     use std::io::Cursor;
@@ -556,7 +556,6 @@ mod slice_size_parity_tests {
 
     use super::{array_slice_memory_size, record_batch_logical_bytes};
     use crate::otap::OtapArrowRecords;
-    use crate::otap::memory_old::{array_slice_memory_size_old, record_batch_logical_bytes_old};
     use crate::proto::OtlpProtoMessage;
     use crate::testing::fixtures::{self, DataGenerator, LogsConfig, MetricsConfig, TracesConfig};
     use crate::testing::round_trip::otlp_to_otap;
@@ -594,7 +593,11 @@ mod slice_size_parity_tests {
     fn assert_batch_parity(batch: &RecordBatch) {
         assert_eq!(
             record_batch_logical_bytes(batch).unwrap(),
-            record_batch_logical_bytes_old(batch).unwrap(),
+            batch
+                .columns()
+                .iter()
+                .map(|column| column.to_data().get_slice_memory_size().unwrap())
+                .sum::<usize>(),
             "schema {:?}",
             batch.schema()
         );
@@ -618,7 +621,7 @@ mod slice_size_parity_tests {
     fn assert_parity(array: &dyn Array) {
         assert_eq!(
             array_slice_memory_size(array).unwrap(),
-            array_slice_memory_size_old(array).unwrap(),
+            array.to_data().get_slice_memory_size().unwrap(),
             "data type {} len {} offset {}",
             array.data_type(),
             array.len(),
