@@ -16,6 +16,10 @@
 //!   budget when uniformly offset, which forces the compaction path. This only
 //!   triggers for logs and traces at the largest shape, so it is only run
 //!   there.
+//! - `small`: many tiny, independently encoded batches
+//!   (`concatenate/small/{size}items/{n}batches/{signal}`), as the batch
+//!   processor sees with small client requests. Per-input and per-column
+//!   overheads dominate here rather than per-row work.
 
 use std::num::NonZeroU32;
 use std::ops::Mul;
@@ -39,7 +43,7 @@ use otel_arrow_dfe_pdata::testing::round_trip::otlp_to_otap;
 const NUM_BATCHES: usize = 10;
 const BATCH_SIZES: &[usize] = &[100, 1000];
 
-criterion_group!(benches, bench_all);
+criterion_group!(benches, bench_all, bench_small_batches);
 criterion_main!(benches);
 
 /// (num_resources, scopes_per_resource, label)
@@ -52,6 +56,10 @@ const INPUT_SHAPES: &[(usize, usize, &str)] = &[(1, 1, "1r1s"), (3, 2, "3r2s")];
 const GAPPED_SIZE: usize = 1000;
 const GAPPED_SHAPE: &str = "3r2s";
 
+/// (items_per_batch, num_batches) for the `small` scenario. 8 x 1024 matches
+/// one 8192-item batch processor flush of 8-item requests.
+const SMALL_BATCH_CASES: &[(usize, usize)] = &[(8, 128), (8, 1024)];
+
 fn bench_all(c: &mut Criterion) {
     for &size in BATCH_SIZES {
         for &(num_res, scopes, shape_label) in INPUT_SHAPES {
@@ -61,9 +69,9 @@ fn bench_all(c: &mut Criterion) {
                 continue;
             }
 
-            let metrics = generate_metrics(size, num_res, scopes, 10, 5, 3);
-            let logs = generate_logs(size, num_res, scopes, 10, 5, 3);
-            let traces = generate_traces(size, num_res, scopes, 10, 5, 3);
+            let metrics = generate_metrics(NUM_BATCHES, size, num_res, scopes, 10, 5, 3);
+            let logs = generate_logs(NUM_BATCHES, size, num_res, scopes, 10, 5, 3);
+            let traces = generate_traces(NUM_BATCHES, size, num_res, scopes, 10, 5, 3);
 
             bench_group(
                 c,
@@ -102,6 +110,27 @@ fn bench_all(c: &mut Criterion) {
                 );
             }
         }
+    }
+}
+
+/// Concatenate many tiny batches. Each batch is encoded on its own, so like
+/// independently received requests their dictionary values arrays are
+/// distinct allocations, often of equal length.
+fn bench_small_batches(c: &mut Criterion) {
+    for &(size, num_batches) in SMALL_BATCH_CASES {
+        let metrics = generate_metrics(num_batches, size, 1, 1, 10, 5, 3);
+        let logs = generate_logs(num_batches, size, 1, 1, 10, 5, 3);
+        let traces = generate_traces(num_batches, size, 1, 1, 10, 5, 3);
+
+        bench_group(
+            c,
+            &format!("concatenate/small/{size}items/{num_batches}batches"),
+            |group| {
+                bench_concatenate(group, "metrics", &metrics);
+                bench_concatenate(group, "logs", &logs);
+                bench_concatenate(group, "traces", &traces);
+            },
+        );
     }
 }
 
@@ -146,6 +175,7 @@ fn bench_concatenate<const N: usize>(
 }
 
 fn generate_metrics(
+    num_batches: usize,
     points_per_gauge: usize,
     num_resources: usize,
     scopes_per_resource: usize,
@@ -162,7 +192,7 @@ fn generate_metrics(
             .with_scope_attrs(scope_attrs)
             .with_metric_attrs(metric_attrs),
     );
-    (0..NUM_BATCHES)
+    (0..num_batches)
         .map(|_| {
             let data = datagen.generate_metrics_from_config();
             match otlp_to_otap(&data.into()) {
@@ -174,6 +204,7 @@ fn generate_metrics(
 }
 
 fn generate_logs(
+    num_batches: usize,
     logs_per_scope: usize,
     num_resources: usize,
     scopes_per_resource: usize,
@@ -189,7 +220,7 @@ fn generate_logs(
             .with_scope_attrs(scope_attrs)
             .with_log_attrs(log_attrs),
     );
-    (0..NUM_BATCHES)
+    (0..num_batches)
         .map(|_| {
             let data = datagen.generate_logs_from_config();
             match otlp_to_otap(&data.into()) {
@@ -201,6 +232,7 @@ fn generate_logs(
 }
 
 fn generate_traces(
+    num_batches: usize,
     spans_per_scope: usize,
     num_resources: usize,
     scopes_per_resource: usize,
@@ -216,7 +248,7 @@ fn generate_traces(
             .with_scope_attrs(scope_attrs)
             .with_span_attrs(span_attrs),
     );
-    (0..NUM_BATCHES)
+    (0..num_batches)
         .map(|_| {
             let data = datagen.generate_traces_from_config();
             match otlp_to_otap(&data.into()) {
