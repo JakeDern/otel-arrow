@@ -5,7 +5,7 @@ RFC PR: open-telemetry/otel-arrow#0000
 Tracking Issue: open-telemetry/otel-arrow#0000
 ---
 
-# RFC NNNN: Pipeline Linting
+# RFC 0007: Pipeline Linting
 
 ## Summary
 
@@ -72,7 +72,8 @@ Running lints against some static config using the engine
 - Introduction of a new linting crate which contains
   - Type system definitions of a lint
   - Traits for executing lint passes (definitely needs research)
-  - Utilities for executing common lints like 
+  - Utilities for executing common lints like node before/after constraints
+- Automatic documentation generation
 - Integration into the engine
   - Live reconfiguration
   - Initial configuration
@@ -118,3 +119,4 @@ If there is no prior art, say so -- new ideas are welcome.
 ## Future possibilities
 
 - Serializing lints to/from a file
+- Lints that operate on connected pipelines 
