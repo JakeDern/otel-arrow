@@ -231,8 +231,6 @@ useful.
 ### Resolving a lint's level
 
 The level of a diagnostic is resolved from its primary location outwards.
-Command-line flags (`-A`, `-W`, `-D`, `-F`) act as an outermost scope that
-encloses the root, as they do for rustc.
 
 ```text
  CLI flags                    (outermost)   ^
@@ -275,10 +273,6 @@ groups:
         lints:
           processor:batch:<lint_id>: allow   # error if <lint_id> is a correctness lint
 ```
-
-This is how an operator locks down rules that pipeline authors must not
-turn off. The only thing that can lower the severity of a forbidden lint is
-the operator-only [cap](#capping-lint-levels).
 
 ### Treating warnings as errors
 
@@ -400,9 +394,7 @@ be run ahead of time:
   the change. Warnings are returned in the admin response and recorded as
   warning-level events for the pipeline.
 - **With `df_engine --validate-and-exit`.** Validates and lints a config
-  file without starting any pipelines. This gains rustc-style `-A`, `-W`,
-  `-D`, `-F`, and `--cap-lints` flags, so CI can run, for example,
-  `df_engine --validate-and-exit -c pipeline.yaml -D warnings`.
+  file without starting any pipelines.
 - **With `dfctl`.** `dfctl` can lint a config against a running engine.
   This is done on the server, because lints defined by nodes and extensions
   only exist in the engine binary they were compiled into.
