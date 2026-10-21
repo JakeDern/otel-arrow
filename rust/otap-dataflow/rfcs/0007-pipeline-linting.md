@@ -31,6 +31,9 @@ to be aware of the constantly evolving set of nodes and configurations nor the a
 wisdom in how best to use them, let alone, consistently and perfectly apply these rules
 in practice.
 
+Additionally, organizations and individual users are likely to have their own individual
+preferences or guidelines for pipelines that they want to follow.
+
 Programming languages have solved this problem through static program linters like clippy.
 We can do the same for Dataflow Engine pipelines.
 
@@ -75,12 +78,14 @@ constructed. Every lint has:
 - **documentation** explaining what the lint detects, why it matters, and how
   to fix it.
 
-Lints are distinct from config validation. Validation answers "can this
-pipeline run at all?" and its failures are hard errors that cannot be
-suppressed. Lints answer "can this pipeline run, but probably shouldn't
-look like this?" and are fully configurable. Lints only run on
+Lints are distinct from config validation. Config Validation is concerned with the
+question "does this pipeline/node even compile?" and these failures are hard errors
+that cannot be suppressed. Lints are concerned with "this pipeline can run, but 
+it probably shouldn't look like this?" and are fully configurable. Lints only run on
 configurations that have already passed validation, just as clippy only
 runs on code that type-checks.
+
+The basic pipeline for linting:
 
 ```text
  YAML --> parse --> validate --------------> lint ----------------> admit / reject
@@ -92,8 +97,8 @@ runs on code that type-checks.
 
 ### Lint names
 
-Every lint is defined by some component, and its name is derived from that
-component. Lint names are names only; there are no numeric codes.
+Lint names are names only; there are no numeric codes. There are two categories
+of lints - Engine lints and Component lints.
 
 **Engine lints** are defined by the engine itself and have no prefix, like
 rustc's built-in lints:
@@ -104,7 +109,8 @@ unknown_lints
 ```
 
 **Component lints** are defined by a node or an extension and are named by
-appending a lint id to the component's URN (see [URN format](../docs/urns.md)):
+appending a lint id to the component's URN (see [URN format](../docs/urns.md)).
+The vast majority of lints are in this category:
 
 ```text
 <component urn>:<lint_id>
@@ -179,8 +185,8 @@ TODO: Concrete example lints for each category.
 
 ### Selectors
 
-A `lints:` block maps **selectors** to levels. A selector names the set of
-lints the entry applies to:
+Lints are referenced via **selectors**. The basic selector is the fully qualified lint
+urn, but selectors can refer to classes of lints based on component or category:
 
 | Selector             | Example                     | Matches                                                                                                  |
 |----------------------|-----------------------------|----------------------------------------------------------------------------------------------------------|
@@ -190,9 +196,13 @@ lints the entry applies to:
 | Category             | `correctness`               | All lints in that category, from every source                                                            |
 | `warnings`           | `warnings`                  | Special: changes how `warn` is treated (see [Treating warnings as errors](#treating-warnings-as-errors)) |
 
+FIXME(jakedern): Look at this last warnings/warnings entry in the table 
+
 Engine lints are selected by their bare name (e.g. `unconnected_node`).
 Because category names are reserved lint ids, a component + category
 selector can never be confused with a lint name.
+
+FIXME(jakedern): Re-evaluate the above paragraph
 
 When several entries in the **same** `lints:` block match a lint, the most
 specific one wins:
@@ -235,9 +245,10 @@ groups:
 A dedicated `lints:` block is used rather than a field in `policies`.
 Policies are resolved by taking the first scope that sets a field and
 replacing the field wholesale, while lint configuration has to be merged per
-selector: a pipeline that allows one lint must not discard the root's
-`correctness: forbid`. Policies also do not exist at node scope, which is
-where individual suppressions are most useful.
+selector. For example if the root lints block sets `correctness: forbid`, then
+enabling a specific lint at the pipeline level should not remove that. Policies
+also do not exist at node scope, which is where individual suppressions are most
+useful.
 
 ### Resolving a lint's level
 
