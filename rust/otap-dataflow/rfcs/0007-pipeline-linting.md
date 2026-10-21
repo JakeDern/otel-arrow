@@ -9,91 +9,84 @@ Tracking Issue: open-telemetry/otel-arrow#0000
 
 ## Summary
 
-The goal of this RFC is to describe how pipeline linting should be incorporated
-into the Dataflow Engine. This RFC covers what usecases pipeline linting is meant
-mean to address.
-
-- Common crate for defining pipeline linting rules and evaluating them against
-a pipeline specification/configuration
-    - Dealing with lints that depend on a particular configuration not changing.
-    - Should nodes define their own lints?
-- How and when linting can be run against a static file
-- Integration of pipeline linting into dfctl
-- Integration of pipeline linting into the engine's live reconfiguration
-- Assignment of stable error codes to lints
-    - Reserved namespace for project wide lints
-    - Extension of user defined lints/custom lints
-    - Testing strategy (golden file, snapshot tests)
-        - To make sure we don't change
-        - Automatically making sure we don't overlap codes
-- Lint classifications
-    - Errors
-    - Warnings
-    - Other???
-- Configuring lints in DFE
-    - Block new pipelines that don't pass lints
-    - Treat warnings as errors
-    - Enabling/disabling lints per pipeline or per pipeline group
-- Types of lints:
-    - Configuration guidance
-    - Node placement
-        - Core nodes can reference each other, and contrib can reference core
-- Handling of circular/contradictory/conflicting codes
-    - Every core lint should be able to define an example config that passes the
-      lint AND no other core lint should trigger on that config
+The goal of this RFC is to describe how we can incorporate static pipeline checks into
+the Dataflow Engine project with the goal of reducing the number of mistakes pipeline
+authors can make. 
 
 ## Motivation
 
 In the Dataflow Engine, we design nodes under the philosophy of composability. Each
 node offers simple and unique behaviors that can be composed together into a pipeline
-to express more complicated functions. 
+to express more complicated logic. This is not unlike a programming language, which 
+may expose simple product types, functions, conditionals, and loops that can 
+be composed into an arbitrary program.
 
-This is not unlike programming languages which expose simple constructs like
-sum/product types, conditionals, or loops that can be composed into a program.
-A pipeline is basically a program written in the language of nodes.
+Not all pipeline programs that can be expressed in the language of nodes, connections,
+and configurations are good ones. Some nodes (probably) should not be placed before
+or after others, and some combinations of node configurations are unlikely to yield
+good results for performance, correctness, or other reasons.
 
+The rules are many and it is unreasonable for any human (or agent), experienced or not,
+to be aware of the constantly evolving set of nodes and configurations nor the accumulated
+wisdom in how best to use them, let alone, consistently and perfectly apply these rules
+in practice.
 
-While nodes have been designed with useful behaviors in mind, this RFC is an acknowledgement
-that the flexibility of the system allows for just as many bad behaviors in the same way
-that
-
-fact the number of bad behaviors is 
-
-The number of possible topologies f
-
-
-(a pipeline) can serve 
-
-that each should be single 
-purpose with highly composable behaviors.
-with the philosophy that nodes 
-This philosophy
-lends itself to Designing telemetry pipelines is hard. 
+Programming languages have solved this problem through static program linters like clippy.
+We can do the same for Dataflow Engine pipelines.
 
 ## Guide-level explanation
 
-Explain the proposal as if it were already implemented and you were teaching it
-to another contributor. That generally means:
+Pipeline lints overview:
 
-- Introducing new named concepts.
-- Explaining the feature mainly through examples.
-- Explaining how contributors should *think* about the feature and how it
-  changes the way they work in the repo.
-- If applicable, sample error messages, deprecation warnings, or migration
-  guidance.
+- Represent a single rule about how pipelines or nodes should generally be
+constructed
+- Are assigned stable numbers
+- Present themselves via warnings when the dataflow engine creates/modifies a
+pipeline or node
+
+Different severity classifications:
+
+- Warnings: Result in warning level events in the engine
+- Errors: Block the creation of pipelines by default
+
+Configuring lints:
+
+- Treating warnings as errors
+- Allowing pipelines even with errors 
+- Enabling or disabling specific lints
+- Applying configuration to specific scopes i.e. engine, pipeline group, or pipeline level
+
+Extending existing lints:
+
+- Namespaces for lints (system/engine vs user defined)
+- Adding user defined lints for pipelines
+- Installing additional lints from some source?
+
+Running lints against some static config using the engine
+
+- Engine should have a dry-run command or similar that can validate a static yaml file
+- dfctl should be able to do the same thing
 
 ## Reference-level explanation
 
-The technical portion of the RFC. Explain the design in enough detail that:
+- Introduction of a new linting crate which contains
+  - Type system definitions of a lint
+  - Traits for executing lint passes (definitely needs research)
+  - Utilities for executing common lints like 
+- Integration into the engine
+  - Live reconfiguration
+  - Initial configuration
+- Node defined lints i.e. lints that are declared/defined by some node
+  - Can operate on either config or entire pipelines/engine configurations
+  - Can be aware of other node types/urns 
+- Testing strategies
+    - Handling of circular/contradictory/conflicting codes. Every core lint should be
+      able to define an example config that passes the lint AND no other core lint should
+      trigger on that config
+    - Testing that there are no conflicting lint codes
+    - Testing that lint codes remain stable
 
-- Its interaction with existing features (crates, macros, factories, the
-  engine, xtask, CI) is clear.
-- It is reasonably clear how the feature would be implemented, and in which
-  crates.
-- Corner cases are covered by example.
-
-Return to the examples from the guide-level section and show how the detailed
-design makes them work.
+TODO: Figure out how to make lints efficient
 
 ## Drawbacks
 
@@ -112,17 +105,16 @@ Discuss prior art, both good and bad. What can we learn from how other
 projects (Rust, OpenDAL, the OpenTelemetry Collector, etc.) solved this?
 If there is no prior art, say so -- new ideas are welcome.
 
-- TODO: Cargo clippy
+- TODO: Cargo clippy.
+
 
 
 ## Unresolved questions
 
-- What parts of the design do you expect to resolve through the RFC process
-  before merge?
-- What related issues are out of scope for this RFC and could be addressed
-  independently later?
+- How should configuration related lints and config validation be reconciled?
+    - Should we make a lot of config validations that emit warnings just emit
+      lints instead?
 
 ## Future possibilities
 
-What natural extensions or follow-ups does this enable? This is a place to
-record ideas that are out of scope now but worth remembering.
+- Serializing lints to/from a file
