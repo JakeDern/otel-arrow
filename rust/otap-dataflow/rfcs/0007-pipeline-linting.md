@@ -186,7 +186,7 @@ FIXME(jakedern): Re-evaluate the above paragraph
 
 Lints are configured with a `lints:` block, which can appear at four scopes:
 the root of the config, a pipeline group, a pipeline, and a node. Each entry
-maps a selector to either a level or a `{ level, reason }` object.
+maps a selector to a level.
 
 ```yaml
 version: otel_dataflow/v1
@@ -208,9 +208,8 @@ groups:
           debug:
             type: processor:debug
             lints:                              # node scope
-              unconnected_node:
-                level: expect
-                reason: "connected by a follow-up reconfiguration"
+              # connected by a follow-up reconfiguration
+              unconnected_node: expect
 ```
 
 When several entries in the **same** `lints:` block match a lint, the most
@@ -306,8 +305,8 @@ pipeline, or node scope.
 
 ### Suppressing lints
 
-Any entry may carry a `reason`, which is shown in diagnostics and lint
-reports. We recommend giving a reason for every suppression.
+We recommend explaining every suppression with a comment next to the entry
+in the config file.
 
 `expect` is a self-cleaning `allow`: the diagnostic is suppressed, but if the
 expected lint stops firing at that location, the
@@ -443,13 +442,12 @@ Why should we *not* do this?
 
 ## Prior art
 
-
 Discuss prior art, both good and bad. What can we learn from how other
 projects (Rust, OpenDAL, the OpenTelemetry Collector, etc.) solved this?
 If there is no prior art, say so -- new ideas are welcome.
 
-- TODO: Cargo clippy. See the comparison table in the
-  [guide-level explanation](#pipeline-lints-by-analogy-to-clippy).
+- TODO: Cargo clippy. See the
+  [guide-level explanation](#guide-level-explanation).
 
 
 ## Unresolved questions
@@ -477,8 +475,8 @@ If there is no prior art, say so -- new ideas are welcome.
 - Should there be allow-by-default categories such as `nursery`,
   `restriction` (opt-in rules for specific environments), or `pedantic`?
 - Should security lints be a category, or tags that cut across categories?
-- Lint parameters. Should lints accept configuration beyond `level` and
-  `reason`, like clippy's `disallowed_methods` configured in `clippy.toml`?
+- Lint parameters. Should lints accept configuration beyond a level, like
+  clippy's `disallowed_methods` configured in `clippy.toml`?
   - If so, how do parameter values merge across scopes (replace or extend)?
 - Should engine lints keep using bare names, or have their own URN (e.g.
   `urn:otel:engine:core:<lint_id>`) so that every lint is named the same way?
@@ -496,3 +494,9 @@ If there is no prior art, say so -- new ideas are welcome.
   failure in another.
 - Changing lint configuration at runtime (see
   [Unresolved questions](#unresolved-questions))
+- Suppression reasons. A `lints:` entry could accept a structured form such
+  as `{ level, reason }`, with the reason shown in diagnostics and lint
+  reports, like rustc's `reason = "..."`. Until then, reasons live in YAML
+  comments, which are lost when a config is submitted through the admin API
+  and re-serialized. Lint parameters, if adopted, would likely need the same
+  structured form.
