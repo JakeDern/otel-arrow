@@ -39,33 +39,12 @@ We can do the same for Dataflow Engine pipelines.
 
 ## Guide-level explanation
 
-### Pipeline lints, by analogy to clippy
-
 Pipeline linting is deliberately modeled on rustc's lint system and
 [clippy](https://github.com/rust-lang/rust-clippy). Most of what Rust
-programmers already do with lints (silence one false positive, deny a whole
-category in CI, lock a rule down so nobody can turn it off) is also what
-pipeline authors and engine operators need. Reusing the same model gives us
-a proven design and makes the system easy to explain to anyone who has used
-clippy.
-
-| Rust / clippy                                    | Pipeline linting                                             |
-|--------------------------------------------------|--------------------------------------------------------------|
-| Hard compiler error (e.g. `E0308`)               | Config validation error (cycle, unknown URN, bad port)       |
-| Lint (`clippy::needless_clone`)                  | Lint (`processor:batch:<lint_id>`)                           |
-| Lint groups (`clippy::correctness`, ...)         | Categories (`correctness`, `suspicious`, `perf`, `style`)    |
-| Levels `allow`/`warn`/`deny`/`forbid`            | Same levels                                                  |
-| `#[expect(lint, reason = "...")]`                | `expect` level with `reason`                                 |
-| `-D warnings`                                    | `warnings: deny` / `df_engine -D warnings`                   |
-| `--cap-lints <level>`                            | `engine.lint_cap` / `--cap-lints <level>`                    |
-| Crate / module / item attributes                 | Root / group / pipeline / node `lints:` blocks               |
-| CLI `-A/-W/-D/-F` flags                          | Same flags on `df_engine --validate-and-exit`                |
-| rustc built-in lints (no prefix)                 | Engine lints (no prefix)                                     |
-| Tool lints (`clippy::`), dylint libraries        | Lints defined by nodes and extensions, prefixed by their URN |
-| Spans (`src/lib.rs:12:5`)                        | Config paths (`groups.g.pipelines.p.nodes.n`)                |
-| `unknown_lints`, `unfulfilled_lint_expectations` | Same meta lints                                              |
-
-The rest of this section walks through each of these concepts.
+programmers already do with lints (silence one false positive or deny a whole
+category in CI) is also what pipeline authors and engine operators need. Reusing
+the same model gives us a proven design and makes the system easy to explain 
+to anyone who has used clippy.
 
 ### What is a lint?
 
@@ -73,17 +52,16 @@ A lint is a single rule about how pipelines or nodes should generally be
 constructed. Every lint has:
 
 - a stable **name** (see [Lint names](#lint-names)),
-- exactly one **category**, which determines its default level,
-- a **default level**,
+- exactly one **category**, which determines its default enforcement level
 - **documentation** explaining what the lint detects, why it matters, and how
   to fix it.
 
 Lints are distinct from config validation. Config Validation is concerned with the
-question "does this pipeline/node even compile?" and these failures are hard errors
-that cannot be suppressed. Lints are concerned with "this pipeline can run, but 
-it probably shouldn't look like this?" and are fully configurable. Lints only run on
-configurations that have already passed validation, just as clippy only
-runs on code that type-checks.
+question "does this pipeline/node even compile?". Validation failures are hard errors
+that cannot be suppressed. Lints on the other hand say "this pipeline can run, but 
+it probably shouldn't look like this" and are fully configurable. Lints only run on
+configurations that have some level of sanity and already passed validation, just 
+as clippy only runs on code that type-checks.
 
 The basic pipeline for linting:
 
@@ -97,11 +75,11 @@ The basic pipeline for linting:
 
 ### Lint names
 
-Lint names are names only; there are no numeric codes. There are two categories
-of lints - Engine lints and Component lints.
+Lint names are referred to by their names only; there are no numeric codes. There 
+are two categories of lints - Engine lints and Component lints.
 
-**Engine lints** are defined by the engine itself and have no prefix, like
-rustc's built-in lints:
+**Engine lints** are defined by the engine itself, are not tied to any component,
+and therefore have no prefix, like rustc's built-in lints:
 
 ```text
 unconnected_node
@@ -139,9 +117,10 @@ Rules:
 
 ### Lint scope
 
-Lints operate on a single pipeline at a time. A lint may inspect any node,
+For now, lints operate on a single pipeline at a time. A lint may inspect any node,
 connection, or setting within that pipeline (including the settings it
-inherits from its group and the root), but never another pipeline.
+inherits from its group and the root). In the future we may extend lints to operate
+across pipelines, including those connected by a topic.
 
 Each diagnostic has exactly one **primary location**, which is the root,
 a group, a pipeline, or a node. A diagnostic that concerns several nodes
@@ -162,9 +141,8 @@ apply when resolving the diagnostic's level.
 
 ### Categories
 
-Every lint belongs to exactly one category. Categories are owned by the
-engine and form a fixed set; node and extension lints must pick one of them
-and cannot define new ones. The initial set is:
+Every lint belongs to exactly one of a fixed set of categories based on their natures.
+The initial proposed set of categories is:
 
 | Category      | Meaning                                                                                                  |
 |---------------|----------------------------------------------------------------------------------------------------------|
@@ -178,7 +156,7 @@ this is what the author wanted?* If not, it is `correctness`. If rarely, it
 is `suspicious`. If it is fine but costly, it is `perf`. If it is fine but
 untidy, it is `style`.
 
-The default level of each category is not yet decided (see
+The default enforcement level of each category is not yet decided (see
 [Unresolved questions](#unresolved-questions)).
 
 TODO: Concrete example lints for each category.
@@ -190,7 +168,7 @@ urn, but selectors can refer to classes of lints based on component or category:
 
 | Selector             | Example                     | Matches                                                                                                  |
 |----------------------|-----------------------------|----------------------------------------------------------------------------------------------------------|
-| Lint                 | `processor:batch:<lint_id>` | Exactly one lint                                                                                         |
+| Full Urn             | `processor:batch:<lint_id>` | Exactly one lint                                                                                         |
 | Component + category | `processor:batch:perf`      | Lints defined by that component in that category                                                         |
 | Component            | `processor:batch`           | All lints defined by that component                                                                      |
 | Category             | `correctness`               | All lints in that category, from every source                                                            |
@@ -203,13 +181,6 @@ Because category names are reserved lint ids, a component + category
 selector can never be confused with a lint name.
 
 FIXME(jakedern): Re-evaluate the above paragraph
-
-When several entries in the **same** `lints:` block match a lint, the most
-specific one wins:
-
-```text
-lint  >  component + category  >  component  >  category
-```
 
 ### Configuring lints
 
@@ -240,6 +211,13 @@ groups:
               unconnected_node:
                 level: expect
                 reason: "connected by a follow-up reconfiguration"
+```
+
+When several entries in the **same** `lints:` block match a lint, the most
+specific one wins. In order of most to least specific:
+
+```text
+full urn  >  component + category  >  component  >  category
 ```
 
 A dedicated `lints:` block is used rather than a field in `policies`.
