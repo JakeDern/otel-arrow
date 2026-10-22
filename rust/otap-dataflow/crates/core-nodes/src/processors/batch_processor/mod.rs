@@ -5444,4 +5444,148 @@ mod tests {
         });
         assert_eq!(outputs_for_inputs(fmt, cfg, &[1, 50]), vec![1, 50]);
     }
+
+    // ---------------------------------------------------------------------
+    // Ack/Nack correlation with malformed or partially dropped inputs.
+    // ---------------------------------------------------------------------
+
+    /// Metrics input with one gauge per entry of `points`, each holding that
+    /// many data points.
+    fn metrics_input(points: Vec<usize>) -> otel_arrow_dfe_pdata::OtapArrowRecords {
+        use otel_arrow_dfe_pdata::testing::fixtures::MetricsConfig;
+        let mut datagen =
+            DataGenerator::with_metrics_config(MetricsConfig::new().with_gauges(points));
+        otlp_to_otap(&OtlpProtoMessage::Metrics(
+            datagen.generate_metrics_from_config(),
+        ))
+    }
+
+    /// Metrics input whose data points are orphans: the metrics table is
+    /// removed, so the input carries data point items with no root rows.
+    fn orphan_metrics_input(points: Vec<usize>) -> otel_arrow_dfe_pdata::OtapArrowRecords {
+        use otel_arrow_dfe_pdata::proto::opentelemetry::arrow::v1::ArrowPayloadType;
+        let mut rec = metrics_input(points);
+        let _ = rec.remove(ArrowPayloadType::UnivariateMetrics);
+        assert!(rec.num_items() > 0, "orphan input must still weigh > 0");
+        rec
+    }
+
+    /// OTAP metrics item-batching config.
+    fn metrics_config(min_size: usize, max_size: usize) -> Value {
+        json!({
+            "format": "otap",
+            "otap": { "min_size": min_size, "max_size": max_size, "sizer": "items" },
+            "max_batch_duration": "1s"
+        })
+    }
+
+    /// Scenario: two subscribed metrics inputs are size-flushed together; the
+    /// first carries only orphan data points (no metrics table), which the
+    /// batching code drops, and the second is well formed.
+    /// Guarantees: once every output is acked, BOTH inputs are acked exactly
+    /// once. Dropping the orphan's rows must not shift the output attribution
+    /// onto the wrong input and leave the well-formed input unresolved.
+    #[test]
+    fn test_dropped_metrics_input_before_good_input_all_acked() {
+        run_correlation_test(
+            vec![orphan_metrics_input(vec![3]), metrics_input(vec![3])],
+            metrics_config(6, 100),
+        );
+    }
+
+    /// Scenario: like the test above but with the orphan-only metrics input
+    /// arriving last.
+    /// Guarantees: the orphan input, which contributes no rows to any output,
+    /// is still acked (never left pending), and the good input is acked once.
+    #[test]
+    fn test_dropped_metrics_input_after_good_input_all_acked() {
+        run_correlation_test(
+            vec![metrics_input(vec![3]), orphan_metrics_input(vec![3])],
+            metrics_config(6, 100),
+        );
+    }
+
+    /// Scenario: several metrics inputs are split across multiple outputs by
+    /// a small `max_size`, and one of them carries orphan data points whose
+    /// parent metric does not exist (they are dropped while batching).
+    /// Guarantees: every input is acked exactly once after all outputs are
+    /// acked; dropped rows never cause an input to be skipped or double
+    /// counted.
+    #[test]
+    fn test_split_metrics_with_orphan_data_points_all_acked() {
+        use arrow::array::{RecordBatch, UInt16Array};
+        use otel_arrow_dfe_pdata::proto::opentelemetry::arrow::v1::ArrowPayloadType;
+
+        // Add orphan data points by duplicating the number data points with a
+        // parent_id far out of range.
+        let mut bad = metrics_input(vec![2, 2]);
+        let dps = bad
+            .get(ArrowPayloadType::NumberDataPoints)
+            .expect("dps")
+            .clone();
+        let idx = dps.schema().index_of("parent_id").expect("parent_id");
+        let mut cols = dps.columns().to_vec();
+        cols[idx] = Arc::new(UInt16Array::from(vec![999u16; dps.num_rows()]));
+        let orphans = RecordBatch::try_new(dps.schema(), cols).expect("rb");
+        let merged =
+            arrow::compute::concat_batches(&dps.schema(), [&dps, &orphans]).expect("concat");
+        bad.set(ArrowPayloadType::NumberDataPoints, merged)
+            .expect("set");
+
+        run_correlation_test(
+            vec![
+                metrics_input(vec![2, 2]),
+                bad,
+                metrics_input(vec![2, 2]),
+                metrics_input(vec![2, 2]),
+            ],
+            metrics_config(6, 6),
+        );
+    }
+
+    /// Feed `inputs` (each subscribed with its index as calldata), ack every
+    /// output as it appears, then timer-flush and ack the rest. Asserts every
+    /// input was acked exactly once and never nacked.
+    fn run_correlation_test(inputs: Vec<otel_arrow_dfe_pdata::OtapArrowRecords>, cfg: Value) {
+        let (_registry, _reporter, phase) = setup_test_runtime(cfg);
+        let n = inputs.len();
+        phase
+            .run_test(move |mut ctx| async move {
+                let (tx, mut rx) = pipeline_completion_msg_channel(64);
+                ctx.set_pipeline_completion_sender(tx);
+                let mut done = Completions::new(n);
+
+                for (i, rec) in inputs.into_iter().enumerate() {
+                    let pdata = OtapPdata::new_default(rec.into()).test_subscribe_to(
+                        Interests::ACKS | Interests::NACKS,
+                        TestCallData::new_with(i as u64, 0).into(),
+                        1,
+                    );
+                    ctx.process(Message::PData(pdata))
+                        .await
+                        .expect("process input");
+                    ack_outputs(&mut ctx).await;
+                }
+                for _ in 0..3 {
+                    flush_timer(&mut ctx).await;
+                    ack_outputs(&mut ctx).await;
+                }
+                done.drain(&mut rx);
+
+                assert_eq!(done.nacks, vec![0; n], "no input may be nacked");
+                assert_eq!(done.acks, vec![1; n], "every input must be acked once");
+            })
+            .validate(|_| async {});
+    }
+
+    /// Ack every output currently queued by the processor.
+    async fn ack_outputs(
+        ctx: &mut otel_arrow_dfe_engine::testing::processor::TestContext<OtapPdata>,
+    ) {
+        for out in ctx.drain_pdata().await {
+            if out.has_ack_or_nack_interests() {
+                respond(ctx, out, &AckPolicy::Ack).await;
+            }
+        }
+    }
 }

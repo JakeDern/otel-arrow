@@ -3,10 +3,13 @@
 
 //! This module tests batching.rs logic.
 
+use crate::OtapPayloadHelpers;
+use crate::otap::OtapArrowRecords;
 use crate::otap::batching::make_item_batches_with_ranges;
 use crate::proto::OtlpProtoMessage;
+use crate::proto::opentelemetry::arrow::v1::ArrowPayloadType;
 use crate::testing::equiv::assert_equivalent;
-use crate::testing::fixtures::{DataGenerator, MetricsConfig};
+use crate::testing::fixtures::{DataGenerator, LogsConfig, MetricsConfig};
 use crate::testing::round_trip::otap_to_otlp;
 use crate::testing::round_trip::otlp_to_otap;
 use std::num::NonZeroU64;
@@ -465,4 +468,55 @@ fn oversized_split_limits_do_not_truncate() {
         assert_eq!(output.len(), 1);
         assert_eq!(output[0].num_items(), count);
     }
+}
+
+/// Build a metrics input with a single gauge of `points` data points.
+fn gauge_input(points: usize) -> OtapArrowRecords {
+    let mut datagen =
+        DataGenerator::with_metrics_config(MetricsConfig::new().with_gauges(vec![points]));
+    otlp_to_otap(&datagen.generate_metrics_from_config().into())
+}
+
+/// Scenario: a metrics input with no metrics table (only orphan data
+/// points) is placed between two well-formed inputs and batched without a
+/// limit.
+/// Guarantees: the dropped input contributes nothing, and the single output
+/// reports that it came from inputs 0..=2, so the caller can attribute it to
+/// both well-formed inputs without counting items.
+#[test]
+fn test_item_batches_ranges_skip_dropped_input() {
+    let mut orphan = gauge_input(3);
+    let _ = orphan.remove(ArrowPayloadType::UnivariateMetrics);
+    let inputs = vec![gauge_input(2), orphan, gauge_input(2)];
+    let result =
+        make_item_batches_with_ranges(otel_arrow_dfe_config::SignalType::Metrics, None, inputs)
+            .expect("batching");
+    assert_eq!(result.batches.len(), 1);
+    assert_eq!(result.batches[0].1, 0..=2);
+    assert_eq!(result.batches[0].0.num_items(), 4);
+    assert!(result.completed_inputs.is_empty());
+}
+
+/// Scenario: logs inputs of 3 and 5 items are batched with max_size = 4, so
+/// the second input is cut across two outputs.
+/// Guarantees: outputs report [0..=1, 1..=1]: the first output mixes both
+/// inputs, and the second holds only the tail of input 1.
+#[test]
+fn test_item_batches_ranges_cut_input() {
+    let logs = |n: usize| -> OtapArrowRecords {
+        let mut datagen = DataGenerator::with_logs_config(LogsConfig::new(n));
+        otlp_to_otap(&datagen.generate_logs_from_config().into())
+    };
+    let inputs = vec![logs(3), logs(5)];
+    let result = make_item_batches_with_ranges(
+        otel_arrow_dfe_config::SignalType::Logs,
+        NonZeroU64::new(4),
+        inputs,
+    )
+    .expect("batching");
+    let ranges: Vec<_> = result.batches.iter().map(|(_, r)| r.clone()).collect();
+    assert_eq!(ranges, vec![0..=1, 1..=1]);
+    let sizes: Vec<_> = result.batches.iter().map(|(o, _)| o.num_items()).collect();
+    assert_eq!(sizes, vec![4, 4]);
+    assert!(result.completed_inputs.is_empty());
 }
