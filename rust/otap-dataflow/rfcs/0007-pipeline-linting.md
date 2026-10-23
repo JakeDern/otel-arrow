@@ -649,10 +649,6 @@ organisation does not allow), and are activated as follows:
 There are no group-level extensions in the config today, so these are the
 only two activation scopes.
 
-Adding a first-class `lints` field is the working proposal. An alternative
-is to model lints as an extension capability; see
-[Unresolved questions](#unresolved-questions).
-
 ### Gathering lints
 
 Lints are gathered into a `LintRegistry` once per process:
@@ -832,12 +828,6 @@ If there is no prior art, say so -- new ideas are welcome.
 
 ## Unresolved questions
 
-- How should configuration related lints and config validation be reconciled?
-  - Should we make a lot of config validations that emit warnings just emit
-    lints instead?
-- TODO: Who owns which lint settings? Unlike Rust, where the code author
-  configures lints, the engine operator and the pipeline author may be
-  different people submitting different configuration changes.
 - Can the root `lints:` block be changed live (e.g. through
   `/config/reconcile`), or does changing it require a restart?
 - Upgrades. Lints run at engine startup rather than at build time, so a new
@@ -845,36 +835,18 @@ If there is no prior art, say so -- new ideas are welcome.
   with a config that worked before. Options include:
   - (a) Default `correctness` to `warn`.
   - (b) Introduce new lints in an allow-by-default `nursery` category and
-    promote them after a release or two (clippy's approach).
-  - (c) Rely on operators running `--validate-and-exit` in CI before
-    upgrading, with the lint cap as a fallback.
-  - (d) Pin a lint baseline in the config (e.g. `lints_version`) so that
-    lints added later default to `warn`, similar to Rust editions.
-- Should there be allow-by-default categories such as `nursery`,
-  `restriction` (opt-in rules for specific environments), or `pedantic`?
-- Should security lints be a category, or tags that cut across categories?
-- Lint parameters. Should lints accept configuration beyond a level, like
-  clippy's `disallowed_methods` configured in `clippy.toml`?
-  - If so, how do parameter values merge across scopes (replace or extend)?
-- Should engine lints keep using bare names, or have their own URN (e.g.
-  `urn:otel:engine:core:<lint_id>`) so that every lint is named the same way?
-- What happens when multiple instances of the same extension type, each
-  defining the same lints, are declared in one scope?
-- Should lints be an extension capability or a first-class property of
-  extension factories? This RFC proposes a first-class `lints` field, the
-  same as on node factories. A capability would reuse the existing mechanism
-  for describing what an extension provides, and binding semantics could let
-  pipelines opt in to an extension's lints. However, capabilities today are
-  runtime services handed out by created extension instances, while lints
-  run before anything is created; background extensions have no
-  capabilities; and controller extensions have no capability system at all.
-- Should configuring a lint in a scope where it can never be active (e.g. a
-  root entry for a lint whose extension is declared in only one pipeline) be
-  reported by a lint?
+    promote them only during major version bumps.
+  - (c) Associate all lints with a release version and pin a lint baseline in the
+    config (e.g. `lints_version`) so that lints in any later default to `warn`.
+- Should security lints be a category? Most security lints can probably fit in
+  "suspicious", but it could be a common category of things that folks would want
+  to forbid always
 
 ## Future possibilities
 
 - Serializing lints to/from a file
+- Lint parameters. Should lints accept configuration beyond a level, like
+  clippy's `disallowed_methods` configured in `clippy.toml`?
 - A language for describing lints
 - Inclusion of lints into dfctl. It's not clear how to compile custom lints into
   dfctl at this time. Maybe we can link some linting modules in with wasm.
