@@ -417,8 +417,7 @@ be run ahead of time:
 - **On live reconfiguration.** Every change made through the admin API
   (creating or replacing a pipeline, or reconciling the whole config) lints
   each affected pipeline as it would look after the change. Errors reject
-  the change. Warnings are returned in the admin response and recorded as
-  warning-level events for the pipeline.
+  the change. Warnings are emitted as `pipeline.lint.diagnostic` events.
 - **With `df_engine --validate-and-exit`.** Validates and lints a config
   file without starting any pipelines.
 
@@ -447,38 +446,18 @@ proposed types and where they live, not final signatures.
 
 ### Crate layout
 
-Linting is split across the existing `config` crate and a new `lint` crate
-(`otel-arrow-dfe-lint`):
+The majority of the core linting machinery will be added in a new `lint` crate
+(`otel-arrow-dfe-lint`).
 
-**`config` owns syntax.** Every config struct that can carry a `lints:`
-block gains a `lints` field. These structs use `deny_unknown_fields`, so the
-field has to exist in `config`:
+The crate will define the new lint config types for the `lint:` sections as well
+as:
 
-- `OtelDataflowSpec` (root)
-- `PipelineGroupConfig`
-- `PipelineConfig`
-- `EngineObservabilityPipelineConfig`
-- `NodeUserConfig`
-
-`config` also parses selectors. Because category names and `warnings` are
-reserved, selectors can be classified by their shape alone, without knowing
-which lints exist:
-
-| Segments (shortcut) | Segments (canonical) | Selector                                                                       |
-|---------------------|----------------------|--------------------------------------------------------------------------------|
-| 1                   | -                    | Engine lint, category, or `warnings`                                           |
-| 2                   | 4                    | Component                                                                      |
-| 3                   | 5                    | Component lint, or component + category if the last segment is a category name |
-
-`config` does not know which lints exist, so it never reports
-`unknown_lints`. A selector that is malformed (e.g. invalid characters) is a
-config validation error.
-
-**`lint` owns behavior.** The new crate holds the lint types, the registry,
-level resolution and `forbid` checking, the diagnostic and report types,
-and the engine lints (including meta lints). It depends only on `config`,
-so it is not tied to the engine's `PData` type parameter, and `dfctl` can
-depend on it without depending on `engine`.
+- The lint registry
+- Level resolution logic
+- Lint execution
+- Parsing code for selectors
+- Common linting helper functions such as for constructing node before or node after
+  placement lints.
 
 Putting all of this in `config` would avoid a new crate, but would add lint
 execution and a registry to a crate that today only describes the config
@@ -499,8 +478,10 @@ pub struct Lint {
     pub docs: &'static str,
 }
 
+/// Lint category
 pub enum Category { Correctness, Suspicious, Perf, Style }
 
+/// Enforcement level
 pub enum Level { Allow, Expect, Warn, Deny, Forbid }
 
 /// Where a diagnostic points.
