@@ -215,7 +215,53 @@ this is what the author wanted?* If not, it is `correctness`. If rarely, it
 is `suspicious`. If it is fine but costly, it is `perf`. If it is fine but
 untidy, it is `style`.
 
-TODO: Concrete example lints for each category.
+#### Examples
+
+The following examples illustrate possible lints for category.
+
+**`correctness`**
+
+- *Merging batches upstream of a content router.* A batch processor merges
+  requests from different senders into one batch. If the resources in a
+  merged batch route to different outputs of a downstream content router, the
+  router permanently NACKs the entire batch, and because the batch processor
+  does not return payloads on NACK, the data cannot be retried. Each request
+  would have routed correctly on its own. Routing first and batching on each
+  route avoids the problem. This is `correctness` because the pipeline can
+  frequently reject data as soon as senders with different routing keys share 
+  it, which is the reason to use a content router in the first place.
+
+**`suspicious`**
+
+- *A retry processor that can never retry.* If the first retry delay (the
+  smaller of `initial_interval` and `max_interval`) is not shorter than
+  `max_elapsed_time`, the retry processor gives up before its first attempt
+  and only passes NACKs through. The config is valid, and there are
+  conceivable reasons for it (e.g. temporarily disabling retries without
+  restructuring the pipeline), but it is much more likely to be a mistake.
+
+**`perf`**
+
+- *Temporal reaggregation after a batch processor.* Temporal reaggregation
+  resizes batches and generally emits more, smaller batches than it receives,
+  so batching before it is wasted work. The processor's documentation
+  recommends placing it before any batch processor. The output is correct
+  either way, so this is `perf`.
+- *Two batch processors on the same path.* When one batch processor is
+  downstream of another on the same branch of a pipeline, the second
+  re-batches data that has already been batched, adding latency, memory, and
+  cpu. It's likely that the pipeline could be restructured to batch a single
+  time at the end.
+
+**`style`**
+
+- *Deprecated OTAP receiver compression setting.* The OTAP receiver's
+  `compression_method` field is deprecated in favor of `request_compression`
+  and `response_compression`. It still works, so this is neither a
+  correctness nor a performance problem, but configs should migrate before
+  the field is removed. Today this is a warning logged when the receiver
+  starts; as a lint it is reported before the pipeline is deployed and can be
+  configured like any other lint.
 
 ### Selectors
 
