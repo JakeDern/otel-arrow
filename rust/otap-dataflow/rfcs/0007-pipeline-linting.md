@@ -190,13 +190,13 @@ Enforcement levels determine if a lint is enforced and if it's a warning or erro
 Errors will prevent the creation of pipelines that don't pass the lint, whereas
 warnings are just reported as events.
 
-| Level    | Reported?                                   | Overrideable? | 
-|----------|---------------------------------------------|---------------|
-| `allow`  | No                                          | Yes           |
-| `expect` | Yes, warning if unfulfilled                 | Yes           |
-| `warn`   | Yes, as a warning                           | Yes           |
-| `deny`   | Yes, as an error                            | Yes           |
-| `forbid` | Yes, as an error                            | **No**        |
+| Level    | Reported?                   | Overrideable? |
+|----------|-----------------------------|---------------|
+| `allow`  | No                          | Yes           |
+| `expect` | Yes, warning if unfulfilled | Yes           |
+| `warn`   | Yes, as a warning           | Yes           |
+| `deny`   | Yes, as an error            | Yes           |
+| `forbid` | Yes, as an error            | **No**        |
 
 ### Categories
 
@@ -204,11 +204,11 @@ Every lint belongs to exactly one of a fixed set of categories which defines the
 default enforcement level.
 
 | Category      | Default Level | Meaning                                                                                                  |
-|---------------|---------------|-------------------------------------------------------------------------------------------------|
-| `correctness` | deny | The pipeline almost certainly does not do what its author intended (data dropped, misrouted, corrupted). |
-| `suspicious`  | warn | Probably a mistake, but there are legitimate uses.                                                       |
-| `perf`        | warn | Correct, but wastes CPU, memory, or throughput.                                                          |
-| `style`       | warn | Correct and efficient, but redundant, deprecated, or unidiomatic.                                        |
+|---------------|---------------|----------------------------------------------------------------------------------------------------------|
+| `correctness` | deny          | The pipeline almost certainly does not do what its author intended (data dropped, misrouted, corrupted). |
+| `suspicious`  | warn          | Probably a mistake, but there are legitimate uses.                                                       |
+| `perf`        | warn          | Correct, but wastes CPU, memory, or throughput.                                                          |
+| `style`       | warn          | Correct and efficient, but redundant, deprecated, or unidiomatic.                                        |
 
 A useful test when classifying a lint: *is there any configuration where
 this is what the author wanted?* If not, it is `correctness`. If rarely, it
@@ -268,12 +268,12 @@ The following examples illustrate possible lints for category.
 Lints are referenced via **selectors**. The basic selector is the fully qualified lint
 urn, but selectors can refer to classes of lints based on component or category:
 
-| Selector             | Example                     | Matches                                                                                                  |
-|----------------------|-----------------------------|----------------------------------------------------------------------------------------------------------|
-| Full Urn             | `processor:batch:<lint_id>` | Exactly one lint                                                                                         |
-| Component + category | `processor:batch:perf`      | Lints defined by that component in that category                                                         |
-| Component            | `processor:batch`           | All lints defined by that component                                                                      |
-| Category             | `correctness`               | All lints in that category, from every source                                                            |
+| Selector             | Example                     | Matches                                          |
+|----------------------|-----------------------------|--------------------------------------------------|
+| Full Urn             | `processor:batch:<lint_id>` | Exactly one lint                                 |
+| Component + category | `processor:batch:perf`      | Lints defined by that component in that category |
+| Component            | `processor:batch`           | All lints defined by that component              |
+| Category             | `correctness`               | All lints in that category, from every source    |
 
 Engine lints are selected by their bare name (e.g. `unconnected_node`) and
 categories are also reserved names that select the entire category of lints at
@@ -421,23 +421,42 @@ be run ahead of time:
 - **With `df_engine --validate-and-exit`.** Validates and lints a config
   file without starting any pipelines.
 
-### Reading a diagnostic
+### Lint events
 
-TODO: We can't describe a diagnostic in this way, we need to describe it as
-an otel event with a name, attributes, etc.
+Every diagnostic that is reported (i.e. whose final level is `warn`, `deny`,
+or `forbid`) is emitted as an internal telemetry event named
+`pipeline.lint.diagnostic`. Diagnostics therefore show up wherever the
+engine's other events do: on the console through the console log provider
+(including when running `df_engine --validate-and-exit`), in the admin
+`/logs` tap, and in OTLP exported by the observability pipeline.
 
-Each diagnostic records the lint name, its primary location as a config path,
-and where its level came from. The level notes matter because a level can be
-influenced by four config scopes, CLI flags, and the cap.
+The event's severity is `WARN` for `warn` and `ERROR` for `deny` and
+`forbid`. Its body is the message produced by the lint, and its attributes
+identify the lint, where it fired, and where its level came from.
 
-```text
-error[unconnected_node]: node `debug` has no connections and will be removed
-  --> groups.dev.pipelines.main.nodes.debug
-   = note: `warn` by default (category: suspicious)
-   = note: promoted to `deny` by `warnings: deny` at <root>
-   = help: connect the node or remove it
-   = docs: <generated lint documentation link>
+For example, the `unconnected_node` lint firing on a node in a pipeline whose
+root `lints:` block sets `warnings: deny`:
+
+```yaml
+event_name: pipeline.lint.diagnostic
+severity: ERROR
+body: node `debug` has no connections and will be removed
+attributes:
+  pipeline.group.id: dev
+  pipeline.id: main
+  node.id: debug
+  node.urn: urn:otel:processor:debug
+  lint.name: unconnected_node
+  lint.level: deny
+  lint.level.selector: warnings
+  lint.level.scope: root
 ```
+
+Here `lint.level.selector` and `lint.level.scope` show that the lint, which
+warns by default, was promoted to `deny` by `warnings: deny` in the root
+`lints:` block. When a lint fires at its default level, these two attributes
+are omitted. See [Emitting lint events](#emitting-lint-events) in the
+reference-level explanation for the full attribute list.
 
 ## Reference-level explanation
 
@@ -725,19 +744,58 @@ Today these paths call validation inconsistently (group creation, for
 example, does not run component validation), so sharing one entry point
 also makes validation consistent.
 
-**Acting on the report.**
+**Acting on the report.** Every reported diagnostic, error or warning, is
+emitted as a `pipeline.lint.diagnostic` event (see
+[Emitting lint events](#emitting-lint-events)). In addition:
 
-| Path                  | Error diagnostics     | Warning diagnostics                                |
-|-----------------------|-----------------------|----------------------------------------------------|
-| Startup               | Engine does not start | Logged                                             |
-| `--validate-and-exit` | Non-zero exit         | Printed                                            |
-| Live reconfiguration  | Change rejected       | Returned in the admin response, recorded as events |
+| Path                  | Error diagnostics     | Warning diagnostics  |
+|-----------------------|-----------------------|----------------------|
+| Startup               | Engine does not start | Pipeline is admitted |
+| `--validate-and-exit` | Non-zero exit         | Zero exit            |
+| Live reconfiguration  | Change rejected       | Change is admitted   |
 
 **Locations.** Diagnostics locate problems by config path (e.g.
 `groups.dev.pipelines.main.nodes.debug`). File, line, and column are not
 available: `serde_yaml` 0.9 does not retain source positions, and
 environment variable substitution happens before parsing, so offsets would
 not match the original file.
+
+### Emitting lint events
+
+The `lint` crate depends only on `config` and has no telemetry dependency, so
+it returns diagnostics as plain values. The controller converts each reported
+diagnostic in a `LintReport` into a `pipeline.lint.diagnostic` event using
+the `otel_warn!` (for `warn`) or `otel_error!` (for `deny` and `forbid`)
+macros. Diagnostics at `allow` or `expect` are not emitted. The event body
+is the diagnostic's message.
+
+| Attribute             | Present                                         | Description                                                                           |
+|-----------------------|-------------------------------------------------|---------------------------------------------------------------------------------------|
+| `pipeline.group.id`   | Always                                          | Group of the linted pipeline (`system` for the observability pipeline)                |
+| `pipeline.id`         | Always                                          | Linted pipeline                                                                       |
+| `node.id`             | Location is a node                              | Node the diagnostic points at                                                         |
+| `node.urn`            | Location is a node                              | URN of that node                                                                      |
+| `extension.id`        | Location is an extension                        | Extension the diagnostic points at                                                    |
+| `lint.name`           | Always                                          | Full lint name, e.g. `unconnected_node` or `urn:otel:processor:batch:<lint_id>`       |
+| `lint.level`          | Always                                          | Final level after `warnings` and the cap; one of `warn`, `deny`, `forbid`             |
+| `lint.level.selector` | Level was set by a `lints:` entry or a CLI flag | The selector that set the level, e.g. `correctness` or `warnings`                     |
+| `lint.level.scope`    | Level was set by a `lints:` entry or a CLI flag | Where that selector was configured; one of `cli`, `root`, `group`, `pipeline`, `node` |
+
+The identity attributes use the canonical entity keys
+(`crates/engine/src/attributes.rs`). The telemetry guides place entity
+attributes on the instrumentation scope rather than on each record, but
+lints run in the controller before a pipeline is built, and a rejected
+pipeline is never built at all, so there is no pipeline or node entity
+context to attach. Lint events therefore carry identity as record attributes,
+as other config-time events already do.
+
+The lint cap is not represented separately: a capped diagnostic simply has a
+lower `lint.level`.
+
+The event is declared in the Weaver registry as
+`semconv/groups/event.pipeline.lint.diagnostic.yaml`, and the
+`live-check` run gains a trigger config containing an unconnected node so
+that the event is exercised in CI.
 
 ### Remaining work
 
@@ -749,7 +807,6 @@ not match the original file.
   - Testing that lint names remain stable
 - TODO: How `forbid` and lint scopes interact with live reconfiguration
   when a change adds or removes an extension
-  API responses
 - TODO: Efficiency. `LintSink::is_enabled` lets checks skip allowed lints;
   repeated typed-config deserialization could be cached per run.
 
@@ -837,4 +894,4 @@ If there is no prior art, say so -- new ideas are welcome.
   structured form.
 - Automatic documentation generation from `Lint::summary` and `Lint::docs`
 - Aliases for renamed lints and renamed component URNs
-- Warning-level events in the observed state, and warnings in admin
+- Returning lint warnings in admin API responses
