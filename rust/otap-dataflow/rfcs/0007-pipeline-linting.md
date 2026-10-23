@@ -57,11 +57,16 @@ constructed. Every lint has:
   to fix it.
 
 Lints are distinct from config validation. Config Validation is concerned with the
-question "does this pipeline/node even compile?". Validation failures are hard errors
-that cannot be suppressed. Lints on the other hand say "this pipeline can run, but 
-it probably shouldn't look like this" and are fully configurable. Lints only run on
-configurations that have some level of sanity and already passed validation, just 
-as clippy only runs on code that type-checks.
+question "does this pipeline/node even compile?" and validation failures are hard
+errors that cannot be suppressed. For example, if a config property has the wrong
+type or if a connection references a node that doesn't exist.
+
+Lints on the other hand say "this pipeline can run, but it probably shouldn't look 
+like this" and are fully configurable. Lints only run on configurations that have
+some level of sanity and already passed validation, just as clippy only runs on
+code that type-checks. For example, while "correct", it's not recommended to place a
+retry processor before the batch processor, as you may duplicate batching work
+unnecessarily.
 
 The basic pipeline for linting:
 
@@ -73,10 +78,57 @@ The basic pipeline for linting:
                     never suppressible       the outcome
 ```
 
+### Where lints come from
+
+There are three sources of lints:
+
+- **The engine** defines engine lints, including the meta lints.
+- **Nodes** define lints about their own use, for example rules about their
+  configuration or their position in a pipeline. A node lint may inspect the
+  rest of the pipeline and other node types.
+- **Extensions** can define lints. This is how organisations add their own
+  rules, for example forbidding a particular node or configuration, without
+  writing a node. Such lints are namespaced by the extension's URN.
+
+Which lints are *active* for a given pipeline depends on the
+pipeline:
+
+| Source    | Active in                                                                                                                                                      | Initial level |
+|-----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|
+| Engine    | Every pipeline                                                                                                                                                 | Its default   |
+| Node      | Pipelines that contain at least one node of that type                                                                                                          | Its default   |
+| Extension | The scope where the extension is declared (every pipeline for a controller extension in `engine.controller.extensions`, one pipeline for a pipeline extension) | Its default   |
+
+```text
+ 1. names known     all engine, node, and extension lint names (compiled in)
+ 2. validate        config validation, including extension configs
+ 3. activate        per pipeline: engine lints
+                                + lints of node types used in the pipeline
+                                + lints of extensions declared in scope
+ 4. resolve         levels resolved from lints: blocks; forbid checked
+ 5. run             active lints run; diagnostics reported or pipeline rejected
+```
+
+### Meta lints
+
+A few engine lints report problems with the lint configuration itself. They
+are ordinary lints and can be configured like any other.
+
+| Lint                            | Category     | Fires when                                                                     |
+|---------------------------------|--------------|--------------------------------------------------------------------------------|
+| `unknown_lints`                 | `suspicious` | A `lints:` block names a lint, component, or category the engine does not know |
+| `renamed_and_removed_lints`     | `suspicious` | A `lints:` block uses a renamed or removed lint name                           |
+| `unfulfilled_lint_expectations` | `suspicious` | An `expect` entry's lint did not fire                                          |
+
+
+`lints:` entries apply on top of these defaults in the usual way. In
+particular, an extension's defaults never override a `forbid` from an
+enclosing scope.
+
 ### Lint names
 
-Lint names are referred to by their names only; there are no numeric codes. There 
-are two categories of lints - Engine lints and Component lints.
+Lints are referred to by name. There are two categories of lints - Engine lints
+and Component lints.
 
 **Engine lints** are defined by the engine itself, are not tied to any component,
 and therefore have no prefix, like rustc's built-in lints:
@@ -86,13 +138,12 @@ unconnected_node
 unknown_lints
 ```
 
-**Component lints** are defined by a node or an extension and are named by
-appending a lint id to the component's URN (see [URN format](../docs/urns.md)).
-The vast majority of lints are in this category:
+**Component lints** are defined by a node or an extension and are namespaced
+according to the component's URN (see [URN format](../docs/urns.md)). The vast
+majority of lints are in this category. Lints follow the same shortcut rules
+as component urns:
 
 ```text
-<component urn>:<lint_id>
-
 urn:otel:processor:batch:<lint_id>                    canonical form
 processor:batch:<lint_id>                             otel shortcut form
 urn:acme:extension:prod_policy:no_debug_exporters     third-party lint
@@ -105,63 +156,64 @@ Rules:
   `urn:` form. Because the `otel` namespace is reserved, so are lints
   defined by otel components.
 - A lint id uses the same character set as URN segments (`[a-z0-9._-]`) and
-  cannot contain `:`. Because canonical URNs always have four segments and
-  shortcut URNs always have two, a lint name is unambiguous to parse.
+  cannot contain `:`.
 - The category names (`correctness`, `suspicious`, `perf`, `style`) and
   `warnings` are reserved and may not be used as lint ids, so that they
   remain unambiguous as [selectors](#selectors).
 - Lint names are stable. A lint that is renamed keeps its old name as an
-  alias, and using the alias triggers `renamed_and_removed_lints`.
+  alias, and using the alias triggers `renamed_and_removed_lints`. Removing
+  a lint entirely is considered a breaking change.
 - Defining the same fully qualified lint name twice is a hard error when the
   engine starts.
 
-### Lint scope
+### Lint scopes
 
 For now, lints operate on a single pipeline at a time. A lint may inspect any node,
-connection, or setting within that pipeline (including the settings it
-inherits from its group and the root). In the future we may extend lints to operate
-across pipelines, including those connected by a topic.
+connection, or setting within that pipeline (including the settings it inherits from
+its group and the root). In the future we may extend lints to operate across pipelines,
+including those connected by a topic.
 
-Each diagnostic has exactly one **primary location**, which is the root,
+Each diagnostic has exactly one **primary location**, which is the engine root,
 a group, a pipeline, or a node. A diagnostic that concerns several nodes
 (for example, a rule about node ordering) picks one of them as its primary
 location and lists the others as related locations, similar to rustc's
-secondary spans. The primary location determines which `lints:` blocks
-apply when resolving the diagnostic's level.
+secondary spans. The primary location determines which configurations apply
+when resolving the diagnostic's level. More on that below.
 
 The engine's observability pipeline (`engine.observability.pipeline`) is
 linted like any other pipeline. It has no group, so its scopes are the root,
 the observability pipeline itself, and its nodes.
 
-### Levels
+### Enforcement Levels
 
-| Level    | Reported?                                   | Pipeline admitted? | Can inner scopes change it? |
-|----------|---------------------------------------------|--------------------|-----------------------------|
-| `allow`  | No                                          | Yes                | Yes                         |
-| `expect` | No, but reports if the lint does *not* fire | Yes                | Yes                         |
-| `warn`   | Yes, as a warning                           | Yes                | Yes                         |
-| `deny`   | Yes, as an error                            | **No**             | Yes                         |
-| `forbid` | Yes, as an error                            | **No**             | **No**                      |
+Enforcement levels determine if a lint is enforced and if it's a warning or error.
+Errors will prevent the creation of pipelines that don't pass the lint, whereas
+warnings are just reported as events.
+
+| Level    | Reported?                                   | Overrideable? | 
+|----------|---------------------------------------------|---------------|
+| `allow`  | No                                          | Yes           |
+| `expect` | Warn if the lint does *not* fire            | Yes           |
+| `warn`   | Yes, as a warning                           | Yes           |
+| `deny`   | Yes, as an error                            | Yes           |
+| `forbid` | Yes, as an error                            | **No**        |
 
 ### Categories
 
-Every lint belongs to exactly one of a fixed set of categories based on their natures.
-The initial proposed set of categories is:
+Every lint belongs to exactly one of a fixed set of categories which defines the
+default enforcement level.
 
-| Category      | Meaning                                                                                                  |
-|---------------|----------------------------------------------------------------------------------------------------------|
-| `correctness` | The pipeline almost certainly does not do what its author intended (data dropped, misrouted, corrupted). |
-| `suspicious`  | Probably a mistake, but there are legitimate uses.                                                       |
-| `perf`        | Correct, but wastes CPU, memory, or throughput.                                                          |
-| `style`       | Correct and efficient, but redundant, deprecated, or unidiomatic.                                        |
+| Category      | Default Level | Meaning                                                                                                  |
+|---------------|---------------|-------------------------------------------------------------------------------------------------|
+| `correctness` | deny | The pipeline almost certainly does not do what its author intended (data dropped, misrouted, corrupted). |
+| `suspicious`  | warn | Probably a mistake, but there are legitimate uses.                                                       |
+| `perf`        | warn | Correct, but wastes CPU, memory, or throughput.                                                          |
+| `style`       | warn | Correct and efficient, but redundant, deprecated, or unidiomatic.                                        |
 
 A useful test when classifying a lint: *is there any configuration where
 this is what the author wanted?* If not, it is `correctness`. If rarely, it
 is `suspicious`. If it is fine but costly, it is `perf`. If it is fine but
 untidy, it is `style`.
-
-The default enforcement level of each category is not yet decided (see
-[Unresolved questions](#unresolved-questions)).
 
 TODO: Concrete example lints for each category.
 
@@ -176,15 +228,10 @@ urn, but selectors can refer to classes of lints based on component or category:
 | Component + category | `processor:batch:perf`      | Lints defined by that component in that category                                                         |
 | Component            | `processor:batch`           | All lints defined by that component                                                                      |
 | Category             | `correctness`               | All lints in that category, from every source                                                            |
-| `warnings`           | `warnings`                  | Special: changes how `warn` is treated (see [Treating warnings as errors](#treating-warnings-as-errors)) |
 
-FIXME(jakedern): Look at this last warnings/warnings entry in the table 
-
-Engine lints are selected by their bare name (e.g. `unconnected_node`).
-Because category names are reserved lint ids, a component + category
-selector can never be confused with a lint name.
-
-FIXME(jakedern): Re-evaluate the above paragraph
+Engine lints are selected by their bare name (e.g. `unconnected_node`) and
+categories are also reserved names that select the entire category of lints at
+the specified scope.
 
 ### Configuring lints
 
@@ -228,8 +275,7 @@ Policies are resolved by taking the first scope that sets a field and
 replacing the field wholesale, while lint configuration has to be merged per
 selector. For example if the root lints block sets `correctness: forbid`, then
 enabling a specific lint at the pipeline level should not remove that. Policies
-also do not exist at node scope, which is where individual suppressions are most
-useful.
+also do not exist at node scope, which is useful for individual suppressions.
 
 ### Resolving a lint's level
 
@@ -244,6 +290,8 @@ The level of a diagnostic is resolved from its primary location outwards.
               ^
               diagnostic's primary location
 ```
+
+TODO: Move the description of the algorithm to the implementation section
 
 For each diagnostic:
 
@@ -277,15 +325,6 @@ groups:
           processor:batch:<lint_id>: allow   # error if <lint_id> is a correctness lint
 ```
 
-### Treating warnings as errors
-
-`warnings: deny` promotes every diagnostic whose resolved level is `warn` to
-`deny`, equivalent to `-D warnings`. `warnings` is resolved like any other
-selector, so it can be set at any scope, and the promotion happens after the
-lint's own level is resolved. A pipeline that sets an individual lint to
-`warn` underneath a root `warnings: deny` therefore still gets an error. To
-opt a scope out of the promotion, set `warnings: warn` in that scope.
-
 ### Capping lint levels
 
 The lint cap sets a **maximum severity** for all diagnostics. It does not
@@ -309,78 +348,12 @@ pipeline, or node scope.
 
 ### Suppressing lints
 
-We recommend explaining every suppression with a comment next to the entry
-in the config file.
+TODO: Remove the allow lint in favor of the expect level. I don't think we need both
 
 `expect` is a self-cleaning `allow`: the diagnostic is suppressed, but if the
 expected lint stops firing at that location, the
 `unfulfilled_lint_expectations` lint is reported instead. This keeps
 suppressions from outliving the problem they were added for.
-
-### Reading a diagnostic
-
-Each diagnostic shows the lint name, its primary location as a config path,
-and where its level came from. The level notes matter because a level can be
-influenced by four config scopes, CLI flags, and the cap.
-
-```text
-error[unconnected_node]: node `debug` has no connections and will be removed
-  --> groups.dev.pipelines.main.nodes.debug
-   = note: `warn` by default (category: suspicious)
-   = note: promoted to `deny` by `warnings: deny` at <root>
-   = help: connect the node or remove it
-   = docs: <generated lint documentation link>
-```
-
-### Meta lints
-
-A few engine lints report problems with the lint configuration itself. They
-are ordinary lints and can be configured like any other.
-
-| Lint                            | Category     | Fires when                                                                     |
-|---------------------------------|--------------|--------------------------------------------------------------------------------|
-| `unknown_lints`                 | `suspicious` | A `lints:` block names a lint, component, or category the engine does not know |
-| `renamed_and_removed_lints`     | `suspicious` | A `lints:` block uses a renamed or removed lint name                           |
-| `unfulfilled_lint_expectations` | `suspicious` | An `expect` entry's lint did not fire                                          |
-
-### Where lints come from
-
-There are three sources of lints:
-
-- **The engine** defines engine lints, including the meta lints.
-- **Nodes** define lints about their own use, for example rules about their
-  configuration or their position in a pipeline. A node lint may inspect the
-  rest of the pipeline and other node types.
-- **Extensions** can define lints. This is how organisations add their own
-  rules, for example forbidding a particular node or configuration, without
-  writing a node. Such lints are namespaced by the extension's URN.
-
-All lint *definitions* are compiled into the engine, so the full set of lint
-names is always known, whether or not a given node or extension is used.
-Naming a lint whose definition is compiled in never triggers
-`unknown_lints`; only typos and lints from components that are not compiled
-in do. Which lints are *active* for a given pipeline depends on the
-pipeline:
-
-| Source    | Active in                                                                                                                                                      | Initial level |
-|-----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|
-| Engine    | Every pipeline                                                                                                                                                 | Its default   |
-| Node      | Pipelines that contain at least one node of that type                                                                                                          | Its default   |
-| Extension | The scope where the extension is declared (every pipeline for a controller extension in `engine.controller.extensions`, one pipeline for a pipeline extension) | Its default   |
-
-```text
- 1. names known     all engine, node, and extension lint names (compiled in)
- 2. validate        config validation, including extension configs
- 3. activate        per pipeline: engine lints
-                                + lints of node types used in the pipeline
-                                + lints of extensions declared in scope
- 4. resolve         levels resolved from lints: blocks; forbid checked
- 5. run             active lints run; diagnostics reported or pipeline rejected
-```
-
-`lints:` entries apply on top of these defaults in the usual way. In
-particular, an extension's defaults never override a `forbid` from an
-enclosing scope.
 
 ### Where lints run
 
@@ -400,6 +373,21 @@ be run ahead of time:
 - **With `dfctl`.** `dfctl` can lint a config against a running engine.
   This is done on the server, because lints defined by nodes and extensions
   only exist in the engine binary they were compiled into.
+
+### Reading a diagnostic
+
+Each diagnostic shows the lint name, its primary location as a config path,
+and where its level came from. The level notes matter because a level can be
+influenced by four config scopes, CLI flags, and the cap.
+
+```text
+error[unconnected_node]: node `debug` has no connections and will be removed
+  --> groups.dev.pipelines.main.nodes.debug
+   = note: `warn` by default (category: suspicious)
+   = note: promoted to `deny` by `warnings: deny` at <root>
+   = help: connect the node or remove it
+   = docs: <generated lint documentation link>
+```
 
 ## Reference-level explanation
 
@@ -796,8 +784,6 @@ If there is no prior art, say so -- new ideas are welcome.
   different people submitting different configuration changes.
 - Can the root `lints:` block be changed live (e.g. through
   `/config/reconcile`), or does changing it require a restart?
-- Default levels for each category. In particular, should `correctness`
-  default to `deny` (as in clippy) or `warn`?
 - Upgrades. Lints run at engine startup rather than at build time, so a new
   deny-by-default lint in a minor release could stop an engine from starting
   with a config that worked before. Options include:
