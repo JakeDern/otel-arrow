@@ -193,7 +193,7 @@ warnings are just reported as events.
 | Level    | Reported?                                   | Overrideable? | 
 |----------|---------------------------------------------|---------------|
 | `allow`  | No                                          | Yes           |
-| `expect` | Warn if the lint does *not* fire            | Yes           |
+| `expect` | Yes, warning if unfulfilled                 | Yes           |
 | `warn`   | Yes, as a warning                           | Yes           |
 | `deny`   | Yes, as an error                            | Yes           |
 | `forbid` | Yes, as an error                            | **No**        |
@@ -260,7 +260,7 @@ groups:
             type: processor:debug
             lints:                              # node scope
               # connected by a follow-up reconfiguration
-              unconnected_node: expect
+              unconnected_node: warn
 ```
 
 When several entries in the **same** `lints:` block match a lint, the most
@@ -303,8 +303,7 @@ For each diagnostic:
    resolves to `deny` or `forbid` at this location, the level becomes `deny`.
 3. **Apply the cap.** If `lint_cap` is set, the level is lowered to at most
    the cap.
-4. **Act on the level.** `allow` drops the diagnostic. `expect` marks the
-   expectation as fulfilled and drops the diagnostic. `warn` reports it.
+4. **Act on the level.** `allow` drops the diagnostic. `warn` reports it.
    `deny` and `forbid` report it and reject the pipeline.
 
 ### `forbid`
@@ -348,12 +347,18 @@ pipeline, or node scope.
 
 ### Suppressing lints
 
-TODO: Remove the allow lint in favor of the expect level. I don't think we need both
+Lints can be suppressed in two ways, by setting a lint's level to `allow` or
+`expect`. Setting `allow` for some scope means that the lint is completely suppressed
+at that level except in the case that the lint is `forbid`den at a higher level. `allow`
+can be set at any scope.
 
-`expect` is a self-cleaning `allow`: the diagnostic is suppressed, but if the
-expected lint stops firing at that location, the
-`unfulfilled_lint_expectations` lint is reported instead. This keeps
-suppressions from outliving the problem they were added for.
+Setting `expect` is similar to `allow`, but it will trigger the `unfulfilled_lint_expectations`
+meta lint if the diagnostic is not present at the scope that `expect` is declared on.
+Additionally, `expect` is only allowed on pipelines or nodes. This is because expect
+fullfillment at higher scopes cannot be determined by looking at a single pipeline 
+in isolation. For example, determining whether a group satisfies a lint is only
+possible by iterating the entire group, which may be expensive to do when a single
+pipeline is added or removed.
 
 ### Where lints run
 
@@ -370,13 +375,13 @@ be run ahead of time:
   warning-level events for the pipeline.
 - **With `df_engine --validate-and-exit`.** Validates and lints a config
   file without starting any pipelines.
-- **With `dfctl`.** `dfctl` can lint a config against a running engine.
-  This is done on the server, because lints defined by nodes and extensions
-  only exist in the engine binary they were compiled into.
 
 ### Reading a diagnostic
 
-Each diagnostic shows the lint name, its primary location as a config path,
+TODO: We can't describe a diagnostic in this way, we need to describe it as
+an otel event with a name, attributes, etc.
+
+Each diagnostic records the lint name, its primary location as a config path,
 and where its level came from. The level notes matter because a level can be
 influenced by four config scopes, CLI flags, and the cap.
 
@@ -399,40 +404,7 @@ proposed types and where they live, not final signatures.
 Linting is split across the existing `config` crate and a new `lint` crate
 (`otel-arrow-dfe-lint`):
 
-```text
-                 +--------------------+
-                 | config             |  leaf crate, no internal deps
-                 | - `lints:` syntax  |  parses lints: blocks and selectors,
-                 | - lint scopes      |  keeps them through resolve()
-                 +---------+----------+
-                           |
-                 +---------v----------+
-                 | lint (new)         |  depends on config only;
-                 | - Lint, Category,  |  not generic over PData
-                 |   Level, Location  |
-                 | - LintRegistry     |
-                 | - level resolution |
-                 | - diagnostics      |
-                 | - engine lints     |
-                 +----+----------+----+
-                      |          |
-          +-----------v---+   +--v-------------------+
-          | engine        |   | ctl (dfctl)          |  optional: render
-          | factories gain|   |                      |  diagnostics, run
-          | `lints` field |   |                      |  engine lints offline
-          +---+-------+---+   +----------------------+
-              |       |
-   +----------v--+ +--v--------------------------------+
-   | core-nodes, | | controller                        |
-   | contrib-*   | | - runs the lint stage             |
-   | declare     | | - ControllerExtensionFactory      |
-   | node and    | |   gains `lints` field             |
-   | extension   | +-----------------------------------+
-   | lints       |
-   +-------------+
-```
-
-**`config` owns the syntax.** Every config struct that can carry a `lints:`
+**`config` owns syntax.** Every config struct that can carry a `lints:`
 block gains a `lints` field. These structs use `deny_unknown_fields`, so the
 field has to exist in `config`:
 
@@ -819,6 +791,9 @@ If there is no prior art, say so -- new ideas are welcome.
 ## Future possibilities
 
 - Serializing lints to/from a file
+- A language for describing lints
+- Inclusion of lints into dfctl. It's not clear how to compile custom lints into
+  dfctl at this time. Maybe we can link some linting modules in with wasm.
 - Lints across pipelines connected by topics. Lints are currently limited to
   a single pipeline, which avoids a change to one pipeline causing a lint
   failure in another.
