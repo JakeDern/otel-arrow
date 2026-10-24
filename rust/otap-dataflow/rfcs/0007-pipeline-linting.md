@@ -17,9 +17,7 @@ authors can make.
 
 In the Dataflow Engine, we design nodes under the philosophy of composability. Each
 node offers simple and unique behaviors that can be composed together into a pipeline
-to express more complicated logic. This is not unlike a programming language, which 
-may expose simple product types, functions, conditionals, and loops that can 
-be composed into an arbitrary program.
+to express more complicated logic. This forms a programming language for pipelines.
 
 Not all pipeline programs that can be expressed in the language of nodes, connections,
 and configurations are good ones. Some nodes (probably) should not be placed before
@@ -34,8 +32,8 @@ in practice.
 Additionally, organizations and individual users are likely to have their own individual
 preferences or guidelines for pipelines that they want to follow.
 
-Programming languages have solved this problem through static program linters like clippy.
-We can do the same for Dataflow Engine pipelines.
+Programming languages have solved this problem through static program linters like rustc
+and clippy. We can do the same for Dataflow Engine pipelines.
 
 ## Guide-level explanation
 
@@ -1019,12 +1017,58 @@ However you can also allow all at the engine level and then opt back in per grou
 
 ## Rationale and alternatives
 
-### Why do this at all?
+There are a lot of features described in this document, but let me try to justify
+their existence with a story:
 
-The motivation covers this well, but there are a huge number of common practices to be aware
-of when creating a pipelines and the list evolves all the time. This will give a way for
-dilligent pipeline authors to stay on top of evolving recommendations and keep their pipelines
-healthy.
+Imagine you are a new user creating a telemetry pipeline using the Dataflow Engine.
+You start reading the documentation and learn about pipelines and nodes. You examine
+the list of existing nodes and come up with a topology that fits your usecase. You
+want to do a good job so you read the documentation of your selected nodes and try
+to incorporate their guidance about placement and optimal configuration. You test
+your pipeline is functional and deploy it. From time to time you update your engine
+version or extend the pipeline for new use-cases.
+
+You might experience a few hiccups along the way:
+
+- You missed the placement guidance for a node and mistakenly placed it too early
+or too late
+- You forget to tune a critical setting for some node
+- Your traffic increases and you find out your setup doesn't scale too well
+
+It's ok the pipeline is new and some teething pains are expected. The feature was just
+in preview anyway. And good news, it was a great success after the issues are resolve!
+
+Your organization is doubling down on the dfe, but:
+
+- Your config is getting really long and its hard to hold the entire thing in your
+head
+- You onboard a few more teammates and you're not able to keep track of every change
+to the config anymore
+- The configuration or placement guidance for some node was updated in 0.60, but the
+current version is 0.63 and you're on 0.57. The DFE is so cool and velocity so high
+that the changelog across those 6 versions is 900 entries long. You don't have time
+to read all that.
+
+You have your second outage this quarter and realize automated checks are the only way to
+stay on top of this beast. You file a proposal about this in otel-arrow and the maintainers
+graciously accept.
+
+Now the engine runs a whole bunch of static checks against every pipeline and emits 
+warnings for suspicious configurations and you fix all the existing issues in your 
+config. On-call is quiet, perhaps too quiet.
+
+And then time passes and development begins again:
+
+- It turns out guidance is good for most of your use-cases, but not for _that one pipeline_,
+. You're an advanced user now. So you have some warnings in your logs you learn to ignore
+- You make a change to a pipeline except you forget if there are supposed to be 10 warnings 
+now or 11. Is that 11th one new? Is it the exact same 11 errors as before?
+
+The outage confirms it was, in fact, 10 before and bleary-eyed at 3am on a Wednesday you
+file another issue in otel-arrow. You ask for the ability to suppress known errors so
+you can keep track of whats new. Once again the maintainers accept your proposal and you
+get _allow_ configurations.
+
 
 Additionally this proposal adds quite a lot of machinery and new concepts, particularly
 surrounding Enforcement Levels. I will attempt to justify these:
@@ -1075,8 +1119,7 @@ If there is no prior art, say so -- new ideas are welcome.
   NACK") that pipeline lints query.
 - Should security lints be a category? Most security lints can probably fit in
   "suspicious", but it could be a common category of things that folks would want
-  to forbid always like binding to 0.0.0.0. On the other hand folks can always add
-  unlimited custom lints via extensions.
+  to forbid always like binding to 0.0.0.0.
 
 ## Future possibilities
 
