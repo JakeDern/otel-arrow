@@ -1035,8 +1035,8 @@ or too late
 - You forget to tune a critical setting for some node
 - Your traffic increases and you find out your setup doesn't scale too well
 
-It's ok the pipeline is new and some teething pains are expected. The feature was just
-in preview anyway. And good news, it was a great success after the issues are resolve!
+It's ok. The pipeline is new and some teething pains are expected. The feature was just
+in preview anyway. And good news, it was a great success after the issues were resolved!
 
 Your organization is doubling down on the dfe, but:
 
@@ -1057,21 +1057,53 @@ Now the engine runs a whole bunch of static checks against every pipeline and em
 warnings for suspicious configurations and you fix all the existing issues in your 
 config. On-call is quiet, perhaps too quiet.
 
-And then time passes and development begins again:
+And then development begins again:
 
-- It turns out guidance is good for most of your use-cases, but not for _that one pipeline_,
-. You're an advanced user now. So you have some warnings in your logs you learn to ignore
-- You make a change to a pipeline except you forget if there are supposed to be 10 warnings 
-now or 11. Is that 11th one new? Is it the exact same 11 errors as before?
+- It turns out guidance is good for most of your use-cases, but not for _that one pipeline_.
+So you have some warnings in your logs you learn to ignore
+- Development is fast and you're on your 3rd pipeline change of the day. You forget
+if there are supposed to be 10 warnings now or 11. Is that 11th one new? Is it the
+exact same 11 errors as before?
 
 The outage confirms it was, in fact, 10 before and bleary-eyed at 3am on a Wednesday you
 file another issue in otel-arrow. You ask for the ability to suppress known errors so
 you can keep track of whats new. Once again the maintainers accept your proposal and you
 get _allow_ configurations.
 
+These let you suppress errors in the engine. You make sure your proposal includes scoping
+because you weren't born yesterday. You get your errors down to 0, always override at
+the smallest scope, and notice every new error that comes up. Development goes on!
 
-Additionally this proposal adds quite a lot of machinery and new concepts, particularly
-surrounding Enforcement Levels. I will attempt to justify these:
+- You add another one of _those pipelines_
+- You see the warning but you realize it doesn't apply in this case and you place a
+well-reasoned suppression. Things are crazy and you do this many more times.
+- Your configuration is like the ship of theseus. It's supposedly the same one, but
+every part has been replaced. Twice.
+- You have suppressions sprinkled at every level, some are active, some are vestigial,
+nobody knows which is which.
+- You tweak the configuration one last time on friday afternoon and there's an error,
+but it's suppressed.
+
+The suppression was erroneous as are half the suppressions in your config. If that
+wasn't bad enough, to your horror you also realize the lint for _that super dangerous
+configuration option with no possible justification_ was suppressed at a few scopes
+by your AI assistant a couple months ago buried in a 10,000 line diff. It even said
+right there in Agents.md - "NEVER suppress _super dangerous configuration option with
+no possible justification_", but the context was 500,000 tokens deep and the agent forgot.
+
+You realize you need more tools to keep this config sanitary. Exhausted, you tell your
+agent to file another issue in otel-arrow for the well-rested maintainers to review.
+You ask it to ask for _expect_ suppressions so you are forced to clean up after yourselves.
+
+That solves some cleanliness, but you still can't trust your agents not to slip something
+in during a big PR, so you also ask it to ask for _forbid_ at the engine level. Now nobody
+can suppress the most important errors which are all listed in one central spot.
+
+At last, you have fallen into the pit of success. Every error is meticulously accounted
+for no matter how many edits you make to your config. Outages, like human's coding, are
+an artifact of the past. You get a good night's sleep.
+
+---
 
 - Letting lints deny the creation of a pipeline begs for there to be a way to
 override the lint either for break-glass type scenarios or for unique scenarios
