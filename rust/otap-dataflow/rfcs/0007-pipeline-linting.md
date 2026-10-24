@@ -17,7 +17,8 @@ authors can make.
 
 In the Dataflow Engine, we design nodes under the philosophy of composability. Each
 node offers simple and unique behaviors that can be composed together into a pipeline
-to express more complicated logic. This forms a programming language for pipelines.
+to express more complicated logic. This forms a programming language of sorts for 
+telemetry pipelines.
 
 Not all pipeline programs that can be expressed in the language of nodes, connections,
 and configurations are good ones. Some nodes (probably) should not be placed before
@@ -30,9 +31,10 @@ wisdom in how best to use them, let alone, consistently and perfectly apply thes
 in practice.
 
 Additionally, organizations and individual users are likely to have their own individual
-preferences or guidelines for pipelines that they want to follow.
+preferences for pipelines that they want to follow. This includes disagreement with or
+exceptions to existing best practices defined by the project.
 
-Programming languages have solved this problem through static program linters like rustc
+Programming languages have addressed this problem through static program linters like rustc
 and clippy. We can do the same for Dataflow Engine pipelines.
 
 ## Guide-level explanation
