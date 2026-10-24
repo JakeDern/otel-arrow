@@ -879,6 +879,11 @@ is exercised in CI.
 
 ## Drawbacks
 
+Warts:
+
+- You can add extensions at the engine level, but not the pipeline group level. By default
+you would have to opt out per group by setting the appropriate `allow` declaration.
+However you can also allow all at the engine level and then opt back in per group.
 
 ## Rationale and alternatives
 
