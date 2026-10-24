@@ -1007,14 +1007,6 @@ is exercised in CI.
   node config and discards the result; it could hand the typed value to the
   lint stage to avoid deserializing it again.
 
-## Drawbacks
-
-Warts:
-
-- You can add extensions at the engine level, but not the pipeline group level. By default
-you would have to opt out per group by setting the appropriate `allow` declaration.
-However you can also allow all at the engine level and then opt back in per group.
-
 ## Rationale and alternatives
 
 There are a lot of features described in this document, but let me try to justify
@@ -1103,24 +1095,6 @@ At last, you have fallen into the pit of success. Every error is meticulously ac
 for no matter how many edits you make to your config. Outages, like human's coding, are
 an artifact of the past. You get a good night's sleep.
 
----
-
-- Letting lints deny the creation of a pipeline begs for there to be a way to
-override the lint either for break-glass type scenarios or for unique scenarios
-where the lint doesn't apply
-- The ability to suppress lints is important because (1) it lets us be looser with
-lints of particular categories and include more advice that may be less (but still
-broadly) applicable for the purpose of education. (2) It also lets users be more
-aware when new lints pop up. If you have 3000 warnings when you compile then you
-will never notice warning 3001. If you have 0 because you've eliminated or ack'd
-all of them then you will notice every new lint that crops up.
-- Root level Engine configuration of forbid or deny lets a user put a safety check on
-themselves which can't be bypassed at runtime via the pipeline configuration system.
-Root level Engine config might also be owned by a more trusted party than a pipeline
-configurer.
-- Users are going to have wide ranges of opinions about which lints and levels and
-default behaviors are appropriate. Full customization will meet any use-case.
-
 ## Prior art
 
 Discuss prior art, both good and bad. What can we learn from how other
@@ -1155,8 +1129,7 @@ If there is no prior art, say so -- new ideas are welcome.
 
 ## Future possibilities
 
-- Lint parameters. Should lints accept configuration beyond a level, like
-  clippy's `disallowed_methods` configured in `clippy.toml`?
+- Lint parameters. Should lints accept configuration beyond a level?
 - A language for describing lints
 - Inclusion of lints into dfctl. It's not clear how to compile custom lints into
   dfctl at this time. Maybe we can link some linting modules in with wasm.
@@ -1167,10 +1140,7 @@ If there is no prior art, say so -- new ideas are welcome.
   [Unresolved questions](#unresolved-questions))
 - Suppression reasons. A `lints:` entry could accept a structured form such
   as `{ level, reason }`, with the reason shown in diagnostics and lint
-  reports, like rustc's `reason = "..."`. Until then, reasons live in YAML
-  comments, which are lost when a config is submitted through the admin API
-  and re-serialized. Lint parameters, if adopted, would likely need the same
-  structured form.
+  reports, like rustc's `reason = "..."`.
 - Automatic documentation generation from `Lint::summary` and `Lint::docs`
 - Aliases for renamed lints and renamed component URNs
 - Returning lint warnings in admin API responses
