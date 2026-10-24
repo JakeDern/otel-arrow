@@ -90,6 +90,10 @@ There are three sources of lints:
   rules, for example forbidding a particular node or configuration, without
   writing a node. Such lints are namespaced by the extension's URN.
 
+Node lints declared by a node type only visit nodes of that type. Extension
+node lints are not tied to a node type, so each one declares which node
+types it visits (its **node interests**), which may be all of them.
+
 TODO: Engine lints, including the [meta lints](#meta-lints), need different
 machinery from component lints (for example, meta lints inspect the lint
 configuration itself rather than the pipeline). Their design is deferred; the
@@ -98,11 +102,11 @@ rest of this RFC describes component lints unless stated otherwise.
 Which lints are *active* for a given pipeline depends on the
 pipeline:
 
-| Source    | Active in                                                                                                                                                      | Initial level |
-|-----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|
-| Engine    | Every pipeline                                                                                                                                                 | Its default   |
-| Node      | Pipelines that contain at least one node of that type                                                                                                          | Its default   |
-| Extension | The scope where the extension is declared (every pipeline for a controller extension in `engine.controller.extensions`, one pipeline for a pipeline extension) | Its default   |
+| Source    | Active in                                                                                                                                                                                                                             | Initial level |
+|-----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|
+| Engine    | Every pipeline                                                                                                                                                                                                                        | Its default   |
+| Node      | Pipelines that contain at least one node of that type                                                                                                                                                                                 | Its default   |
+| Extension | Pipelines and nodes within the extension's reach (every pipeline for a controller extension in `engine.controller.extensions`, one pipeline for a pipeline extension). Node lints only visit nodes matching the lint's node interests | Its default   |
 
 ```text
  1. names known     all engine, node, and extension lint names (compiled in)
@@ -194,6 +198,11 @@ Every lint declares the scope it checks, which is either a **node** or a
 
 A diagnostic's location (the node or the pipeline) determines which
 configurations apply when resolving its level. More on that below.
+
+A lint's scope is separate from where the component that declares it is
+configured. In particular, extensions are declared at the engine or pipeline
+level, which determines their **reach** (the pipelines their lints run
+against), but their lints can still be pipeline or node lints.
 
 The engine's observability pipeline (`engine.observability.pipeline`) is
 linted like any other pipeline. It has no group, so its scopes are the root,
@@ -543,8 +552,22 @@ pub struct Lint {
 pub enum Check {
     /// Run once per pipeline in which the lint is active.
     Pipeline(fn(&LintContext<'_>, &mut LintSink<'_>)),
-    /// Run once per node of the declaring node type.
-    Node(fn(&LintContext<'_>, NodeRef<'_>, &mut LintSink<'_>)),
+    /// Run once per node in which the lint is active.
+    Node {
+        /// Which nodes the lint visits.
+        interests: NodeInterests,
+        check: fn(&LintContext<'_>, NodeRef<'_>, &mut LintSink<'_>),
+    },
+}
+
+/// Which nodes a node lint visits.
+pub enum NodeInterests {
+    /// Only nodes of the declaring node type. Required for node-declared lints.
+    Own,
+    /// Every node.
+    All,
+    /// Nodes of the listed types (URNs).
+    Types(&'static [&'static str]),
 }
 
 /// Lint category
@@ -569,21 +592,37 @@ already registered through `linkme` distributed slices, in the same way as
 check's signature encodes the lint's scope. The engine, not the lint, is
 responsible for invoking each check at every construct of the right kind
 and for skipping it wherever it resolves to `allow`. Each invocation gets a
-sink bound to exactly that lint and that location:
+context and a sink bound to exactly that lint and that location:
 
 ```rust
 pub struct LintContext<'a> {
-    /// The pipeline being linted, with resolved policies.
-    pub pipeline: &'a ResolvedPipelineConfig,
+    /// Per-run state shared by every check invocation in this pipeline's run.
+    state: &'a PipelineLintState<'a>,
+    /// The component that declared the running lint: a node type, or a
+    /// specific extension instance.
+    owner: Owner<'a>,
 }
 
 impl<'a> LintContext<'a> {
-    /// The typed config of a node. Deserialized at most once per lint run
-    /// and shared between all lints.
-    pub fn typed_config<T: DeserializeOwned>(&self, node: &NodeId) -> &T;
+    /// The pipeline being linted, with resolved policies.
+    pub fn pipeline(&self) -> &'a ResolvedPipelineConfig;
+
+    /// A node's config as JSON. Never fails.
+    pub fn raw_config(&self, node: &NodeId) -> &'a serde_json::Value;
+
+    /// A node's config deserialized as `T`. Cached per run.
+    pub fn typed_config<T: DeserializeOwned + Send + Sync + 'static>(
+        &self,
+        node: &NodeId,
+    ) -> Result<Arc<T>, LintError>;
+
+    /// The config of the extension instance that declared the running lint,
+    /// deserialized as `T`. Cached per run. `None` for node-declared lints.
+    pub fn extension_config<T: DeserializeOwned + Send + Sync + 'static>(&self)
+        -> Option<Arc<T>>;
 
     /// Connectivity queries over the pipeline graph (upstream, downstream,
-    /// paths between nodes). Built at most once per lint run.
+    /// paths between nodes). Built at most once per run.
     pub fn graph(&self) -> &PipelineGraph;
 }
 
@@ -610,11 +649,42 @@ This design has several consequences:
   Checks never need to ask whether they are enabled.
 - **Shared work happens once.** Separate checks for separate lints could
   repeat work, such as deserializing a node's config or walking the graph.
-  `LintContext` caches both, so several lints on the same node or pipeline
+  The context caches both, so several lints on the same node or pipeline
   share the work.
 
-`typed_config` cannot fail in practice: by the time lints run, component
-validation has already proven that every node config deserializes.
+**Caching.** The engine creates a `PipelineLintState` at the start of each
+pipeline's lint run and drops it at the end, so cached values never outlive
+a run or leak between pipelines. It holds:
+
+- the pipeline being linted;
+- the graph, in a `OnceCell` that is filled on the first `graph()` call;
+- typed node configs, in a map keyed by `(NodeId, TypeId)`;
+- typed extension configs, in a map keyed by `(extension instance, TypeId)`.
+
+The engine builds a small `LintContext` for each check invocation, pointing
+at the shared state and recording the lint's owner, which is how
+`extension_config` knows whose config to return. Caches are filled lazily, so
+a node whose lints all resolve to `allow` never has its config deserialized.
+
+Because checks share the context through `&self`, filling a cache on a miss
+requires interior mutability. The config caches are maps behind a `RefCell`
+holding `Arc<dyn Any + Send + Sync>` values; a lookup clones the `Arc` and
+downcasts it to `Arc<T>`. Returning `Arc<T>` rather than `&T` avoids holding
+a `RefCell` borrow across the caller's use of the value, without `unsafe` or
+new dependencies, at the cost of a reference count increment per call. If
+lint runs are ever parallelized, the `RefCell` becomes a lock or concurrent
+map without changing the API. `graph()` can return a plain reference because
+a `OnceCell` never changes once set.
+
+**Failure.** `raw_config` cannot fail. `typed_config` can: validation has
+proven that each node config deserializes into *that node's* config type,
+but a lint may ask for a different type. Extension node lints in particular
+visit nodes of many types and usually deserialize into their own small view
+structs rather than other crates' config types. A failed `typed_config` is
+treated as an internal error in the lint (reported as an event), not as a
+lint diagnostic, and does not affect admission. `extension_config` returns
+`None` only for node-declared lints; for extension lints it deserializes the
+extension's own, already-validated config.
 
 ### Declaring lints in nodes
 
@@ -626,6 +696,8 @@ A node type can declare both node lints and pipeline lints:
 
 - Its **node lints** run once for each node of that type, and only for nodes
   of that type. A rule about another node type is declared by that type.
+  Node-declared node lints therefore must use `NodeInterests::Own`, and
+  registration rejects anything else.
 - Its **pipeline lints** run once per pipeline that contains at least one
   node of that type.
 
@@ -653,11 +725,15 @@ pub static FORWARDS_EVERYTHING: Lint = Lint {
     category: Category::Suspicious,
     summary: "batch processor forwards every request without batching",
     docs: "...",
-    check: Check::Node(check_forwards_everything),
+    check: Check::Node {
+        interests: NodeInterests::Own,
+        check: check_forwards_everything,
+    },
 };
 
 fn check_forwards_everything(cx: &LintContext<'_>, node: NodeRef<'_>, sink: &mut LintSink<'_>) {
-    let config: &Config = cx.typed_config(node.id());
+    // Own config type, already validated.
+    let Ok(config) = cx.typed_config::<Config>(node.id()) else { return };
     if config.min_size == 0 && config.max_size.is_none() {
         sink.emit("min_size is 0 and max_size is unset, so requests are never batched");
     }
@@ -699,24 +775,70 @@ factory gain a `lints: &'static [&'static Lint]` field:
 - `ControllerExtensionFactory` (controller crate), for extensions declared in
   `engine.controller.extensions`.
 
-For now, extension lints are pipeline lints, activated as follows:
+Extension lints use the same pipeline and node scopes as other lints. Where
+the extension is declared determines its **reach**: its lints only run
+against pipelines, and nodes within pipelines, that are at or below the
+extension in the configuration hierarchy.
 
-| Extension kind | Declared in                    | Check runs against                                   |
-|----------------|--------------------------------|------------------------------------------------------|
-| Pipeline       | `pipelines.<p>.extensions`     | The declaring pipeline                               |
-| Controller     | `engine.controller.extensions` | Every pipeline, including the observability pipeline |
+| Extension kind | Declared in                    | Reach                                                         |
+|----------------|--------------------------------|---------------------------------------------------------------|
+| Pipeline       | `pipelines.<p>.extensions`     | The declaring pipeline and its nodes                          |
+| Controller     | `engine.controller.extensions` | Every pipeline and node, including the observability pipeline |
 
-There are no group-level extensions in the config today, so these are the
-only two activation scopes.
+Within its reach:
 
-TODO: Extension lints need more design:
+- An extension **pipeline lint** runs once per pipeline.
+- An extension **node lint** runs once per node whose type matches the lint's
+  `NodeInterests` (`All`, or `Types` with a list of URNs). Unlike
+  node-declared lints, extension lints are usually interested in other node
+  types rather than their own.
 
-- How a check accesses its extension's own config, so that an extension can
-  implement configurable policy (e.g. a list of nodes an organisation does
-  not allow).
-- Whether extensions need their own lint scope (an `Extension` check kind).
-- What happens when multiple instances of the same extension type are
-  declared in one scope.
+As for any lint, a pipeline or node at which the lint resolves to `allow` is
+skipped.
+
+Node interests are static. An extension whose rules depend on its config
+(for example, a list of disallowed node types) declares `All` and filters in
+its check; deriving interests from config is listed under
+[Future possibilities](#future-possibilities).
+
+A check reads its extension's config with `LintContext::extension_config`.
+For example, an organisation policy extension that disallows certain node
+types:
+
+```rust
+#[derive(Deserialize)]
+struct PolicyConfig {
+    disallowed: Vec<String>,
+}
+
+pub static DISALLOWED_NODE: Lint = Lint {
+    id: "disallowed_node",
+    category: Category::Correctness,
+    summary: "node type is disallowed by organisation policy",
+    docs: "...",
+    check: Check::Node {
+        interests: NodeInterests::All,
+        check: check_disallowed_node,
+    },
+};
+
+fn check_disallowed_node(cx: &LintContext<'_>, node: NodeRef<'_>, sink: &mut LintSink<'_>) {
+    let Some(policy) = cx.extension_config::<PolicyConfig>() else { return };
+    if policy.disallowed.iter().any(|urn| urn == node.urn().as_str()) {
+        sink.emit(format!("node type `{}` is disallowed", node.urn()));
+    }
+}
+```
+
+**Multiple instances.** Several instances of the same extension type can be
+within reach of one pipeline (for example, one in
+`engine.controller.extensions` and one in the pipeline's `extensions:`).
+Each instance runs its lints independently with its own config, and
+diagnostics identify the instance through the `extension.id` event
+attribute. Because levels are configured by lint name, and lint names are
+derived from the extension *type*, setting a lint to `allow` silences it for
+every instance of the extension; there is currently no way to allow a lint
+for one instance but not another.
 
 ### Gathering lints
 
@@ -784,16 +906,22 @@ node blocks are already reachable through the `PipelineConfig` it holds.
    a lint forbidden in an enclosing scope or by a less specific selector in
    the same scope. A conflict is a hard error and no checks run.
 2. **Run pipeline lints.** The active pipeline lints are those declared by
-   node types present in the pipeline, by the pipeline's extensions, and by
-   all controller extensions. For each, resolve its level at the pipeline.
-   If it is `allow`, skip it; otherwise invoke its check.
-3. **Run node lints.** For each node, and for each node lint declared by
-   that node's type, resolve the lint's level at the node. If it is `allow`,
-   skip it; otherwise invoke its check with that node.
+   node types present in the pipeline and by extensions whose reach includes
+   the pipeline (the pipeline's extensions and all controller extensions).
+   For each, resolve its level at the pipeline. If it is `allow`, skip it;
+   otherwise invoke its check.
+3. **Run node lints.** For each node, the active node lints are those
+   declared by the node's type, plus node lints of extensions within reach
+   whose `NodeInterests` match the node's type. For each, resolve the lint's
+   level at the node. If it is `allow`, skip it; otherwise invoke its check
+   with that node.
 4. **Cap.** Apply `lint_cap` to every diagnostic.
 
 Diagnostics are collected through each check's sink with the level resolved
-before the check ran.
+before the check ran. A lint declared by an extension type with several
+instances within reach is run once per instance. A `PipelineLintState` is
+created for each pipeline's run and shared by all of its check invocations
+(see [Lint types](#lint-types)).
 
 TODO: Where engine lints, including meta lints such as `unknown_lints` and
 `unfulfilled_lint_expectations`, run in this sequence.
@@ -844,6 +972,7 @@ is the diagnostic's message.
 | `pipeline.id`           | Always                                          | Linted pipeline                                                                                                         |
 | `node.id`               | Node lint                                       | Node the diagnostic points at                                                                                           |
 | `node.urn`              | Node lint                                       | URN of that node                                                                                                        |
+| `extension.id`          | Lint declared by an extension                   | Instance id of the declaring extension, distinguishing multiple instances of one type                                   |
 | `lint.name`             | Always                                          | Full lint name, e.g. `urn:otel:processor:batch:<lint_id>`                                                               |
 | `lint.related.node.ids` | Pipeline lint with related nodes                | Ids of the related nodes (string array)                                                                                 |
 | `lint.level`            | Always                                          | Final level after `warnings` and the cap; one of `warn`, `deny`, `forbid`                                               |
@@ -876,6 +1005,9 @@ is exercised in CI.
   - Testing that lint names remain stable
 - TODO: How `forbid` and lint scopes interact with live reconfiguration
   when a change adds or removes an extension
+- Reusing validated configs. Component validation already deserializes every
+  node config and discards the result; it could hand the typed value to the
+  lint stage to avoid deserializing it again.
 
 ## Drawbacks
 
@@ -936,8 +1068,6 @@ If there is no prior art, say so -- new ideas are welcome.
     promote them only during major version bumps.
   - (c) Associate all lints with a release version and pin a lint baseline in the
     config (e.g. `lints_version`) so that lints in any later default to `warn`.
-- Should lints get additional scopes, such as an `Extension` scope for
-  extension lints or a `Connection` scope for lints about individual edges?
 - How should lints that span node types learn about other node types? For
   example, "retry upstream of batch" depends on the batch processor not
   returning data on NACK. Rather than hard-coding other nodes' URNs, node
@@ -969,3 +1099,9 @@ If there is no prior art, say so -- new ideas are welcome.
 - Automatic documentation generation from `Lint::summary` and `Lint::docs`
 - Aliases for renamed lints and renamed component URNs
 - Returning lint warnings in admin API responses
+- Config-driven node interests. Extension node lints currently declare static
+  `NodeInterests`; an extension could instead derive them from its config
+  (e.g. a list of disallowed node types) so the engine only invokes the lint
+  for relevant nodes.
+- A `Connection` lint scope for rules about individual edges. Connections
+  can already be inspected from pipeline lints through `graph()`.
