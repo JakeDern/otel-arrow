@@ -105,7 +105,7 @@ Which lints are _active_ for a given pipeline depends on the
 pipeline:
 
 | Source    | Active in                                                                                                                                                                                                                             | Initial level |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+|-----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|
 | Engine    | Every pipeline; emitted by the engine during the lint stage                                                                                                                                                                           | Its default   |
 | Node      | Pipelines that contain at least one node of that type                                                                                                                                                                                 | Its default   |
 | Extension | Pipelines and nodes within the extension's reach (every pipeline for a controller extension in `engine.controller.extensions`, one pipeline for a pipeline extension). Node lints only visit nodes matching the lint's node interests | Its default   |
@@ -126,7 +126,7 @@ A few engine lints report problems with the lint configuration itself. They
 are ordinary lints and can be configured like any other.
 
 | Lint                            | Category     | Fires when                                                                     |
-| ------------------------------- | ------------ | ------------------------------------------------------------------------------ |
+|---------------------------------|--------------|--------------------------------------------------------------------------------|
 | `unknown_lints`                 | `suspicious` | A `lints:` block names a lint, component, or category the engine does not know |
 | `renamed_and_removed_lints`     | `suspicious` | A `lints:` block uses a renamed or removed lint name                           |
 | `unfulfilled_lint_expectations` | `suspicious` | An `expect` entry's lint did not fire                                          |
@@ -134,7 +134,7 @@ are ordinary lints and can be configured like any other.
 Meta lints are emitted where the engine checks the lint configuration:
 
 | Lint                            | Emitted                                | Location                                                 |
-| ------------------------------- | -------------------------------------- | -------------------------------------------------------- |
+|---------------------------------|----------------------------------------|----------------------------------------------------------|
 | `unknown_lints`                 | When a `lints:` block is admitted      | The scope of that block (root, group, pipeline, or node) |
 | `renamed_and_removed_lints`     | When a `lints:` block is admitted      | The scope of that block                                  |
 | `unfulfilled_lint_expectations` | At the end of each pipeline's lint run | The pipeline or node where the `expect` entry is set     |
@@ -231,7 +231,7 @@ Errors will prevent the creation of pipelines that don't pass the lint, whereas
 warnings are just reported as events.
 
 | Level    | Reported?                   | Overrideable? |
-| -------- | --------------------------- | ------------- |
+|----------|-----------------------------|---------------|
 | `allow`  | No                          | Yes           |
 | `expect` | Yes, warning if unfulfilled | Yes           |
 | `warn`   | Yes, as a warning           | Yes           |
@@ -244,7 +244,7 @@ Every lint belongs to exactly one of a fixed set of categories which defines the
 default enforcement level.
 
 | Category      | Default Level | Meaning                                                                                                  |
-| ------------- | ------------- | -------------------------------------------------------------------------------------------------------- |
+|---------------|---------------|----------------------------------------------------------------------------------------------------------|
 | `correctness` | warn          | The pipeline almost certainly does not do what its author intended (data dropped, misrouted, corrupted). |
 | `suspicious`  | warn          | Probably a mistake, but there are legitimate uses.                                                       |
 | `perf`        | warn          | Correct, but wastes CPU, memory, or throughput.                                                          |
@@ -309,7 +309,7 @@ Lints are referenced via **selectors**. The basic selector is the fully qualifie
 urn, but selectors can refer to classes of lints based on component or category:
 
 | Selector             | Example                     | Matches                                          |
-| -------------------- | --------------------------- | ------------------------------------------------ |
+|----------------------|-----------------------------|--------------------------------------------------|
 | Full Urn             | `processor:batch:<lint_id>` | Exactly one lint                                 |
 | Component + category | `processor:batch:perf`      | Lints defined by that component in that category |
 | Component            | `processor:batch`           | All lints defined by that component              |
@@ -355,7 +355,7 @@ A lint can only be configured at its own scope and the scopes that enclose
 it:
 
 | Lint scope | Can be configured at             |
-| ---------- | -------------------------------- |
+|------------|----------------------------------|
 | Pipeline   | CLI, root, group, pipeline       |
 | Node       | CLI, root, group, pipeline, node |
 
@@ -486,6 +486,12 @@ be run ahead of time:
   (creating or replacing a pipeline, or reconciling the whole config) lints
   each affected pipeline as it would look after the change. Errors reject
   the change. Warnings are emitted as `pipeline.lint.diagnostic` events.
+  Pipeline and node `lints:` blocks can be changed this way; the pipeline is
+  re-linted with the new levels before the change is admitted, but is not
+  restarted. The root `lints:` block, `engine.lint_cap`, and the `lints:`
+  block of a group that contains pipelines can only be changed by restarting
+  the engine (see
+  [Live changes to lint configuration](#live-changes-to-lint-configuration)).
 - **With `df_engine --validate-and-exit`.** Validates and lints a config
   file without starting any pipelines.
 
@@ -822,7 +828,7 @@ against pipelines, and nodes within pipelines, that are at or below the
 extension in the configuration hierarchy.
 
 | Extension kind | Declared in                    | Reach                                                         |
-| -------------- | ------------------------------ | ------------------------------------------------------------- |
+|----------------|--------------------------------|---------------------------------------------------------------|
 | Pipeline       | `pipelines.<p>.extensions`     | The declaring pipeline and its nodes                          |
 | Controller     | `engine.controller.extensions` | Every pipeline and node, including the observability pipeline |
 
@@ -939,7 +945,7 @@ holding the outer `lints:` blocks, unmerged and in order. The pipeline and
 node blocks are already reachable through the `PipelineConfig` it holds.
 
 | Pipeline               | Scope chain (outermost to innermost)                   |
-| ---------------------- | ------------------------------------------------------ |
+|------------------------|--------------------------------------------------------|
 | Regular                | CLI flags, root, group, pipeline, node                 |
 | `system/observability` | CLI flags, root, `engine.observability.pipeline`, node |
 
@@ -947,12 +953,12 @@ The stage has two phases.
 
 **A. Lint configuration.** Each `lints:` block being admitted has its
 selectors checked against the registry, emitting `unknown_lints` and
-`renamed_and_removed_lints` located at that block's scope. At startup every
-block is checked; on live reconfiguration, only the blocks being created or
-changed (a group's block on group creation, a pipeline's and its nodes'
-blocks on pipeline creation or replacement, and changed blocks on
-reconcile). A diagnostic that resolves to `deny` stops startup or rejects the
-change, like any other lint error.
+`renamed_and_removed_lints` located at that block's scope. The root block is
+checked at startup. Group blocks are checked at startup and on group
+creation. Pipeline and node blocks are checked whenever their pipeline is
+created or replaced, whether through a pipeline update or a reconcile. A
+diagnostic that resolves to `deny` stops startup or rejects the change, like
+any other lint error.
 
 **B. Pipelines.** For each resolved pipeline being admitted:
 
@@ -1022,7 +1028,7 @@ emitted as a `pipeline.lint.diagnostic` event (see
 [Emitting lint events](#emitting-lint-events)). In addition:
 
 | Path                  | Error diagnostics     | Warning diagnostics  |
-| --------------------- | --------------------- | -------------------- |
+|-----------------------|-----------------------|----------------------|
 | Startup               | Engine does not start | Pipeline is admitted |
 | `--validate-and-exit` | Non-zero exit         | Zero exit            |
 | Live reconfiguration  | Change rejected       | Change is admitted   |
@@ -1032,6 +1038,41 @@ emitted as a `pipeline.lint.diagnostic` event (see
 available: `serde_yaml` 0.9 does not retain source positions, and
 environment variable substitution happens before parsing, so offsets would
 not match the original file.
+
+### Live changes to lint configuration
+
+Lint configuration that is shared by several pipelines can only be changed
+by restarting the engine, following the same rule live reconfiguration
+already applies to shared policies:
+
+| Lint configuration                                     | Changed live?                                       |
+|--------------------------------------------------------|-----------------------------------------------------|
+| Root `lints:` block                                    | No; restart required                                |
+| Group `lints:` block, group has pipelines              | No; restart required                                |
+| Group `lints:` block on group creation                 | Yes (new groups are empty)                          |
+| `engine.lint_cap`                                      | No; restart required (as for other `engine` fields) |
+| CLI lint flags (`-A`, `-W`, `-D`, `-F`, `--cap-lints`) | No; fixed for the lifetime of the process           |
+| Pipeline and node `lints:` blocks                      | Yes, through pipeline updates and reconcile         |
+
+Live reconciliation compares only the fields it knows about, so a new root
+`lints` field would otherwise be accepted and silently ignored.
+`validate_reconcile_capabilities` therefore gains an explicit check that
+rejects changes to the root `lints:` block and to the `lints:` block of any
+group with current or requested pipelines, with the same
+`unsupported_mutation` error and "restart required" message as for shared
+policies. `reconcile_target_config`, which copies root fields from the
+desired config, carries the new field. The capability table in
+`docs/admin/live-reconfiguration.md` gains a matching row.
+
+**Lint-only pipeline changes.** A pipeline change that only modifies the
+pipeline's or its nodes' `lints:` blocks goes through the full lint stage
+like any other pipeline change: the pipeline is linted with the new levels,
+any error rejects the change, and the resulting warnings are emitted as
+`pipeline.lint.diagnostic` events. Because lints do not affect a running
+pipeline, `ResolvedPipelineConfig::runtime_matches` ignores `lints:` blocks,
+so an admitted lint-only change is planned as a `noop` rollout: the new
+configuration is committed and the pipeline keeps running without a
+restart.
 
 ### Emitting lint events
 
@@ -1043,7 +1084,7 @@ macros. Diagnostics at `allow` or `expect` are not emitted. The event body
 is the diagnostic's message.
 
 | Attribute               | Present                                         | Description                                                                                                             |
-| ----------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+|-------------------------|-------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
 | `lint.location`         | Always                                          | Where the diagnostic is located; one of `root`, `group`, `pipeline`, `node`                                             |
 | `pipeline.group.id`     | Location is a group, pipeline, or node          | Group of the diagnostic (`system` for the observability pipeline)                                                       |
 | `pipeline.id`           | Location is a pipeline or node                  | Pipeline of the diagnostic                                                                                              |
@@ -1080,8 +1121,11 @@ that the event is exercised in CI.
     other core lint should trigger on that config
   - Testing that there are no conflicting lint names
   - Testing that lint names remain stable
-- TODO: How `forbid` and lint scopes interact with live reconfiguration
-  when a change adds or removes an extension
+- Extensions and live reconfiguration. Controller extensions are part of
+  the `engine` section and cannot be changed live. Adding or removing a
+  pipeline extension is a pipeline change, so the pipeline is re-linted with
+  the extension's lints included or removed, and any `forbid` conflict is a
+  hard error that rejects the change.
 - Reusing validated configs. Component validation already deserializes every
   node config and discards the result; it could hand the typed value to the
   lint stage to avoid deserializing it again.
@@ -1101,6 +1145,12 @@ that the event is exercised in CI.
   would be linted as written and no `lints:` entry would be silently ignored,
   at the cost of extra diagnostics and work on nodes that are about to be
   removed.
+- **Applying root and group lint changes on next admission.** Instead of
+  requiring a restart, changes to shared `lints:` blocks could be committed
+  without re-linting and take effect the next time each pipeline is
+  admitted. Pipelines that violate a tightened rule would keep running
+  unnoticed, and a later, unrelated change to one of them would be rejected
+  unexpectedly.
 - **Engine lints with check functions.** Engine lints could be declared like
   component lints, with a `Check` invoked by the lint stage. Most engine
   lints, however, report conditions the engine already detects (such as
@@ -1119,8 +1169,6 @@ If there is no prior art, say so -- new ideas are welcome.
 
 ## Unresolved questions
 
-- Can the root `lints:` block be changed live (e.g. through
-  `/config/reconcile`), or does changing it require a restart?
 - When a pipeline level lint concerns two nodes i.e. "dont place batch after
   retry", what node should own the lint?
   - Should core node lints just be baked directly into the engine? How do we
@@ -1146,14 +1194,21 @@ If there is no prior art, say so -- new ideas are welcome.
 ## Future possibilities
 
 - Lint parameters. Should lints accept configuration beyond a level?
-- A language for describing lints
+- A language for describing lints including rego. This could be shaped similar 
+to the transform processor where a rego linting extension allows running user
+programs for more complicated lints.
 - Inclusion of lints into dfctl. It's not clear how to compile custom lints into
   dfctl at this time. Maybe we can link some linting modules in with wasm.
 - Lints across pipelines connected by topics. Lints are currently limited to
   a single pipeline, which avoids a change to one pipeline causing a lint
   failure in another.
-- Changing lint configuration at runtime (see
-  [Unresolved questions](#unresolved-questions))
+- Live changes to root and group `lints:` blocks. Because lints do not
+  affect running pipelines, such a change would not need any rollouts: it
+  could be admitted by re-linting every pipeline under the changed scope
+  (every pipeline for the root), rejecting the whole change if any pipeline
+  fails, emitting the resulting warnings, and committing the new
+  configuration. `engine.lint_cap` could similarly be made changeable live,
+  as an emergency override that does not require a restart.
 - Suppression reasons. A `lints:` entry could accept a structured form such
   as `{ level, reason }`, with the reason shown in diagnostics and lint
   reports, like rustc's `reason = "..."`.
