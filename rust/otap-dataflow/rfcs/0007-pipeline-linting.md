@@ -232,17 +232,15 @@ proposed types and where they live, not final signatures.
 
 | Crate                                  | Contents                                                                                                                        |
 |----------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
-| `config` (existing), new `lint` module | `lints:` config types; `LintInfo`, `Category`, `Level`, `ConfigLint`, `ConfigLints`, `LintSink`, `LintEmitter`, `LevelTable`    |
+| `config` (existing), new `lint` module | `lints:` config types; `LintInfo`, `Category`, `Level`, `ConfigLint`, `NodeConfig`, `NodeConfigSpec`, `LintSink`, `LintSinks`   |
 | `lint` (`otel-arrow-dfe-lint`)         | `LinterFactory`, `LinterLint`, `LINTER_FACTORIES`, `Check`, `LintContext`, engine lints, registry, level resolution, lint stage |
 
-Config lints are declared and run from node validators, and the shared
-helpers in `config::validation` (`validate_typed_config`, `no_config`) take
-the emitter in their signatures, so these types live in `config`, which
-cannot depend on `lint`. `LintSink` is among them because config lints emit
-through it; linter checks use the same type. The `lint` crate depends only on
-`config`, so linters have no `PData` parameter and no telemetry dependency.
-Crates that define linters, including `core-nodes` and `contrib-nodes`,
-depend on `lint`.
+Node factories reference `NodeConfig` and `ConfigLint`, so these types live
+in `config`, which cannot depend on `lint`. `LintSink` is among them because
+config lints emit through it; linter checks use the same type. The `lint`
+crate depends only on `config`, so linters have no `PData` parameter and no
+telemetry dependency. Crates that define linters, including `core-nodes` and
+`contrib-nodes`, depend on `lint`.
 
 ### Declaring lints
 
@@ -308,9 +306,10 @@ but costly, `perf`. If it is fine but untidy, `style`. For example:
 
 ### Writing config lints
 
-A config lint is a check over the node's typed config, which the validator
-has already deserialized. All of a node's config lints see the same config
-type:
+Node factories no longer validate config through an opaque function. Each
+declares a `NodeConfig<T>`: how to parse its config into a typed value, and
+the lints to run on that value. The engine parses, stores the result, and
+runs the lints itself, so a node cannot forget to run them.
 
 ```rust
 // config::lint
@@ -319,27 +318,71 @@ pub struct ConfigLint<T: 'static> {
     pub check: fn(&T, &mut LintSink<'_>),
 }
 
-/// A node's config lints.
-pub struct ConfigLints<T: 'static>(pub &'static [&'static ConfigLint<T>]);
+pub struct NodeConfig<T: 'static> {
+    /// Parses and validates the raw config. Errors are validation errors.
+    pub parse: fn(&serde_json::Value) -> Result<T, Error>,
+    pub lints: &'static [&'static ConfigLint<T>],
+}
+
+impl<T: DeserializeOwned + 'static> NodeConfig<T> {
+    /// Serde deserialization, no lints.
+    pub const TYPED: Self = Self { parse: deserialize_typed_config::<T>, lints: &[] };
+}
+impl NodeConfig<()> {
+    /// Accepts only a missing or empty config, no lints.
+    pub const NONE: Self = Self { parse: no_config, lints: &[] };
+}
 ```
 
-`ReceiverFactory`, `ProcessorFactory`, and `ExporterFactory` each gain a
-`lints: Option<&'static dyn LintList>` field, a type-erased `ConfigLints<T>`
-(`None` for nodes without lints; the hand-written `Clone` impls are
-updated), and `validate_config` gains an emitter parameter:
+`ReceiverFactory`, `ProcessorFactory`, and `ExporterFactory` replace
+`validate_config` with a type-erased `config: &'static dyn NodeConfigSpec`,
+implemented once for every `NodeConfig<T>`:
 
 ```rust
-pub validate_config: fn(
-    config: &serde_json::Value,
-    lints: &mut LintEmitter<'_>,
-) -> Result<(), otel_arrow_dfe_config::error::Error>,
+// config::lint
+pub trait NodeConfigSpec: Sync {
+    fn parse(&self, raw: &serde_json::Value) -> Result<Box<dyn Any>, Error>;
+    fn lints(&self) -> Vec<&'static LintInfo>;
+    /// Runs every lint on a value returned by this spec's `parse`.
+    fn run_lints(&self, config: &dyn Any, sinks: &mut dyn LintSinks);
+}
+
+/// Implemented by the engine for one node.
+pub trait LintSinks {
+    /// A sink bound to `lint` at this node, or `None` if it resolves to `allow`.
+    fn sink(&mut self, lint: &'static LintInfo) -> Option<LintSink<'_>>;
+}
+
+impl<T: 'static> NodeConfigSpec for NodeConfig<T> {
+    fn parse(&self, raw: &serde_json::Value) -> Result<Box<dyn Any>, Error> {
+        (self.parse)(raw).map(|config| Box::new(config) as Box<dyn Any>)
+    }
+
+    fn lints(&self) -> Vec<&'static LintInfo> {
+        self.lints.iter().map(|lint| &lint.info).collect()
+    }
+
+    fn run_lints(&self, config: &dyn Any, sinks: &mut dyn LintSinks) {
+        let config = config.downcast_ref::<T>().expect("value from this spec's parse");
+        for lint in self.lints {
+            if let Some(mut sink) = sinks.sink(&lint.info) {
+                (lint.check)(config, &mut sink);
+            }
+        }
+    }
+}
 ```
+
+The downcast cannot fail: `parse` and `run_lints` belong to the same
+`NodeConfig<T>`, and the engine only passes a value back to the spec that
+produced it. Lints are identified by the address of their `LintInfo`, so
+order never matters, and a lint resolved to `allow` is never run.
 
 For example, the batch processor's existing build-time
 `batch.config.forwards_everything` warning becomes a lint:
 
 ```rust
-// batch_processor/lint.rs
+// batch_processor
 static FORWARDS_EVERYTHING: ConfigLint<Config> = ConfigLint {
     info: LintInfo {
         id: "forwards_everything",
@@ -350,53 +393,31 @@ static FORWARDS_EVERYTHING: ConfigLint<Config> = ConfigLint {
         renamed_from: &[],
     },
     check: |config, sink| {
-        for (format, settings) in config.format_settings() {
-            if settings.forwards_everything() {
+        for (format, plan) in config.plans().unwrap_or_default() {
+            if plan.settings().forwards_everything() {
                 sink.emit(format!(
-                    "{format} format: min_size is 0 and max_size is unset, so requests are never batched"
+                    "{} format: min_size is 0 and max_size is unset, so requests are never batched",
+                    format.name(),
                 ));
             }
         }
     },
 };
 
-pub static BATCH_LINTS: ConfigLints<Config> = ConfigLints(&[&FORWARDS_EVERYTHING]);
-
-// batch_processor/mod.rs
 #[distributed_slice(OTAP_PROCESSOR_FACTORIES)]
 pub static OTAP_BATCH_PROCESSOR_FACTORY: ProcessorFactory<OtapPdata> = ProcessorFactory {
     // ...existing fields...
-    validate_config: validate_batch_config,
-    lints: Some(&BATCH_LINTS),
+    config: &NodeConfig::<Config> {
+        parse: parse_batch_config,
+        lints: &[&FORWARDS_EVERYTHING],
+    },
 };
-
-fn validate_batch_config(raw: &serde_json::Value, cx: &mut LintEmitter<'_>) -> Result<(), Error> {
-    let config: Config = deserialize_typed_config(raw)?;
-    cx.run(&config, &BATCH_LINTS);
-    Ok(())
-}
 ```
 
-A `LintEmitter` is bound to one node and holds its `LevelTable`: the
-resolved level of each of the node's lints, indexed by position in its
-`ConfigLints`. `run` calls each lint's check with a sink bound to that lint,
-skipping lints at `allow`; the sink records diagnostics at the lint's level.
-
-A node's config lints are bugs in the node, not in the user's configuration,
-when:
-
-- `run` is passed a list other than the one the factory declares (compared
-  by address), or
-- a factory declares lints and its validator returns `Ok` without calling
-  `run`.
-
-Both are reported as internal error events, do not affect admission, and are
-caught by the node's own unit tests. `LintEmitter::discard()` returns an
-emitter that drops everything, for callers that validate for other purposes.
-
-`validate_typed_config::<T>` and `no_config` gain the parameter and ignore
-it, so the roughly 40 nodes that use them do not change; hand-written
-validators gain it mechanically. Extension factories share the signature but
+Migration is mechanical. The roughly 40 nodes using `validate_typed_config::<C>`
+switch to `&NodeConfig::<C>::TYPED`, nodes using `no_config` to
+`&NodeConfig::NONE`, and hand-written validators return their parsed value
+instead of discarding it. Extension factories keep `validate_config` and
 declare no lints in this RFC. Each check is a plain function and is unit
 tested by calling it with a typed config and a recording sink.
 
@@ -555,8 +576,9 @@ Linting is added to the existing validation path:
 
 ```text
  parse --> validate() --> LINT CONFIG --> validate_engine_components --> LINT STAGE
-           structural     level tables,   validate_config(raw, emitter)  linter checks,
-                          meta lints      runs config lints              unconnected nodes
+           structural     level tables,   spec.parse(raw) per node,      config lints,
+                          meta lints      typed configs stored           linter checks,
+                                                                         unconnected nodes
 ```
 
 **A. Lint configuration.** After structural validation:
@@ -573,13 +595,14 @@ Linting is added to the existing validation path:
 The scope chain is root, group, pipeline, node; for the observability
 pipeline it is root, `engine.observability.pipeline`, node.
 
-**B. Component validation.** `validate_engine_components` runs as today,
-passing each node's `validate_config` a `LintEmitter` for that node. A
-validation error stops admission as today, and that node's diagnostics are
-discarded.
+**B. Component validation.** `validate_engine_components` calls each node's
+`config.parse(raw)` and keeps the typed configs for the rest of admission. A
+parse error stops admission as today, so no lint runs on a pipeline that
+fails validation.
 
 **C. Lint stage.** For each pipeline being admitted, report unconnected
-nodes, then run every linter's pipeline checks, then its node checks.
+nodes, run each node's config lints on its stored config (`run_lints`), then
+run every linter's pipeline checks, then its node checks.
 
 The result is a `LintReport` per pipeline: its diagnostics and whether any
 is an error.
@@ -591,8 +614,8 @@ emits `linter:engine:unconnected_node` for each. Every other lint sees the
 pipeline as configured, so every `lints:` entry on every node takes effect.
 
 **Other callers of `validate_config`.** `node_context_declarations` and the
-tests in `crates/validation/tests/validate_config_tests.rs` pass
-`LintEmitter::discard()`.
+tests in `crates/validation/tests/validate_config_tests.rs` call
+`config.parse(raw)` and drop the result.
 
 #### Entry point
 
@@ -723,6 +746,10 @@ rollout: the configuration is committed and the pipeline keeps running.
   emit any of the node's lints, clippy-style. Per-lint checks give config
   lints and linters one model, let the engine skip lints at `allow`, and can
   be unit tested in isolation; deserialization still happens once.
+- **Config lints run by the validator.** A validator that parses and then
+  runs its node's lints can forget to run them. Having the engine own
+  parse-then-lint removes that failure, and keeps lint output out of
+  admissions that fail validation.
 - **Check functions for engine lints.** These would duplicate detection the
   engine already performs.
 - **One check per linter.** A single check per linter could not be skipped
@@ -769,6 +796,8 @@ rollout: the configuration is committed and the pipeline keeps running.
   lints and linters using node config types also require the node crates.
 - Lints across pipelines connected by topics.
 - Documentation generated from `LintInfo`.
+- Passing the config parsed at admission to `create`, instead of parsing it
+  again on every core.
 - Config lints for extensions, and extensions that lint the nodes bound to
   them.
 - A connection location for rules about individual edges.
