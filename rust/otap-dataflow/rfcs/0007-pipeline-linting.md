@@ -62,6 +62,32 @@ like this" and are fully configurable. For example, while you can do it, it's no
 recommended to place a retry processor before the batch processor, as you may
 duplicate batching work unnecessarily.
 
+### When lints run
+
+Lints run wherever the engine processes a pipeline configuration which includes:
+
+- **At startup** - Lint rules are checked against all declared pipelines
+- **On live reconfiguration** - Every change made through the admin API lints
+  each affected pipeline as it would look after the change.
+- **During `df_engine --validate-and-exit`** - Lints are also reported in addition
+  to validation errors
+
+Every reported diagnostic is emitted as a `pipeline.lint.diagnostic` telemetry event.
+For example, a batch processor's `duplicate_batching` lint would transform into the
+following event:
+
+```yaml
+event_name: pipeline.lint.diagnostic
+severity: WARNING
+body: Two batch processors are located in the same pipeline, this is likely redundant.
+attributes:
+  pipeline.group.id: dev
+  pipeline.id: main
+  node.id: batch
+  node.urn: urn:otel:processor:batch
+  lint.name: urn:otel:processor:batch:duplicate_batching
+```
+
 ### Where lints come from
 
 - **Nodes** check their own configuration. These are **config lints**: for
@@ -70,22 +96,22 @@ duplicate batching work unnecessarily.
   to other nodes. A linter is a component that only carries lints. Every
   linter built into the engine runs on every pipeline; there is nothing to
   add to your configuration, and you control its lints only through
-  [levels](#configuring-lints). The engine ships with two:
+  [levels](#configuring-lints). The engine initially ships with two linters:
 
   | Linter                 | Rules about                                    |
   |------------------------|------------------------------------------------|
   | `linter:core-nodes`    | Core nodes and pipelines in general            |
   | `linter:contrib-nodes` | Contrib nodes                                  |
 
-- **The engine** reports a few lints itself, grouped under two reserved
+- **The engine** reports a few special lints, grouped under two reserved
   names: `linter:meta` for problems with the lint configuration itself (see
   [Meta lints](#meta-lints)), and `linter:engine` for problems with pipeline
   structure, such as `linter:engine:unconnected_node`.
 
 ### Lint names
 
-Every lint is named after the component that declares it: the node type for
-config lints, and the linter otherwise. Names follow the same shortcut rules
+Every lint is named after the component that declares it. This is the node type
+for config lints, and the linter otherwise. Names follow the same shortcut rules
 as component URNs (see [URN format](../docs/urns.md)): the short form is
 only valid for the `otel` namespace.
 
@@ -102,7 +128,7 @@ removing a lint is a breaking change.
 
 ### Lint scopes
 
-Lints operate on a single pipeline at a time, and every lint has one of two
+Lints operate on a single pipeline or node at a time, and every lint has one of two
 scopes:
 
 - A **node** lint is about a single node, and its diagnostics point at that
@@ -159,7 +185,6 @@ maps a **selector** to a level:
 version: otel_dataflow/v1
 lints: # root scope
   correctness: forbid
-  warnings: deny
 engine:
   lint_cap: warn # operator-only, see below
 groups:
@@ -278,49 +303,6 @@ that inherits it. As with any lint, the level is resolved from the location
 outwards: `linter:meta:unknown_lints: allow` in a block silences unknown
 entries in that block and the blocks nested inside it, but a pipeline cannot
 silence a mistake in the root block.
-
-### When lints run and where you see them
-
-Lints run wherever the engine admits a configuration:
-
-- **At startup.** An error stops the engine from starting, the same way a
-  validation error does.
-- **On live reconfiguration.** Every change made through the admin API lints
-  each affected pipeline as it would look after the change, and an error
-  rejects the change. Pipeline and node `lints:` blocks can be changed live
-  without restarting the pipeline; root and group `lints:` blocks and the
-  cap require an engine restart (see
-  [Live changes to lint configuration](#live-changes-to-lint-configuration)).
-- **With `df_engine --validate-and-exit`**, which validates and lints a
-  config file without starting any pipelines.
-
-Every reported diagnostic is emitted as a `pipeline.lint.diagnostic`
-internal telemetry event, so it shows up wherever the engine's other events
-do: on the console, in the admin `/logs` tap, and in OTLP exported by the
-observability pipeline. Its severity is `WARN` for `warn` and `ERROR` for
-`deny` and `forbid`. For example, the batch processor's
-`forwards_everything` lint, in a pipeline whose root `lints:` block sets
-`warnings: deny`:
-
-```yaml
-event_name: pipeline.lint.diagnostic
-severity: ERROR
-body: min_size is 0 and max_size is unset, so requests are never batched
-attributes:
-  pipeline.group.id: dev
-  pipeline.id: main
-  node.id: batch
-  node.urn: urn:otel:processor:batch
-  lint.name: urn:otel:processor:batch:forwards_everything
-  lint.level: deny
-  lint.level.selector: warnings
-  lint.level.scope: root
-```
-
-`lint.level.selector` and `lint.level.scope` show where the level came
-from; here, the lint, which warns by default, was promoted to `deny` by
-`warnings: deny` in the root block. See
-[Emitting lint events](#emitting-lint-events) for the full attribute list.
 
 ## Reference-level explanation
 
@@ -648,7 +630,7 @@ pub enum NodeInterests {
 }
 ```
 
-Linter checks can be expensive (graph traversal, deserializing many node
+Linter checks can be expensive (graph traversal, deserializing node
 configs), so unlike config lints the engine decides whether to run each
 one. It invokes a check at every construct of the right kind, skipping
 pipelines and nodes that do not match its interests and locations where the
@@ -1204,21 +1186,8 @@ that the event is exercised in CI.
   (such as unconnected nodes or unknown selectors), so a separate check
   would duplicate that detection and risk diverging from it.
 
-## Prior art
-
-Discuss prior art, both good and bad. What can we learn from how other
-projects (Rust, OpenDAL, the OpenTelemetry Collector, etc.) solved this?
-If there is no prior art, say so -- new ideas are welcome.
-
-- TODO: Cargo clippy. See the
-  [guide-level explanation](#guide-level-explanation).
-- TODO: Otel collector
-
 ## Unresolved questions
 
-- How should a node-scope `lints:` entry that names a pipeline lint exactly,
-  which can never take effect, be reported: as a hard error or as a meta
-  lint?
 - Should a linked third-party linter be active by default? Linking a
   linter activates all of its lints at their categories' default levels. A
   linter could instead declare a default level for its lints (e.g. `allow`)
