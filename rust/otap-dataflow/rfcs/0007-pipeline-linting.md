@@ -738,10 +738,6 @@ rollout: the configuration is committed and the pipeline keeps running.
   linter and scoping it with levels covers the common cases with no new
   configuration. We can consider specifying more lints or customizing linters
   via config later.
-- **A derive macro for lint sets.** An enum per component deriving `Lints`
-  would give doc-comment docs and default ids, but pairs each lint with its
-  check by position or through a separate `match`. A `static` per lint
-  bundles the two without a proc-macro crate.
 - **Naming the lint at emission in config validators.** One validator could
   emit any of the node's lints, clippy-style. Per-lint checks give config
   lints and linters one model, let the engine skip lints at `allow`, and can
