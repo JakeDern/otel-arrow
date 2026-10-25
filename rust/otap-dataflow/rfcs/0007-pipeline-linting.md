@@ -57,41 +57,23 @@ processor works, but may duplicate batching work unnecessarily.
 
 ### When lints run
 
-Lints run wherever the engine admits a pipeline configuration:
-
-- **At startup**, for every declared pipeline.
-- **On live reconfiguration**, for each pipeline the change creates or
-  replaces, as it would look after the change.
-- **During `df_engine --validate-and-exit`**, in addition to validation.
-
-Every reported diagnostic is emitted as a `pipeline.lint.diagnostic`
-telemetry event (see [Reporting](#reporting)), for example:
-
-```yaml
-event_name: pipeline.lint.diagnostic
-severity: WARNING
-body: "otap format: min_size is 0 and max_size is unset, so requests are never batched"
-attributes:
-  lint.name: urn:otel:processor:batch:forwards_everything
-  lint.level: warn
-  lint.location: node
-  pipeline.group.id: dev
-  pipeline.id: main
-  node.id: passthrough
-  node.urn: urn:otel:processor:batch
-```
+Lints run wherever the engine admits a pipeline configuration: at startup,
+on live reconfiguration, and with `df_engine --validate-and-exit`. The
+engine reports the resulting diagnostics, but how depends on when the lints
+ran (see [Reporting](#reporting)).
 
 ### Where lints come from
 
-- **Nodes** check their own configuration. These are **config lints**, for
-  example a batch processor configured so that it never batches.
-- **Linters** check whole pipelines, such as where a node is placed relative
-  to other nodes. A linter is a component that only carries lints. Every
-  linter compiled into the engine runs on every pipeline and is controlled
-  only through [levels](#configuring-lints). The engine initially ships two:
-  `linter:core-nodes` (core nodes and pipelines in general) and
-  `linter:contrib-nodes` (contrib nodes).
-- **The engine** reports a few lints itself, under two reserved names:
+- Existing **Nodes** can lint their own configuration. These are **config lints**,
+  for example a batch processor configured so that it never batches.
+- Dedicated **Linters** can be linked into the engine to check whole pipelines,
+  such as where a node is placed relative to other nodes. A linter is a component
+  that only carries lints. Every linter compiled into the engine runs on every
+  pipeline and is controlled through [levels](#configuring-lints). The engine
+  will initially ship two linters: `linter:core-nodes` (core nodes and pipelines
+  containing core nodes in general) and `linter:contrib-nodes` (similar for contrib
+  nodes).
+- **The engine** reports a few special lints itself, under two reserved names:
   `linter:meta` for mistakes in lint configuration (see
   [Meta lints](#meta-lints)), and `linter:engine` for pipeline structure,
   such as `linter:engine:unconnected_node`.
@@ -147,7 +129,7 @@ Every lint is `warn` by default. Every lint also belongs to exactly one
 
 | Category      | Meaning                                                                                                  |
 |---------------|----------------------------------------------------------------------------------------------------------|
-| `security`    | The pipeline exposes data or endpoints to unauthorized access or interception.                           |
+| `security`    | A security concern, e.g. the pipeline exposes data or endpoints to unauthorized access or interception.  |
 | `correctness` | The pipeline almost certainly does not do what its author intended (data dropped, misrouted, corrupted). |
 | `suspicious`  | Probably a mistake, but there are legitimate uses.                                                       |
 | `perf`        | Correct, but wastes CPU, memory, or throughput.                                                          |
@@ -174,7 +156,7 @@ version: otel_dataflow/v1
 lints: # root
   correctness: deny
 engine:
-  lint_cap: warn # operator break-glass, see below
+  lint_cap: warn # Overall cap on the lint level for the whole engine, see below
 groups:
   dev:
     lints: # group
@@ -622,9 +604,7 @@ changed pipelines as targets, so unchanged pipelines are not re-reported.
 
 ### Reporting
 
-Startup validation runs before the engine's telemetry subscriber is
-installed, so events emitted then would be lost. Reporting therefore depends
-on the path:
+How diagnostics are reported depends on the path:
 
 | Path                  | Error diagnostics                         | Warning diagnostics                                  |
 |-----------------------|-------------------------------------------|------------------------------------------------------|
@@ -632,12 +612,29 @@ on the path:
 | `--validate-and-exit` | Printed to stderr; non-zero exit          | Printed to stderr; zero exit                         |
 | Live reconfiguration  | Change rejected; in the rejection message | Emitted as events; change admitted                   |
 
-At startup, warnings are held in the `LintReport` and emitted after
+Startup validation runs before the engine's telemetry subscriber is
+installed, so events emitted then would be lost. At startup, warnings are
+therefore held in the `LintReport` and emitted after
 `init_global_subscriber`, as `emit_topic_mode_reports` already is.
 
 The `lint` crate returns diagnostics as plain values. The controller emits
 each reported diagnostic as a `pipeline.lint.diagnostic` event with
 `otel_warn!` (`warn`) or `otel_error!` (`deny`). The body is the message.
+For example:
+
+```yaml
+event_name: pipeline.lint.diagnostic
+severity: WARNING
+body: "otap format: min_size is 0 and max_size is unset, so requests are never batched"
+attributes:
+  lint.name: urn:otel:processor:batch:forwards_everything
+  lint.level: warn
+  lint.location: node
+  pipeline.group.id: dev
+  pipeline.id: main
+  node.id: passthrough
+  node.urn: urn:otel:processor:batch
+```
 
 | Attribute               | Present                           | Description                                         |
 |-------------------------|-----------------------------------|-----------------------------------------------------|
@@ -701,8 +698,9 @@ rollout: the configuration is committed and the pipeline keeps running.
 - **Linter instances in the configuration.** A `linters:` section at several
   scopes would allow differently configured instances, but adds a section,
   instance ids, and live-reconfiguration rules. Running every compiled-in
-  linter and scoping it with levels covers the common case with no new
-  configuration.
+  linter and scoping it with levels covers the common cases with no new
+  configuration. We can consider specifying more lints or customizing linters 
+  via config later.
 - **Check functions for config lints and engine lints.** Config lints would
   duplicate the deserialization validation already does, and engine lints
   would duplicate detection the engine already performs. Emitting from the
