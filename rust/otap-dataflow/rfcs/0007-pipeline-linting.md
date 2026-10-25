@@ -37,7 +37,7 @@ includes disagreement with or exceptions to existing best practices defined
 by other authors.
 
 Programming languages have addressed this problem through configurable linting
-systems like rustc and clippy. We can do the same for Dataflow Engine pipelines.
+systems. We can do the same for Dataflow Engine pipelines.
 
 ## Guide-level explanation
 
@@ -720,9 +720,6 @@ rollout: the configuration is committed and the pipeline keeps running.
 
 ## Unresolved questions
 
-- Should a linked third-party linter be active by default, or should a
-  linter be able to declare its lints `allow` by default so that it only
-  takes effect where enabled?
 - Upgrades. No lint denies by default, but a config that sets a category or
   component to `deny` would start failing when a release adds a lint to it.
   Options include an allow-by-default `nursery` category for new lints, or a
