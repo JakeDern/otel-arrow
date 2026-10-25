@@ -230,73 +230,49 @@ proposed types and where they live, not final signatures.
 
 ### Crate layout
 
-| Crate                                        | Contents                                                                                                                          |
-|----------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
-| `config` (existing), new `lint` module       | `lints:` config types; `LintSet`, `LintSetDescriptor`, `LintInfo`, `Category`, `Level`, `LevelTable`, `LintEmitter`, `LintHandle` |
-| `lint-macros` (`otel-arrow-dfe-lint-macros`) | The `#[derive(Lints)]` proc macro                                                                                                 |
-| `lint` (`otel-arrow-dfe-lint`)               | `LinterFactory`, `LINTER_FACTORIES`, the check API, engine lint sets, registry, level resolution, lint stage                      |
+| Crate                                  | Contents                                                                                                                        |
+|----------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
+| `config` (existing), new `lint` module | `lints:` config types; `LintInfo`, `Category`, `Level`, `ConfigLint`, `ConfigLints`, `LintSink`, `LintEmitter`, `LevelTable`    |
+| `lint` (`otel-arrow-dfe-lint`)         | `LinterFactory`, `LinterLint`, `LINTER_FACTORIES`, `Check`, `LintContext`, engine lints, registry, level resolution, lint stage |
 
-The emission API lives in `config` because node validators and the shared
-helpers in `config::validation` (`validate_typed_config`, `no_config`) use it
-in their signatures, so `config` cannot depend on `lint`. The `lint` crate
-depends only on `config`, so linters have no `PData` parameter and no
-telemetry dependency. Crates that define linters, including `core-nodes` and
-`contrib-nodes`, depend on `lint`.
+Config lints are declared and run from node validators, and the shared
+helpers in `config::validation` (`validate_typed_config`, `no_config`) take
+the emitter in their signatures, so these types live in `config`, which
+cannot depend on `lint`. `LintSink` is among them because config lints emit
+through it; linter checks use the same type. The `lint` crate depends only on
+`config`, so linters have no `PData` parameter and no telemetry dependency.
+Crates that define linters, including `core-nodes` and `contrib-nodes`,
+depend on `lint`.
 
-### Lint sets
+### Declaring lints
 
-Lints are declared similar to metric sets: a **lint set** is a unit-only enum
-deriving `Lints`, in which every variant is one lint. Each component that
-declares lints has exactly one lint set.
-
-```rust
-#[derive(Clone, Copy, Lints)]
-pub enum BatchLint {
-    /// Long-form documentation: what the lint detects, why it matters,
-    /// and how to fix it.
-    #[lint(suspicious, summary = "batch processor forwards every request without batching")]
-    ForwardsEverything,
-}
-```
-
-`#[lint(...)]` takes a category (required), `summary = "..."` (required),
-`id = "..."` (defaults to the variant name in snake_case), and
-`renamed_from = "..."` (repeatable). The variant's doc comment becomes the
-lint's docs. The derive generates:
+Every lint is a `static` holding its declaration together with its check
+(see [config lints](#writing-config-lints) and [linters](#writing-linters)).
+The declaration is a `LintInfo`:
 
 ```rust
 // config::lint
 pub struct LintInfo {
+    /// Unique within the owning component; `[a-z0-9._-]`.
     pub id: &'static str,
     pub category: Category,
+    /// One-line summary.
     pub summary: &'static str,
+    /// What the lint detects, why it matters, and how to fix it.
     pub docs: &'static str,
+    /// Previous ids, kept as aliases.
     pub renamed_from: &'static [&'static str],
-}
-
-/// Every lint in one set, in declaration order; a lint's position is its index.
-pub struct LintSetDescriptor {
-    pub lints: &'static [LintInfo],
-}
-
-pub trait LintSet: Copy + 'static {
-    const DESCRIPTOR: &'static LintSetDescriptor;
-    fn index(self) -> usize;
 }
 
 pub enum Category { Security, Correctness, Suspicious, Perf, Style }
 pub enum Level { Allow, Warn, Deny }
 ```
 
-It also generates the `register` function used by
-[config lints](#writing-config-lints), and rejects at compile time non-unit
-variants, explicit discriminants, generic enums, missing categories or
-summaries, malformed ids (ids use `[a-z0-9._-]`), and ids equal to a category
-name.
-
-A lint set contains no names. The registry derives each lint's full name by
-appending its id to the URN of the component that owns the set, so a
-component's lints always share its namespace.
+Each component lists its lints in its factory. A lint contains no full name:
+the registry derives it by appending the id to the URN of the component that
+lists it, so a component's lints always share its namespace. A lint that is
+declared but not listed never runs; nothing can detect an unlisted `static`,
+so this is left to review and the lint's own tests.
 
 #### Choosing a category
 
@@ -332,10 +308,25 @@ but costly, `perf`. If it is fine but untidy, `style`. For example:
 
 ### Writing config lints
 
+A config lint is a check over the node's typed config, which the validator
+has already deserialized. All of a node's config lints see the same config
+type:
+
+```rust
+// config::lint
+pub struct ConfigLint<T: 'static> {
+    pub info: LintInfo,
+    pub check: fn(&T, &mut LintSink<'_>),
+}
+
+/// A node's config lints.
+pub struct ConfigLints<T: 'static>(pub &'static [&'static ConfigLint<T>]);
+```
+
 `ReceiverFactory`, `ProcessorFactory`, and `ExporterFactory` each gain a
-`lints: Option<&'static LintSetDescriptor>` field (`None` for nodes without
-lints; the hand-written `Clone` impls are updated), and `validate_config`
-gains an emitter parameter:
+`lints: Option<&'static dyn LintList>` field, a type-erased `ConfigLints<T>`
+(`None` for nodes without lints; the hand-written `Clone` impls are
+updated), and `validate_config` gains an emitter parameter:
 
 ```rust
 pub validate_config: fn(
@@ -348,63 +339,83 @@ For example, the batch processor's existing build-time
 `batch.config.forwards_everything` warning becomes a lint:
 
 ```rust
+// batch_processor/lint.rs
+static FORWARDS_EVERYTHING: ConfigLint<Config> = ConfigLint {
+    info: LintInfo {
+        id: "forwards_everything",
+        category: Category::Suspicious,
+        summary: "batch processor forwards every request without batching",
+        docs: "With min_size 0 and no max_size, every request is forwarded as \
+               it arrives. Set min_size, or remove the processor.",
+        renamed_from: &[],
+    },
+    check: |config, sink| {
+        for (format, settings) in config.format_settings() {
+            if settings.forwards_everything() {
+                sink.emit(format!(
+                    "{format} format: min_size is 0 and max_size is unset, so requests are never batched"
+                ));
+            }
+        }
+    },
+};
+
+pub static BATCH_LINTS: ConfigLints<Config> = ConfigLints(&[&FORWARDS_EVERYTHING]);
+
 // batch_processor/mod.rs
 #[distributed_slice(OTAP_PROCESSOR_FACTORIES)]
 pub static OTAP_BATCH_PROCESSOR_FACTORY: ProcessorFactory<OtapPdata> = ProcessorFactory {
     // ...existing fields...
     validate_config: validate_batch_config,
-    lints: Some(BatchLint::DESCRIPTOR),
+    lints: Some(&BATCH_LINTS),
 };
 
 fn validate_batch_config(raw: &serde_json::Value, cx: &mut LintEmitter<'_>) -> Result<(), Error> {
     let config: Config = deserialize_typed_config(raw)?;
-    let mut lints = BatchLint::register(cx);
-    for (source, plan) in config.plans()? {
-        if plan.settings().forwards_everything() {
-            lints.emit(BatchLint::ForwardsEverything, format!(
-                "{} format: min_size is 0 and max_size is unset, so requests are never batched",
-                source.name(),
-            ));
-        }
-    }
+    cx.run(&config, &BATCH_LINTS);
     Ok(())
 }
 ```
 
-A `LintEmitter` is bound to one location and holds that location's
-`LevelTable`: the resolved level of every lint in one lint set, indexed by
-`LintSet::index()`. `register` returns a typed `LintHandle`, and
-`LintHandle::emit` looks up the lint's level: `allow` drops the diagnostic,
-`warn` and `deny` record it. Config lints are expected to be cheap, so
-validators always evaluate them and reuse the config they already
-deserialized.
+A `LintEmitter` is bound to one node and holds its `LevelTable`: the
+resolved level of each of the node's lints, indexed by position in its
+`ConfigLints`. `run` calls each lint's check with a sink bound to that lint,
+skipping lints at `allow`; the sink records diagnostics at the lint's level.
 
-`register` checks, by pointer, that `L::DESCRIPTOR` is the lint set declared
-by the node's factory. A mismatch is a bug in the node: it is reported as an
-internal error event, does not affect admission, and the handle drops every
-diagnostic. `LintEmitter::discard()` returns an emitter that drops
-everything, for callers that validate for other purposes.
+A node's config lints are bugs in the node, not in the user's configuration,
+when:
+
+- `run` is passed a list other than the one the factory declares (compared
+  by address), or
+- a factory declares lints and its validator returns `Ok` without calling
+  `run`.
+
+Both are reported as internal error events, do not affect admission, and are
+caught by the node's own unit tests. `LintEmitter::discard()` returns an
+emitter that drops everything, for callers that validate for other purposes.
 
 `validate_typed_config::<T>` and `no_config` gain the parameter and ignore
 it, so the roughly 40 nodes that use them do not change; hand-written
 validators gain it mechanically. Extension factories share the signature but
-declare no lints in this RFC; they are validated with an emitter that has no
-lint set. Node unit tests use a helper that returns an emitter with every
-lint at `warn` and exposes the recorded diagnostics.
+declare no lints in this RFC. Each check is a plain function and is unit
+tested by calling it with a typed config and a recording sink.
 
 ### Writing linters
 
 A linter is a `LinterFactory` registered in the `LINTER_FACTORIES`
-distributed slice. `checks[i]` is the check for `lints.lints[i]`:
+distributed slice. Each of its lints bundles its declaration with its check:
 
 ```rust
 // lint crate
 pub struct LinterFactory {
     /// The linter's URN, e.g. `urn:otel:linter:core-nodes`.
     pub name: &'static str,
-    pub lints: &'static LintSetDescriptor,
-    /// One check per lint, in the lint set's order.
-    pub checks: &'static [Check],
+    pub lints: &'static [&'static LinterLint],
+}
+
+pub struct LinterLint {
+    pub info: LintInfo,
+    pub check: Check,
 }
 
 pub enum Check {
@@ -439,6 +450,7 @@ impl<'a> LintContext<'a> {
     pub fn graph(&self) -> &PipelineGraph;
 }
 
+// config::lint
 impl LintSink<'_> {
     /// Emit a diagnostic for the lint being checked, at the location being
     /// checked. Returns a builder for related nodes (pipeline lints only).
@@ -457,21 +469,24 @@ same path:
 
 ```rust
 // core-nodes/src/linter.rs
-#[derive(Clone, Copy, Lints)]
-pub enum CoreNodesLint {
-    /// ...
-    #[lint(perf, summary = "several batch processors on the same path")]
-    RedundantBatch,
-}
+static REDUNDANT_BATCH: LinterLint = LinterLint {
+    info: LintInfo {
+        id: "redundant_batch",
+        category: Category::Perf,
+        summary: "several batch processors on the same path",
+        docs: "...",
+        renamed_from: &[],
+    },
+    check: Check::Pipeline {
+        interests: NodeInterests::Types(&[OTAP_BATCH_PROCESSOR_URN]),
+        check: check_redundant_batch,
+    },
+};
 
 #[distributed_slice(LINTER_FACTORIES)]
 pub static CORE_NODES_LINTER: LinterFactory = LinterFactory {
     name: "urn:otel:linter:core-nodes",
-    lints: CoreNodesLint::DESCRIPTOR,
-    checks: &[Check::Pipeline {
-        interests: NodeInterests::Types(&[OTAP_BATCH_PROCESSOR_URN]),
-        check: check_redundant_batch,
-    }],
+    lints: &[&REDUNDANT_BATCH],
 };
 
 fn check_redundant_batch(cx: &LintContext<'_>, sink: &mut LintSink<'_>) {
@@ -488,13 +503,9 @@ fn check_redundant_batch(cx: &LintContext<'_>, sink: &mut LintSink<'_>) {
 }
 ```
 
-Pipeline graphs are acyclic, so source-to-sink paths are well defined. The
-check reports once per chain, listing every batch processor on it: four in a
-row produce one diagnostic, not one per pair.
-
-Built-in linters live in `core-nodes` and `contrib-nodes`, next to the nodes
-they lint, so they can use those nodes' URN constants and config types. A
-linter that reasons about nodes in another crate refers to them by URN.
+Built-in linters for now can live in `core-nodes` and `contrib-nodes`, next to
+the nodes they lint, so they can use those nodes' URN constants and config types.
+A linter that reasons about nodes in another crate refers to them by URN.
 
 A failed `typed_config` (a check asked for a type the config does not
 deserialize into) is an internal error in the lint, reported as an event; it
@@ -502,38 +513,41 @@ is not a diagnostic and does not affect admission.
 
 ### Engine lints
 
-The engine's lints are declared with the same derive in the `lint` crate:
+The engine's lints are `LintInfo` statics in the `lint` crate, owned by two
+reserved URNs:
 
 ```rust
-/// Registered as `urn:otel:linter:meta`.
-#[derive(Clone, Copy, Lints)]
-pub enum MetaLint { UnknownLints, RenamedLints }
+/// Owned by `urn:otel:linter:meta`.
+pub static UNKNOWN_LINTS: LintInfo = LintInfo { id: "unknown_lints", /* ... */ };
+pub static RENAMED_LINTS: LintInfo = LintInfo { id: "renamed_lints", /* ... */ };
 
-/// Registered as `urn:otel:linter:engine`.
-#[derive(Clone, Copy, Lints)]
-pub enum EngineLint { UnconnectedNode }
+/// Owned by `urn:otel:linter:engine`.
+pub static UNCONNECTED_NODE: LintInfo = LintInfo { id: "unconnected_node", /* ... */ };
 ```
 
-They have no checks. The engine emits them through a `LintEmitter` from the
-code that already detects each condition, so detection is not duplicated:
+They have no checks. The engine records them, naming the lint, from the code
+that already detects each condition, so detection is not duplicated:
 `unconnected_node` at the node, and meta lints at the location of the
 offending `lints:` block.
 
 ### Registry
 
-The controller builds a `LintRegistry` once per process from the lint sets
-of every compiled-in node factory (through a non-generic, `OnceLock`-cached
-accessor on `PipelineFactory<PData>`), `LINTER_FACTORIES`, and the two engine
-lint sets. It maps full names and `renamed_from` aliases to lints, and each
-owner URN to its lint set and checks. Level tables are built from it.
+The controller builds a `LintRegistry` once per process from the lints of
+every compiled-in node factory (through a non-generic, `OnceLock`-cached
+accessor on `PipelineFactory<PData>`), `LINTER_FACTORIES`, and the engine
+lints. It maps full names and `renamed_from` aliases to lints, and each owner
+URN to its lints. Level tables are built from it.
 
 `linter` is a new URN kind. `urn:otel:linter:meta` and
-`urn:otel:linter:engine` are reserved. Building the registry fails if two
-lints or aliases share a full name, if a linter's `checks` and lint set have
-different lengths, or if a linter uses a reserved URN. The same checks run as
-a unit test in `component-inventory`, which links every node crate, together
-with a snapshot test of all lint names so that renames and removals are
-deliberate.
+`urn:otel:linter:engine` are reserved. Building the registry fails if:
+
+- two lints or aliases share a full name;
+- an id is not `[a-z0-9._-]`, is a category name, or a summary is empty; or
+- a linter uses a reserved URN.
+
+The same checks run as a unit test in `component-inventory`, which links
+every node crate, together with a snapshot test of all lint names so that
+renames and removals are deliberate.
 
 ### Admission
 
@@ -542,7 +556,7 @@ Linting is added to the existing validation path:
 ```text
  parse --> validate() --> LINT CONFIG --> validate_engine_components --> LINT STAGE
            structural     level tables,   validate_config(raw, emitter)  linter checks,
-                          meta lints      emits config lints             unconnected nodes
+                          meta lints      runs config lints              unconnected nodes
 ```
 
 **A. Lint configuration.** After structural validation:
@@ -699,12 +713,18 @@ rollout: the configuration is committed and the pipeline keeps running.
   scopes would allow differently configured instances, but adds a section,
   instance ids, and live-reconfiguration rules. Running every compiled-in
   linter and scoping it with levels covers the common cases with no new
-  configuration. We can consider specifying more lints or customizing linters 
+  configuration. We can consider specifying more lints or customizing linters
   via config later.
-- **Check functions for config lints and engine lints.** Config lints would
-  duplicate the deserialization validation already does, and engine lints
-  would duplicate detection the engine already performs. Emitting from the
-  existing code avoids both.
+- **A derive macro for lint sets.** An enum per component deriving `Lints`
+  would give doc-comment docs and default ids, but pairs each lint with its
+  check by position or through a separate `match`. A `static` per lint
+  bundles the two without a proc-macro crate.
+- **Naming the lint at emission in config validators.** One validator could
+  emit any of the node's lints, clippy-style. Per-lint checks give config
+  lints and linters one model, let the engine skip lints at `allow`, and can
+  be unit tested in isolation; deserialization still happens once.
+- **Check functions for engine lints.** These would duplicate detection the
+  engine already performs.
 - **One check per linter.** A single check per linter could not be skipped
   per lint, while linter checks can be expensive.
 - **Resolving levels after validation.** Validators could emit into an
