@@ -39,13 +39,6 @@ and clippy. We can do the same for Dataflow Engine pipelines.
 
 ## Guide-level explanation
 
-Pipeline linting is deliberately modeled on rustc's lint system and
-[clippy](https://github.com/rust-lang/rust-clippy). Most of what Rust
-programmers already do with lints (silence one false positive or deny a whole
-category in CI) is also what pipeline authors and engine operators need. Reusing
-the same model gives us a proven design and makes the system easy to explain
-to anyone who has used clippy.
-
 ### What is a lint?
 
 A lint is a single rule about how pipelines or nodes should generally be
@@ -58,29 +51,21 @@ constructed. Every lint has:
 - **documentation** explaining what the lint detects, why it matters, and how
   to fix it.
 
-Lints are distinct from config validation. Config Validation is concerned with the
-question "does this pipeline/node even compile?" and validation failures are hard
-errors that cannot be suppressed. For example, if a config property has the wrong
-type or if a connection references a node that doesn't exist.
+Lints are distinct from validation and type-checking errors. Validation and
+type-checking are concerned with the question "does this pipeline/node even compile?"
+and validation failures are hard errors that cannot be suppressed. For example,
+if a config property has the wrong type or if a connection references a node that
+doesn't exist.
 
-Lints on the other hand say "this pipeline can run, but it probably shouldn't look
-like this" and are fully configurable. For example, while "correct", it's not
+Lints on the other hand say "this pipeline can run, but it likely shouldn't look
+like this" and are fully configurable. For example, while you can do it, it's not
 recommended to place a retry processor before the batch processor, as you may
 duplicate batching work unnecessarily.
 
-For a node's own configuration, the difference between the two is one of
-severity, not of phase. A node reports lints about its configuration from the
-same `validate_config` function that reports its validation errors, because
-that is where the node already has its configuration deserialized and in
-hand. A validation error is always fatal; a lint diagnostic is graded by its
-configured level. Lints that look beyond a single node's configuration only
-run once the whole pipeline has passed validation, just as clippy only runs
-on code that type-checks.
-
-The basic pipeline for linting:
+The basic pipeline for engine config processing:
 
 ```text
- YAML --> parse --> validate structure --> resolve lint --> validate nodes --> run      --> admit /
+ YAML --> parse --> validate structure --> resolve lints --> validate nodes --> run   --> admit /
           (serde)   cycles, unknown URNs,  levels           hard errors +      linters      reject
                     bad ports, ...         (lints: blocks,  config lints
                     never suppressible     forbid)          emitted
@@ -92,8 +77,7 @@ Lints are declared in two places:
 
 - **Nodes** declare **config lints** about their own configuration. A config
   lint is strictly node-local: it is emitted by the node's `validate_config`
-  function while it validates that node's configuration, and can only see
-  that configuration.
+  function while it validates that node's configuration.
 - **Linters** declare lints that can see a whole pipeline. A linter is a
   component whose only purpose is to carry lints. Any rule that is not
   local to one node's configuration, such as a rule about where a node is
@@ -105,7 +89,7 @@ linter (see [Lint names](#lint-names)).
 
 **Linters.** Linters have their own URN kind (`linter`) and are linked into
 the engine the same way nodes and extensions are. Unlike nodes and
-extensions, they are never placed in a configuration: **every linter that is
+extensions, they are not placed in a configuration: **every linter that is
 linked into the engine runs on every pipeline**, as if it were part of the
 engine. Users control linters only through levels in `lints:` blocks. For
 example, `linter:core-nodes: allow` turns off every lint in that linter for
@@ -1536,13 +1520,6 @@ If there is no prior art, say so -- new ideas are welcome.
 
 ## Unresolved questions
 
-- Should built-in linters read node configuration through the nodes' own
-  config types or through small view structs? Built-in linters live in the
-  same crates as the nodes, so they can use the config types directly and
-  stay in sync with them. Doing so ties linting to the node crates, which
-  makes it harder to link linting into a lightweight tool such as `dfctl`.
-  Config lints already have the same dependency, since they live in the
-  nodes' validators.
 - Should a linked third-party linter be active by default? Linking a
   linter activates all of its lints at their categories' default levels. A
   linter could instead declare a default level for its lints (e.g. `allow`)
@@ -1555,11 +1532,6 @@ If there is no prior art, say so -- new ideas are welcome.
     promote them only during major version bumps.
   - (c) Associate all lints with a release version and pin a lint baseline in the
     config (e.g. `lints_version`) so that lints in any later default to `warn`.
-- How should lints that span node types learn about other node types? For
-  example, "retry upstream of batch" depends on the batch processor not
-  returning data on NACK. Rather than hard-coding other nodes' URNs, node
-  types could declare properties (e.g. "merges batches", "returns data on
-  NACK") that linters query.
 - Should security lints be a category? Most security lints can probably fit in
   "suspicious", but it could be a common category of things that folks would want
   to forbid always like binding to 0.0.0.0.
