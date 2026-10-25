@@ -9,16 +9,16 @@ Tracking Issue: open-telemetry/otel-arrow#0000
 
 ## Summary
 
-The goal of this RFC is to describe how we can incorporate static pipeline
-checks into the Dataflow Engine project with the goal of reducing the number
-of mistakes pipeline authors can make.
+The goal of this RFC is to describe how we can incorporate the concept of linting
+into the Dataflow Engine project to help educate users on best practices and reduce
+mistakes in pipeline authorship.
 
 ## Motivation
 
 In the Dataflow Engine, we design nodes under the philosophy of
-composability. Each node offers simple and unique behaviors that can be
-composed together into a pipeline to express more complicated logic. This
-forms a programming language of sorts for telemetry pipelines.
+composability. Each node offers simple behaviors that can be composed together
+into a pipeline to express more complicated logic. This forms a language
+for telemetry pipelines.
 
 Not all pipeline programs that can be expressed in the language of nodes,
 connections, and configurations are good ones. Some nodes (probably) should
@@ -28,23 +28,22 @@ correctness, or other reasons.
 
 The rules are many and it is unreasonable for any human (or agent),
 experienced or not, to be aware of the constantly evolving set of nodes and
-configurations nor the accumulated wisdom in how best to use them, let
-alone, consistently and perfectly apply these rules in practice.
+configurations nor the accumulated wisdom in how best to use them (let
+alone, consistently and perfectly apply these rules in practice).
 
 Additionally, organizations and individual users are likely to have their
 own individual preferences for pipelines that they want to follow. This
 includes disagreement with or exceptions to existing best practices defined
-by the project.
+by other authors.
 
-Programming languages have addressed this problem through static program
-linters like rustc and clippy. We can do the same for Dataflow Engine
-pipelines.
+Programming languages have addressed this problem through configurable linting
+systems like rustc and clippy. We can do the same for Dataflow Engine pipelines.
 
 ## Guide-level explanation
 
 ### What is a lint?
 
-A lint is a single rule about how pipelines or nodes should generally be
+A lint is a single opinion about how pipelines or nodes should generally be
 constructed. Every lint has a stable [name](#lint-names), exactly one
 [category](#levels-and-categories), and documentation explaining what it
 detects, why it matters, and how to fix it.
@@ -148,6 +147,7 @@ Every lint is `warn` by default. Every lint also belongs to exactly one
 
 | Category      | Meaning                                                                                                  |
 |---------------|----------------------------------------------------------------------------------------------------------|
+| `security`    | The pipeline exposes data or endpoints to unauthorized access or interception.                           |
 | `correctness` | The pipeline almost certainly does not do what its author intended (data dropped, misrouted, corrupted). |
 | `suspicious`  | Probably a mistake, but there are legitimate uses.                                                       |
 | `perf`        | Correct, but wastes CPU, memory, or throughput.                                                          |
@@ -165,6 +165,9 @@ the config, a pipeline group, a pipeline, or a node. Each entry maps a
 | Component + category | `processor:batch:perf`, `linter:core-nodes:perf` | Lints defined by that component in that category |
 | Component            | `processor:batch`, `linter:meta`                 | All lints defined by that component              |
 | Category             | `correctness`                                    | All lints in that category                       |
+
+A selector naming a known component that declares no lints is valid and
+matches nothing.
 
 ```yaml
 version: otel_dataflow/v1
@@ -217,10 +220,10 @@ for example during an incident, and is only settable by the operator.
 The `linter:meta` lints report mistakes in the lint configuration itself.
 They are ordinary lints and can be configured like any other.
 
-| Lint            | Category     | Fires when                                                                     |
-|-----------------|--------------|--------------------------------------------------------------------------------|
-| `unknown_lints` | `style` | A `lints:` block names a lint, component, or category the engine does not know |
-| `renamed_lints` | `style` | A `lints:` block uses a lint's old name                                        |
+| Lint            | Category | Fires when                                                                     |
+|-----------------|----------|--------------------------------------------------------------------------------|
+| `unknown_lints` | `style`  | A `lints:` block names a lint, component, or category the engine does not know |
+| `renamed_lints` | `style`  | A `lints:` block uses a lint's old name                                        |
 
 A meta lint is reported at the scope whose `lints:` block contains the bad
 entry, so a mistake in the root block is reported once, not once per
@@ -299,7 +302,7 @@ pub trait LintSet: Copy + 'static {
     fn index(self) -> usize;
 }
 
-pub enum Category { Correctness, Suspicious, Perf, Style }
+pub enum Category { Security, Correctness, Suspicious, Perf, Style }
 pub enum Level { Allow, Warn, Deny }
 ```
 
@@ -315,10 +318,16 @@ component's lints always share its namespace.
 
 #### Choosing a category
 
-A useful test: _is there any configuration where this is what the author
+If the problem exposes data or endpoints, it is `security`. Otherwise, a
+useful test: _is there any configuration where this is what the author
 wanted?_ If not, it is `correctness`. If rarely, `suspicious`. If it is fine
 but costly, `perf`. If it is fine but untidy, `style`. For example:
 
+- **`security`: a receiver bound to `0.0.0.0`, or an exporter sending to an
+  `http://` endpoint.** The first listens on every interface, often exposing
+  the endpoint more widely than needed; the second sends telemetry
+  unencrypted. Both have legitimate uses (inside a container, to a local
+  sidecar), so they are lints rather than validation errors.
 - **`correctness`: merging batches upstream of a content router.** If the
   resources in a merged batch route to different outputs of a downstream
   content router, the router permanently NACKs the entire batch, and because
@@ -417,8 +426,12 @@ pub struct LinterFactory {
 }
 
 pub enum Check {
-    /// A pipeline lint, run once per pipeline.
-    Pipeline(fn(&LintContext<'_>, &mut LintSink<'_>)),
+    /// A pipeline lint, run once per pipeline containing at least one node
+    /// matching `interests`.
+    Pipeline {
+        interests: NodeInterests,
+        check: fn(&LintContext<'_>, &mut LintSink<'_>),
+    },
     /// A node lint, run once per node matching `interests`.
     Node {
         interests: NodeInterests,
@@ -452,20 +465,20 @@ impl LintSink<'_> {
 ```
 
 Linter checks can be expensive, so the engine skips a check where its lint
-resolves to `allow` and, for node lints, at nodes that do not match its
+resolves to `allow` and at pipelines or nodes that do not match its
 interests. Each invocation gets a sink bound to exactly one lint and
 location, so a check cannot emit any other lint. The graph and typed configs
 are cached for the duration of one pipeline's lint run.
 
-For example, `linter:core-nodes` could flag two batch processors on the same
-path:
+For example, `linter:core-nodes` could flag several batch processors on the
+same path:
 
 ```rust
 // core-nodes/src/linter.rs
 #[derive(Clone, Copy, Lints)]
 pub enum CoreNodesLint {
     /// ...
-    #[lint(perf, summary = "batch processor downstream of another batch processor")]
+    #[lint(perf, summary = "several batch processors on the same path")]
     RedundantBatch,
 }
 
@@ -473,19 +486,29 @@ pub enum CoreNodesLint {
 pub static CORE_NODES_LINTER: LinterFactory = LinterFactory {
     name: "urn:otel:linter:core-nodes",
     lints: CoreNodesLint::DESCRIPTOR,
-    checks: &[Check::Pipeline(check_redundant_batch)],
+    checks: &[Check::Pipeline {
+        interests: NodeInterests::Types(&[OTAP_BATCH_PROCESSOR_URN]),
+        check: check_redundant_batch,
+    }],
 };
 
 fn check_redundant_batch(cx: &LintContext<'_>, sink: &mut LintSink<'_>) {
     let graph = cx.graph();
     let batches = graph.nodes_of_type(OTAP_BATCH_PROCESSOR_URN);
-    for (upstream, downstream) in graph.ordered_pairs_on_a_path(&batches) {
-        sink.emit("batch processor is downstream of another batch processor")
-            .related(upstream)
-            .related(downstream);
+    // Illustrative: each distinct sequence of batch processors found on a
+    // source-to-sink path, omitting sequences contained in another.
+    for chain in graph.chains(&batches).filter(|c| c.len() > 1) {
+        let mut d = sink.emit(format!("{} batch processors on the same path", chain.len()));
+        for node in chain {
+            d = d.related(node);
+        }
     }
 }
 ```
+
+Pipeline graphs are acyclic, so source-to-sink paths are well defined. The
+check reports once per chain, listing every batch processor on it: four in a
+row produce one diagnostic, not one per pair.
 
 Built-in linters live in `core-nodes` and `contrib-nodes`, next to the nodes
 they lint, so they can use those nodes' URN constants and config types. A
@@ -707,8 +730,6 @@ rollout: the configuration is committed and the pipeline keeps running.
   Options include an allow-by-default `nursery` category for new lints, or a
   lint baseline version in the config (e.g. `lints_version`) above which new
   lints are capped at `warn`.
-- Should `security` be a category, for rules users would always want to
-  deny, like binding to `0.0.0.0`?
 - How should conflicting lints be prevented? One option is a test requiring
   every core lint to provide an example config that passes it and triggers no
   other core lint.
