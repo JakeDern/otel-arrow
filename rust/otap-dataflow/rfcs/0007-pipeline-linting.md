@@ -62,192 +62,66 @@ like this" and are fully configurable. For example, while you can do it, it's no
 recommended to place a retry processor before the batch processor, as you may
 duplicate batching work unnecessarily.
 
-The basic pipeline for engine config processing:
-
-```text
- YAML --> parse --> validate structure --> resolve lints --> validate nodes --> run   --> admit /
-          (serde)   cycles, unknown URNs,  levels           hard errors +      linters      reject
-                    bad ports, ...         (lints: blocks,  config lints
-                    never suppressible     forbid)          emitted
-```
-
 ### Where lints come from
 
-Lints are declared in two places:
+- **Nodes** check their own configuration. These are **config lints**: for
+  example, a batch processor configured so that it never batches.
+- **Linters** check whole pipelines, such as where a node is placed relative
+  to other nodes. A linter is a component that only carries lints. Every
+  linter built into the engine runs on every pipeline; there is nothing to
+  add to your configuration, and you control its lints only through
+  [levels](#configuring-lints). The engine ships with two:
 
-- **Nodes** declare **config lints** about their own configuration. A config
-  lint is strictly node-local: it is emitted by the node's `validate_config`
-  function while it validates that node's configuration.
-- **Linters** declare lints that can see a whole pipeline. A linter is a
-  component whose only purpose is to carry lints. Any rule that is not
-  local to one node's configuration, such as a rule about where a node is
-  placed relative to other nodes, is declared by a linter.
+  | Linter                 | Rules about                                    |
+  |------------------------|------------------------------------------------|
+  | `linter:core-nodes`    | Core nodes and pipelines in general            |
+  | `linter:contrib-nodes` | Contrib nodes                                  |
 
-Every lint is namespaced by the URN of the component that declared it, so
-config lints are named after their node type and linter lints after their
-linter (see [Lint names](#lint-names)).
-
-**Linters.** Linters have their own URN kind (`linter`) and are linked into
-the engine the same way nodes and extensions are. Unlike nodes and
-extensions, they are not placed in a configuration: **every linter that is
-linked into the engine runs on every pipeline**, as if it were part of the
-engine. Users control linters only through levels in `lints:` blocks. For
-example, `linter:core-nodes: allow` turns off every lint in that linter for
-the scope it is set at, and an individual lint can be allowed or denied by
-name. Linters have no configuration for now (see
-[Future possibilities](#future-possibilities)).
-
-Each linter lint has exactly one check function, which the engine invokes
-during the lint stage. Because each check is tied to one lint, the engine
-can skip checks that cannot apply: a check that resolves to `allow` is not
-run, and a check only runs on the nodes, or on pipelines containing the
-nodes, that it declares an interest in.
-
-**Built-in linters.** Pipeline-level rules written by the engine
-maintainers are packaged as linters that live next to the nodes they are
-about:
-
-| Linter                 | Crate           | Contents                                       |
-|------------------------|-----------------|------------------------------------------------|
-| `linter:core-nodes`    | `core-nodes`    | Rules about core nodes and pipelines generally |
-| `linter:contrib-nodes` | `contrib-nodes` | Rules about contrib nodes                      |
-
-**Engine-emitted lints.** A few lints are detected by the engine itself
-rather than by a node or a linter. They are emitted directly by the engine
-code that already detects the condition, so detection logic is not
-duplicated in a separate check. To keep every lint namespaced, they are
-grouped under two reserved **pseudo-linters**: URNs that name a set of lints
-but have no linter component behind them.
-
-| Pseudo-linter   | Contents                                                                          |
-|-----------------|-----------------------------------------------------------------------------------|
-| `linter:meta`   | [Meta lints](#meta-lints) about the lint configuration itself                     |
-| `linter:engine` | Lints about pipeline structure detected by the engine, such as `unconnected_node` |
-
-For example, the engine already determines which nodes are unconnected so
-that it can remove them when the pipeline is built; the lint stage uses the
-same detection to report `linter:engine:unconnected_node`.
-
-Which lints are _active_ for a given pipeline depends on the pipeline:
-
-| Declared by   | Active in                                                                             | Initial level |
-|---------------|---------------------------------------------------------------------------------------|---------------|
-| Node          | Nodes of that type; emitted while each node's config is validated                     | Its default   |
-| Linter        | Every pipeline. Node-scoped lints only visit nodes matching the lint's node interests | Its default   |
-| Pseudo-linter | Every pipeline; emitted by the engine where it detects the condition                  | Its default   |
-
-```text
- 1. names known     all node, linter, and pseudo-linter lint names (compiled in)
- 2. validate        structural config validation
- 3. resolve         levels resolved from lints: blocks; forbid checked
- 4. activate        per pipeline: config lints of node types used in the pipeline
-                                + lints of every linked linter
-                                + engine-emitted lints
- 5. validate nodes  each node's validate_config runs and emits its config lints
- 6. run             linter checks run, engine-emitted lints reported;
-                    diagnostics reported or pipeline rejected
-```
-
-### Meta lints
-
-The `linter:meta` lints report problems with the lint configuration itself.
-They are ordinary lints and can be configured like any other.
-
-| Lint                                        | Category     | Fires when                                                                     |
-|---------------------------------------------|--------------|--------------------------------------------------------------------------------|
-| `linter:meta:unknown_lints`                 | `suspicious` | A `lints:` block names a lint, component, or category the engine does not know |
-| `linter:meta:renamed_and_removed_lints`     | `suspicious` | A `lints:` block uses a renamed or removed lint name                           |
-| `linter:meta:unfulfilled_lint_expectations` | `suspicious` | An `expect` entry's lint did not fire                                          |
-
-Meta lints are emitted where the engine checks the lint configuration:
-
-| Lint                            | Emitted                                | Location                                                 |
-|---------------------------------|----------------------------------------|----------------------------------------------------------|
-| `unknown_lints`                 | When a `lints:` block is admitted      | The scope of that block (root, group, pipeline, or node) |
-| `renamed_and_removed_lints`     | When a `lints:` block is admitted      | The scope of that block                                  |
-| `unfulfilled_lint_expectations` | At the end of each pipeline's lint run | The pipeline or node where the `expect` entry is set     |
-
-A mistake in a shared `lints:` block, such as the root or a group, is
-therefore reported once at that block rather than once for every pipeline
-that inherits it. As with any lint, the level is resolved from the location
-outwards: `linter:meta:unknown_lints: allow` in a block silences unknown
-entries in that block and the blocks nested inside it, but a pipeline cannot
-silence a mistake in the root block.
+- **The engine** reports a few lints itself, grouped under two reserved
+  names: `linter:meta` for problems with the lint configuration itself (see
+  [Meta lints](#meta-lints)), and `linter:engine` for problems with pipeline
+  structure, such as `linter:engine:unconnected_node`.
 
 ### Lint names
 
-Lints are referred to by name. Every lint is namespaced according to the URN
-of the component that declared it (see [URN format](../docs/urns.md)): the
-node type for config lints, and the linter or pseudo-linter for every other
-lint. Lint names follow the same shortcut rules as component URNs:
+Every lint is named after the component that declares it: the node type for
+config lints, and the linter otherwise. Names follow the same shortcut rules
+as component URNs (see [URN format](../docs/urns.md)): the short form is
+only valid for the `otel` namespace.
 
 ```text
-urn:otel:processor:batch:<lint_id>                 config lint, canonical form
-processor:batch:<lint_id>                          config lint, otel shortcut form
+urn:otel:processor:batch:forwards_everything       config lint, canonical form
+processor:batch:forwards_everything                config lint, otel shortcut form
 linter:core-nodes:redundant_batch                  built-in linter
-linter:meta:unknown_lints                          meta lint (pseudo-linter)
-linter:engine:unconnected_node                     engine-emitted lint (pseudo-linter)
+linter:meta:unknown_lints                          lint reported by the engine
 urn:acme:linter:prod_policy:no_debug_exporters     third-party linter
 ```
 
-Rules:
-
-- The otel shortcut form follows the same rule as node URNs: it is only
-  valid for the `otel` namespace. All other namespaces must use the full
-  `urn:` form. Because the `otel` namespace is reserved, so are lints
-  defined by otel components.
-- `linter` is a new URN kind, alongside `receiver`, `processor`,
-  `exporter`, and `extension`.
-- `urn:otel:linter:meta` and `urn:otel:linter:engine` are reserved for the
-  pseudo-linters. No linter component may use them.
-- A lint id uses the same character set as URN segments (`[a-z0-9._-]`) and
-  cannot contain `:`.
-- The category names (`correctness`, `suspicious`, `perf`, `style`) and
-  `warnings` are reserved and may not be used as lint ids, so that they
-  remain unambiguous as [selectors](#selectors).
-- Lint names are stable. A lint that is renamed keeps its old name as an
-  alias, and using the alias triggers `linter:meta:renamed_and_removed_lints`.
-  Removing a lint entirely is considered a breaking change.
-- Defining the same fully qualified lint name twice is a hard error when the
-  engine starts.
+Lint names are stable. A renamed lint keeps its old name as an alias, and
+removing a lint is a breaking change.
 
 ### Lint scopes
 
-For now, lints operate on a single pipeline at a time. A lint may inspect any node,
-connection, or setting within that pipeline (including the settings it inherits from
-its group and the root). In the future we may extend lints to operate across pipelines,
-including those connected by a topic.
+Lints operate on a single pipeline at a time, and every lint has one of two
+scopes:
 
-Every lint has a scope, which is either **node** or **pipeline**. The scope
-is independent of who declared the lint:
+- A **node** lint is about a single node, and its diagnostics point at that
+  node. All config lints are node lints.
+- A **pipeline** lint is about a pipeline as a whole, and its diagnostics
+  point at the pipeline. A diagnostic that concerns specific nodes (for
+  example, a rule about node ordering) also lists them as related nodes,
+  similar to rustc's secondary spans.
 
-- A **node-scoped lint** checks a single node, and its diagnostics always
-  point at that node. Config lints are always node-scoped: they are emitted
-  while each node of the declaring type is validated, and only see that
-  node's configuration. Linters can also declare node-scoped lints, which
-  are run once for each node matching their node interests and can see the
-  whole pipeline.
-- A **pipeline-scoped lint** checks a pipeline as a whole and is run once
-  per pipeline. Only linters declare pipeline-scoped lints. Their
-  diagnostics always point at the pipeline. A diagnostic that concerns
-  specific nodes (for example, a rule about node ordering) lists them as
-  related locations, similar to rustc's secondary spans. Related locations
-  are informational only; they do not affect the diagnostic's level.
-
-A diagnostic's location (the node or the pipeline) determines which
-configurations apply when resolving its level. More on that below. The only
-diagnostics located elsewhere are [meta lints](#meta-lints) about the root
-or a group's `lints:` block, which are located at that root or group.
-
+A diagnostic's location, the node or the pipeline, decides which `lints:`
+blocks apply to it (see [How a lint's level is decided](#how-a-lints-level-is-decided)).
 The engine's observability pipeline (`engine.observability.pipeline`) is
-linted like any other pipeline. It has no group, so its scopes are the root,
-the observability pipeline itself, and its nodes.
+linted like any other pipeline; it has no group.
 
-### Enforcement Levels
+### Levels and categories
 
-Enforcement levels determine if a lint is enforced and if it's a warning or error.
-Errors will prevent the creation of pipelines that don't pass the lint, whereas
-warnings are just reported as events.
+A lint's **level** decides whether it is reported and whether it is an
+error. Errors prevent a pipeline from being admitted; warnings are only
+reported.
 
 | Level    | Reported?                   | Overrideable? |
 |----------|-----------------------------|---------------|
@@ -257,10 +131,8 @@ warnings are just reported as events.
 | `deny`   | Yes, as an error            | Yes           |
 | `forbid` | Yes, as an error            | **No**        |
 
-### Categories
-
-Every lint belongs to exactly one of a fixed set of categories which defines the
-default enforcement level.
+Every lint belongs to exactly one **category**, which sets its default
+level:
 
 | Category      | Default Level | Meaning                                                                                                  |
 |---------------|---------------|----------------------------------------------------------------------------------------------------------|
@@ -269,14 +141,300 @@ default enforcement level.
 | `perf`        | warn          | Correct, but wastes CPU, memory, or throughput.                                                          |
 | `style`       | warn          | Correct and efficient, but redundant, deprecated, or unidiomatic.                                        |
 
+### Configuring lints
+
+Lints are configured with a `lints:` block, which can appear at four scopes:
+the root of the config, a pipeline group, a pipeline, and a node. Each entry
+maps a **selector** to a level:
+
+| Selector             | Example                                          | Matches                                          |
+|----------------------|--------------------------------------------------|--------------------------------------------------|
+| Full name            | `processor:batch:forwards_everything`            | Exactly one lint                                 |
+| Component + category | `processor:batch:perf`, `linter:core-nodes:perf` | Lints defined by that component in that category |
+| Component            | `processor:batch`, `linter:meta`                 | All lints defined by that component              |
+| Category             | `correctness`                                    | All lints in that category                       |
+| `warnings`           | `warnings`                                       | Promotes every `warn` to `deny` (see below)      |
+
+```yaml
+version: otel_dataflow/v1
+lints: # root scope
+  correctness: forbid
+  warnings: deny
+engine:
+  lint_cap: warn # operator-only, see below
+groups:
+  dev:
+    lints: # group scope
+      perf: allow
+    pipelines:
+      main:
+        lints: # pipeline scope
+          linter:core-nodes:redundant_batch: warn
+          urn:acme:linter:prod_policy: allow
+        nodes:
+          passthrough:
+            type: processor:batch
+            config:
+              min_size: 0
+            lints: # node scope
+              # intentionally forwards everything unbatched
+              processor:batch:forwards_everything: allow
+```
+
+When several entries in the **same** `lints:` block match a lint, the most
+specific one wins:
+
+```text
+full name  >  component + category  >  component  >  category
+```
+
+A lint can only be configured at its own scope and the scopes that enclose
+it, so a pipeline lint cannot be allowed for some nodes of a pipeline and
+not others:
+
+| Lint scope | Can be configured at             |
+|------------|----------------------------------|
+| Pipeline   | CLI, root, group, pipeline       |
+| Node       | CLI, root, group, pipeline, node |
+
+Broad selectors at node scope (e.g. `perf: allow`) apply only to the node
+lints they match.
+
+### How a lint's level is decided
+
+A lint's level is resolved from its location outwards: from the node for
+node lints, and from the pipeline for pipeline lints. In the first scope
+with any entry matching the lint, the most specific matching entry wins. If
+no scope matches, the lint's default level is used.
+
+```text
+ CLI flags                    (outermost)   ^
+   root        lints:                       |  search from the innermost
+     group       lints:                     |  scope outwards; the first
+       pipeline    lints:                   |  scope with a matching entry
+         node        lints:   (innermost)   |  wins
+              ^
+              node lints start here; pipeline lints start one level up
+```
+
+Three rules then adjust the result:
+
+- **`warnings`.** If the level is `warn` and `warnings` resolves to `deny` or
+  `forbid` at the same location, the level becomes `deny`.
+- **`forbid`.** Once a lint is forbidden in some scope, no inner scope and
+  no more specific selector in the same scope may change its level.
+  Attempting to do so is a hard validation error, not a lint, mirroring
+  rustc's `E0453`:
+
+  ```yaml
+  lints:
+    correctness: forbid
+  groups:
+    default:
+      pipelines:
+        main:
+          lints:
+            processor:batch:some_lint: allow # error if some_lint is a correctness lint
+  ```
+
+- **The cap.** `engine.lint_cap` (or `--cap-lints`) sets a maximum severity
+  for every diagnostic, like rustc's `--cap-lints`. It is the break-glass
+  mechanism for admitting pipelines despite lint errors, for example during
+  an incident. Because it can defeat `forbid`, it can only be set by the
+  operator, never at group, pipeline, or node scope.
+
+  ```text
+  configured level:   allow   warn   deny   forbid
+  with cap = warn:    allow   warn   warn   warn      <- nothing blocks admission
+  ```
+
+### Suppressing lints
+
+A lint is suppressed by setting it to `allow` or `expect` at the scope where
+it fires, unless it is forbidden in an enclosing scope.
+
+`expect` also suppresses the lint, but reports
+`linter:meta:unfulfilled_lint_expectations` if the lint does **not** fire at
+that location, so stale suppressions are noticed. An `expect` set through a
+broad selector (e.g. `perf: expect`) is fulfilled if any lint it matches
+fires there. `expect` can only be set on pipelines and nodes: whether an
+expectation set on a group or the root is fulfilled could only be decided by
+linting every pipeline under it.
+
+### Meta lints
+
+The `linter:meta` lints report mistakes in the lint configuration itself.
+They are ordinary lints and can be configured like any other.
+
+| Lint                            | Category     | Fires when                                                                     | Located at                                           |
+|---------------------------------|--------------|--------------------------------------------------------------------------------|------------------------------------------------------|
+| `unknown_lints`                 | `suspicious` | A `lints:` block names a lint, component, or category the engine does not know | The scope of that block                              |
+| `renamed_and_removed_lints`     | `suspicious` | A `lints:` block uses a renamed or removed lint name                           | The scope of that block                              |
+| `unfulfilled_lint_expectations` | `suspicious` | An `expect` entry's lint did not fire                                          | The pipeline or node where the `expect` entry is set |
+
+A mistake in a shared `lints:` block, such as the root or a group, is
+therefore reported once at that block rather than once for every pipeline
+that inherits it. As with any lint, the level is resolved from the location
+outwards: `linter:meta:unknown_lints: allow` in a block silences unknown
+entries in that block and the blocks nested inside it, but a pipeline cannot
+silence a mistake in the root block.
+
+### When lints run and where you see them
+
+Lints run wherever the engine admits a configuration:
+
+- **At startup.** An error stops the engine from starting, the same way a
+  validation error does.
+- **On live reconfiguration.** Every change made through the admin API lints
+  each affected pipeline as it would look after the change, and an error
+  rejects the change. Pipeline and node `lints:` blocks can be changed live
+  without restarting the pipeline; root and group `lints:` blocks and the
+  cap require an engine restart (see
+  [Live changes to lint configuration](#live-changes-to-lint-configuration)).
+- **With `df_engine --validate-and-exit`**, which validates and lints a
+  config file without starting any pipelines.
+
+Every reported diagnostic is emitted as a `pipeline.lint.diagnostic`
+internal telemetry event, so it shows up wherever the engine's other events
+do: on the console, in the admin `/logs` tap, and in OTLP exported by the
+observability pipeline. Its severity is `WARN` for `warn` and `ERROR` for
+`deny` and `forbid`. For example, the batch processor's
+`forwards_everything` lint, in a pipeline whose root `lints:` block sets
+`warnings: deny`:
+
+```yaml
+event_name: pipeline.lint.diagnostic
+severity: ERROR
+body: min_size is 0 and max_size is unset, so requests are never batched
+attributes:
+  pipeline.group.id: dev
+  pipeline.id: main
+  node.id: batch
+  node.urn: urn:otel:processor:batch
+  lint.name: urn:otel:processor:batch:forwards_everything
+  lint.level: deny
+  lint.level.selector: warnings
+  lint.level.scope: root
+```
+
+`lint.level.selector` and `lint.level.scope` show where the level came
+from; here, the lint, which warns by default, was promoted to `deny` by
+`warnings: deny` in the root block. See
+[Emitting lint events](#emitting-lint-events) for the full attribute list.
+
+## Reference-level explanation
+
+Code samples in this section are illustrative. They show the shape of the
+proposed types and where they live, not final signatures.
+
+### Crate layout
+
+Linting is split across three crates:
+
+| Crate                                        | Contents                                                                                                                                                                                                                                                                                                   |
+|----------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `config` (existing), new `lint` module       | Config types for the `lints:` blocks, and the declaration API used by config lints: `LintSet`, `LintSetDescriptor`, `LintInfo`, `Category`, `Level`, `ConfigLintContext`, `LintHandle`                                                                                                                     |
+| `lint-macros` (`otel-arrow-dfe-lint-macros`) | The `#[derive(Lints)]` proc macro                                                                                                                                                                                                                                                                          |
+| `lint` (`otel-arrow-dfe-lint`)               | `LinterFactory` and the `LINTER_FACTORIES` distributed slice, the check types (`Check`, `NodeInterests`, `LintContext`, `LintSink`), the pseudo-linter lint sets, the lint registry, selector parsing, level resolution and level tables, the lint stage, and common helpers such as node-placement checks |
+
+The declaration API used by config lints has to live in `config`. Node
+factories reference it through `validate_config`, and the shared validation
+helpers in `config::validation` (`validate_typed_config`, `no_config`) need
+it in their signatures. `config` therefore cannot depend on the `lint`
+crate. The `lint` crate depends on `config`, so the derive's generated code
+refers to `otel_arrow_dfe_config::lint`, and the pseudo-linters in the
+`lint` crate use the derive like any other lint set.
+
+Crates that define linters, including `core-nodes` and `contrib-nodes` for
+the built-in linters, depend on the `lint` crate. The `lint` crate does not
+depend on the engine, so linters have no `PData` type parameter.
+
+Putting everything in `config` would avoid a new crate. It would also add
+lint execution and a registry to a crate that today only describes the
+config format.
+
+### Lint sets
+
+Every lint, whoever declares it, is declared the same way as metric sets
+and attribute enums: as a Rust type, annotated with a derive macro that
+generates static metadata. A **lint set** is a unit-only enum deriving
+`Lints`, in which every variant is one lint. Each component that declares
+lints has exactly one lint set.
+
+```rust
+#[derive(Clone, Copy, Lints)]
+pub enum BatchLint {
+    /// Long-form documentation: what the lint detects, why it matters,
+    /// and how to fix it. Taken from the variant's doc comment.
+    #[lint(suspicious, summary = "batch processor forwards every request without batching")]
+    ForwardsEverything,
+
+    /// ...
+    #[lint(perf, summary = "...", renamed_from = "old_lint_id")]
+    SomeOtherLint,
+}
+```
+
+`#[lint(...)]` accepts the following arguments:
+
+| Argument              | Required | Meaning                                                          |
+|-----------------------|----------|------------------------------------------------------------------|
+| category              | Yes      | One of `correctness`, `suspicious`, `perf`, `style`              |
+| `summary = "..."`     | Yes      | One-line summary                                                 |
+| `id = "..."`          | No       | Lint id. Defaults to the variant name in snake_case              |
+| `renamed_from = ".."` | No       | Previous id, can be repeated. Keeps old names working as aliases |
+
+The variant's `///` doc comment becomes the lint's `docs`, the same way a
+metric field's doc comment becomes its `brief`. The derive generates:
+
+```rust
+// config::lint
+
+/// Static description of one lint.
+pub struct LintInfo {
+    pub id: &'static str,
+    pub category: Category,
+    pub summary: &'static str,
+    pub docs: &'static str,
+    pub renamed_from: &'static [&'static str],
+}
+
+/// Every lint in one lint set, in declaration order. A lint's position in
+/// `lints` is its index.
+pub struct LintSetDescriptor {
+    pub lints: &'static [LintInfo],
+}
+
+pub trait LintSet: Copy + 'static {
+    const DESCRIPTOR: &'static LintSetDescriptor;
+    /// Position of this lint in `DESCRIPTOR.lints`.
+    fn index(self) -> usize;
+}
+
+pub enum Category { Correctness, Suspicious, Perf, Style }
+pub enum Level { Allow, Expect, Warn, Deny, Forbid }
+```
+
+`DESCRIPTOR` is a `static`, and `index()` compiles to the enum discriminant.
+The derive also generates a `const fn index_const(self) -> usize`, so that
+linters can refer to their lints in `static` items, and the `register`
+function used by [config lints](#writing-config-lints). It rejects non-unit
+variants, explicit discriminants, generic enums, missing categories or
+summaries, malformed ids, and [reserved ids](#registry) at compile time.
+
+A lint set contains no names or scopes. The registry derives each lint's
+full name by appending its id to the URN of the component that owns the
+set, which guarantees that a component's lints share its namespace and that
+renaming a component URN renames all of its lints. Config lints are always
+node lints, and each linter lint's scope comes from its
+[check](#writing-linters).
+
+#### Choosing a category
+
 A useful test when classifying a lint: _is there any configuration where
 this is what the author wanted?_ If not, it is `correctness`. If rarely, it
 is `suspicious`. If it is fine but costly, it is `perf`. If it is fine but
-untidy, it is `style`.
-
-#### Examples
-
-The following examples illustrate possible lints for category.
+untidy, it is `style`. For example:
 
 **`correctness`**
 
@@ -322,363 +480,14 @@ The following examples illustrate possible lints for category.
   starts; as a lint it is reported before the pipeline is deployed and can be
   configured like any other lint.
 
-### Selectors
-
-Lints are referenced via **selectors**. The basic selector is the fully qualified lint
-urn, but selectors can refer to classes of lints based on component or category:
-
-| Selector             | Example                                          | Matches                                          |
-|----------------------|--------------------------------------------------|--------------------------------------------------|
-| Full Urn             | `processor:batch:<lint_id>`                      | Exactly one lint                                 |
-| Component + category | `processor:batch:perf`, `linter:core-nodes:perf` | Lints defined by that component in that category |
-| Component            | `processor:batch`, `linter:meta`                 | All lints defined by that component              |
-| Category             | `correctness`                                    | All lints in that category, from every source    |
-
-Linters and pseudo-linters are components for the purpose of selectors.
-Categories are reserved names that select the entire category of lints at
-the specified scope.
-
-### Configuring lints
-
-Lints are configured with a `lints:` block, which can appear at four scopes:
-the root of the config, a pipeline group, a pipeline, and a node. Each entry
-maps a selector to a level.
-
-```yaml
-version: otel_dataflow/v1
-lints: # root scope
-  correctness: forbid
-  warnings: deny
-engine:
-  lint_cap: warn # operator-only, see "Capping lint levels"
-groups:
-  dev:
-    lints: # group scope
-      perf: allow
-    pipelines:
-      main:
-        lints: # pipeline scope
-          processor:batch:<lint_id>: warn # TODO: real example
-          urn:acme:linter:prod_policy: allow
-        nodes:
-          passthrough:
-            type: processor:batch
-            config:
-              min_size: 0
-            lints: # node scope
-              # intentionally forwards everything unbatched
-              processor:batch:<node_lint_id>: allow
-```
-
-A lint can only be configured at its own scope and the scopes that enclose
-it:
-
-| Lint scope | Can be configured at             |
-|------------|----------------------------------|
-| Pipeline   | CLI, root, group, pipeline       |
-| Node       | CLI, root, group, pipeline, node |
-
-A pipeline lint therefore applies to a pipeline as a whole: it cannot be
-allowed for some nodes of a pipeline and not others. If some nodes need
-different rules, they belong in a different pipeline. Broad selectors at
-node scope (e.g. `perf: allow` or `linter:core-nodes: allow`) apply only to
-the node-scoped lints they match.
-
-TODO: Decide how to report a node-scope entry that names a pipeline lint
-exactly, which can never take effect (e.g. a hard error or a meta lint).
-
-When several entries in the **same** `lints:` block match a lint, the most
-specific one wins. In order of most to least specific:
-
-```text
-full urn  >  component + category  >  component  >  category
-```
-
-A dedicated `lints:` block is used rather than a field in `policies`.
-Policies are resolved by taking the first scope that sets a field and
-replacing the field wholesale, while lint configuration has to be merged per
-selector. For example if the root lints block sets `correctness: forbid`, then
-enabling a specific lint at the pipeline level should not remove that. Policies
-also do not exist at node scope, which is useful for individual suppressions.
-
-### Resolving a lint's level
-
-The level of a lint is resolved from its location outwards: from the node
-for node-scoped lints, and from the pipeline for pipeline-scoped lints.
-
-```text
- CLI flags                    (outermost)   ^
-   root        lints:                       |  search from the innermost
-     group       lints:                     |  scope outwards; the first
-       pipeline    lints:                   |  scope with a matching entry
-         node        lints:   (innermost)   |  wins
-              ^
-              node-scoped lints start here; pipeline-scoped lints start one level up
-```
-
-In the first scope that has any entry matching the lint, the most specific
-matching entry wins. If no scope matches, the lint's default level is used.
-The `warnings` selector then promotes `warn` to `deny` where it is set to
-`deny` or `forbid`, and finally the [cap](#capping-lint-levels) lowers the
-level if it is set.
-
-The final level decides what happens to a diagnostic: `allow` drops it,
-`warn` reports it, and `deny` and `forbid` report it and reject the
-pipeline.
-
-Every lint's location is known before anything is emitted, so the engine
-resolves levels up front, before any node is validated (see
-[Level tables](#level-tables)). For config lints and engine-emitted lints
-this means a diagnostic that resolves to `allow` is dropped at the moment it
-is emitted. Linter lints go one step further: a linter lint that resolves to
-`allow` is not run at all.
-
-### `forbid`
-
-`forbid` behaves like `deny`, except that once a lint is forbidden in some
-scope, no inner scope and no more specific selector in the same scope may
-change its level. Attempting to do so is a **hard validation error**, not a
-lint, so it cannot itself be suppressed. This mirrors rustc's `E0453`.
-
-```yaml
-lints:
-  correctness: forbid
-groups:
-  default:
-    pipelines:
-      main:
-        lints:
-          processor:batch:<lint_id>: allow # error if <lint_id> is a correctness lint
-```
-
-### Capping lint levels
-
-The lint cap sets a **maximum severity** for all diagnostics. It does not
-limit the number of lints. It corresponds to rustc's `--cap-lints`, which
-Cargo uses so that a dependency's `#![deny(warnings)]` cannot break your
-build.
-
-```text
-configured level:   allow   warn   deny   forbid
-with cap = warn:    allow   warn   warn   warn      <- nothing blocks admission
-```
-
-The cap is the break-glass mechanism for "allow pipelines even with lint
-errors", for example to keep a pipeline running during an incident without
-editing every `lints:` block. It lowers the severity of forbidden lints, but
-does not permit inner scopes to override them.
-
-Because it can defeat `forbid`, the cap is operator-only. It can be set in
-`engine.lint_cap` or with `--cap-lints`, and cannot be set at group,
-pipeline, or node scope.
-
-### Suppressing lints
-
-Lints can be suppressed in two ways, by setting a lint's level to `allow` or
-`expect`. Setting `allow` for some scope means that the lint is completely suppressed
-at that level except in the case that the lint is `forbid`den at a higher level. `allow`
-can be set at any scope.
-
-Setting `expect` is similar to `allow`, but it will trigger the
-`linter:meta:unfulfilled_lint_expectations` meta lint if the diagnostic is
-not present at the scope that `expect` is declared on. Config lints and
-engine-emitted lints are always evaluated, so their diagnostics are simply
-suppressed and recorded as fulfilling the expectation. Unlike `allow`, a
-linter lint resolved to `expect` is still run so that the engine can tell
-whether it fired; its diagnostics are suppressed. An `expect` set
-through a broad selector (e.g. `perf: expect`) is fulfilled if any lint it
-matches fires at that location.
-Additionally, `expect` is only allowed on pipelines or nodes. This is because expect
-fullfillment at higher scopes cannot be determined by looking at a single pipeline
-in isolation. For example, determining whether a group satisfies a lint is only
-possible by iterating the entire group, which may be expensive to do when a single
-pipeline is added or removed.
-
-### Where lints run
-
-Lints run wherever the engine admits a pipeline configuration, and can also
-be run ahead of time:
-
-- **At startup.** The initial configuration is linted. A diagnostic that
-  resolves to `deny` or `forbid` stops the engine from starting, the same
-  way a validation error does.
-- **On live reconfiguration.** Every change made through the admin API
-  (creating or replacing a pipeline, or reconciling the whole config) lints
-  each affected pipeline as it would look after the change. Errors reject
-  the change. Warnings are emitted as `pipeline.lint.diagnostic` events.
-  Pipeline and node `lints:` blocks can be changed this way; the pipeline is
-  re-linted with the new levels before the change is admitted, but is not
-  restarted. The root `lints:` block, `engine.lint_cap`, and the `lints:`
-  block of a group that contains pipelines can only be changed by restarting
-  the engine (see
-  [Live changes to lint configuration](#live-changes-to-lint-configuration)).
-- **With `df_engine --validate-and-exit`.** Validates and lints a config
-  file without starting any pipelines.
-
-### Lint events
-
-Every diagnostic that is reported (i.e. whose final level is `warn`, `deny`,
-or `forbid`) is emitted as an internal telemetry event named
-`pipeline.lint.diagnostic`. Diagnostics therefore show up wherever the
-engine's other events do: on the console through the console log provider
-(including when running `df_engine --validate-and-exit`), in the admin
-`/logs` tap, and in OTLP exported by the observability pipeline.
-
-The event's severity is `WARN` for `warn` and `ERROR` for `deny` and
-`forbid`. Its body is the message produced by the lint, and its attributes
-identify the lint, where it fired, and where its level came from.
-
-For example, a hypothetical batch processor config lint that fires when a batch
-processor is configured to forward everything without batching, in a
-pipeline whose root `lints:` block sets `warnings: deny`:
-
-```yaml
-event_name: pipeline.lint.diagnostic
-severity: ERROR
-body: batch processor forwards every request without batching (min_size is 0 and max_size is unset)
-attributes:
-  pipeline.group.id: dev
-  pipeline.id: main
-  node.id: batch
-  node.urn: urn:otel:processor:batch
-  lint.name: urn:otel:processor:batch:forwards_everything # illustrative
-  lint.level: deny
-  lint.level.selector: warnings
-  lint.level.scope: root
-```
-
-Here `lint.level.selector` and `lint.level.scope` show that the lint, which
-warns by default, was promoted to `deny` by `warnings: deny` in the root
-`lints:` block. When a lint fires at its default level, these two attributes
-are omitted. Diagnostics located at the root or a group (only possible for
-meta lints) carry no pipeline attributes. See
-[Emitting lint events](#emitting-lint-events) in the reference-level
-explanation for the full attribute list.
-
-## Reference-level explanation
-
-Code samples in this section are illustrative. They show the shape of the
-proposed types and where they live, not final signatures.
-
-### Crate layout
-
-Linting is split across three crates:
-
-| Crate                                        | Contents                                                                                                                                                                                                                                                                                                   |
-|----------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `config` (existing), new `lint` module       | Config types for the `lints:` blocks, and the declaration API used by config lints: `LintSet`, `LintSetDescriptor`, `LintInfo`, `Category`, `Level`, `ConfigLintContext`, `LintHandle`                                                                                                                     |
-| `lint-macros` (`otel-arrow-dfe-lint-macros`) | The `#[derive(Lints)]` proc macro                                                                                                                                                                                                                                                                          |
-| `lint` (`otel-arrow-dfe-lint`)               | `LinterFactory` and the `LINTER_FACTORIES` distributed slice, the check types (`Check`, `NodeInterests`, `LintContext`, `LintSink`), the pseudo-linter lint sets, the lint registry, selector parsing, level resolution and level tables, the lint stage, and common helpers such as node-placement checks |
-
-The declaration API used by config lints has to live in `config`. Node
-factories reference it through `validate_config`, and the shared validation
-helpers in `config::validation` (`validate_typed_config`, `no_config`) need
-it in their signatures. `config` therefore cannot depend on the `lint`
-crate. The `lint` crate depends on `config`, so the derive's generated code
-refers to `otel_arrow_dfe_config::lint`, and the pseudo-linters in the
-`lint` crate use the derive like any other lint set.
-
-Crates that define linters, including `core-nodes` and `contrib-nodes` for
-the built-in linters, depend on the `lint` crate. The `lint` crate does not
-depend on the engine, so linters have no `PData` type parameter.
-
-Putting everything in `config` would avoid a new crate. It would also add
-lint execution and a registry to a crate that today only describes the
-config format.
-
-### Lint types
-
-```rust
-// config::lint
-
-/// Static description of one lint. Used by the registry, selectors, events,
-/// and generated documentation.
-pub struct LintInfo {
-    /// Local id, e.g. "forwards_everything". The full name is derived from
-    /// the owning component's URN at registration time.
-    pub id: &'static str,
-    pub category: Category,
-    /// One-line summary used in generated docs.
-    pub summary: &'static str,
-    /// Longer explanation: what, why, and how to fix.
-    pub docs: &'static str,
-    /// Previous ids of this lint, accepted with `renamed_and_removed_lints`.
-    pub renamed_from: &'static [&'static str],
-}
-
-/// Every lint in one lint set, in declaration order. A lint's position in
-/// `lints` is its index.
-pub struct LintSetDescriptor {
-    pub lints: &'static [LintInfo],
-}
-
-/// Implemented by `#[derive(Lints)]` on a unit-only enum. Each variant is
-/// one lint.
-pub trait LintSet: Copy + 'static {
-    const DESCRIPTOR: &'static LintSetDescriptor;
-    /// Position of this lint in `DESCRIPTOR.lints`.
-    fn index(self) -> usize;
-}
-
-/// Lint category
-pub enum Category { Correctness, Suspicious, Perf, Style }
-
-/// Enforcement level
-pub enum Level { Allow, Expect, Warn, Deny, Forbid }
-```
-
-Every lint, whoever declares it, is declared the same way as metric sets
-and attribute enums: as a Rust type, annotated with a derive macro that
-generates static metadata. A **lint set** is a unit-only enum deriving
-`Lints`, in which every variant is one lint:
-
-```rust
-#[derive(Clone, Copy, Lints)]
-pub enum BatchLint {
-    /// Long-form documentation: what the lint detects, why it matters,
-    /// and how to fix it. Taken from the variant's doc comment.
-    #[lint(suspicious, summary = "batch processor forwards every request without batching")]
-    ForwardsEverything,
-
-    /// ...
-    #[lint(perf, summary = "...", renamed_from = "old_lint_id")]
-    SomeOtherLint,
-}
-```
-
-`#[lint(...)]` accepts the following arguments:
-
-| Argument              | Required | Meaning                                                          |
-|-----------------------|----------|------------------------------------------------------------------|
-| category              | Yes      | One of `correctness`, `suspicious`, `perf`, `style`              |
-| `summary = "..."`     | Yes      | One-line summary                                                 |
-| `id = "..."`          | No       | Lint id. Defaults to the variant name in snake_case              |
-| `renamed_from = ".."` | No       | Previous id, can be repeated. Keeps old names working as aliases |
-
-The variant's `///` doc comment becomes `LintInfo::docs`, the same way a
-metric field's doc comment becomes its `brief`. The derive rejects
-non-unit variants, explicit discriminants, generic enums, and missing
-categories or summaries at compile time, and checks that ids are
-well-formed and are not reserved words. Because there is no runtime
-construction, `DESCRIPTOR` is a `static`, and `index()` compiles to the
-enum discriminant. The derive also generates an inherent
-`const fn index_const(self) -> usize`, so that linters can refer to their
-lints in `static` items.
-
-A `LintSetDescriptor` does not contain any names. The registry derives each
-lint's full name by appending its id to the URN of the component that owns
-the set. This keeps declarations short, guarantees that a component's lints
-share its namespace, and means renaming a component URN renames all of its
-lints in one place.
-
-A lint set does not declare scopes. Config lints are always node-scoped,
-and each linter lint's scope comes from its check (see
-[Declaring linters](#declaring-linters)).
-
-#### Config lints
-
-Config lints are emitted during config validation, so `validate_config` on
-every node factory gains a context parameter:
+### Writing config lints
+
+A node declares config lints by naming its lint set on its factory and
+emitting them from its config validator. `ReceiverFactory`,
+`ProcessorFactory`, and `ExporterFactory` each gain a
+`lints: Option<&'static LintSetDescriptor>` field (nodes without lints use
+`None`; the hand-written `Clone` impls are updated accordingly), and
+`validate_config` gains a context parameter:
 
 ```rust
 pub validate_config: fn(
@@ -687,209 +496,7 @@ pub validate_config: fn(
 ) -> Result<(), otel_arrow_dfe_config::error::Error>,
 ```
 
-The derive generates an inherent `register` function, mirroring the
-`register` function that `#[metric_set]` generates:
-
-```rust
-impl BatchLint {
-    pub fn register<'a>(cx: &'a mut ConfigLintContext<'_>) -> LintHandle<'a, BatchLint>;
-}
-```
-
-The engine creates a `ConfigLintContext` for each node it validates. The
-context holds that node's precomputed [level table](#level-tables), which
-maps each lint in the node's lint set to its final level. A validator
-registers its lint set to get a typed handle, and emits through the handle:
-
-```rust
-/// Created by the engine for each node it validates.
-pub struct ConfigLintContext<'a> { /* ... */ }
-
-impl ConfigLintContext<'_> {
-    /// A context that drops everything. Used when a config is validated
-    /// for a purpose other than admission, and in tests.
-    pub fn discard() -> ConfigLintContext<'static>;
-}
-
-/// A node's registered lint set, bound to that node's level table.
-pub struct LintHandle<'a, L: LintSet> { /* ... */ }
-
-impl<L: LintSet> LintHandle<'_, L> {
-    /// Emit a diagnostic for `lint` at the node being validated.
-    pub fn emit(&mut self, lint: L, message: impl Into<String>);
-
-    /// Like `emit`, but only builds the message if it will be recorded.
-    pub fn emit_with(&mut self, lint: L, message: impl FnOnce() -> String);
-}
-```
-
-`emit` looks up the lint's resolved level by `lint.index()` and acts on it
-immediately:
-
-```text
- emit(L::X, msg)
-   levels[L::X.index()]
-     allow                -> dropped; the message is never stored
-     expect               -> dropped; marks the expectation fulfilled
-     warn / deny / forbid -> recorded as a diagnostic with that level
-```
-
-The level already includes the `warnings` promotion and the cap, so
-emitting a lint costs an index and a branch, and validators never need to
-ask whether a lint is enabled. Message arguments are evaluated before
-`emit` is called, as with any function, so a validator that builds an
-expensive message can use `emit_with(lint, || ...)`, which only calls the
-closure if the diagnostic is recorded.
-
-Registration plays the same role as metric set registration: it binds a
-typed handle to the storage the engine prepared for this node. `register`
-checks that `L::DESCRIPTOR` is the descriptor declared by the node's
-factory, comparing pointers. A mismatch is a bug in the node, not in the
-user's configuration, so it is reported as an internal error event, does
-not affect admission, and the handle drops every diagnostic. Node unit
-tests that exercise a lint catch this kind of mismatch.
-
-This design has several consequences:
-
-- **Nodes cannot emit undeclared lints.** A validator can only emit
-  variants of the enum its factory declared. Any other enum fails the
-  registration check.
-- **Config lints are cheap to evaluate, so they always are.** Config lints
-  run as part of validation, which already deserializes the config. Rather
-  than deciding whether to call each lint, the engine lets the validator
-  run in full and suppresses diagnostics when they are emitted. `expect`
-  therefore needs no special handling for config lints.
-- **Work is shared with validation.** A validator deserializes its config
-  once and uses the typed value both to validate it and to check its
-  lints. No separate typed-config cache is needed for config lints.
-- **No new phase for config lints.** Config lints follow the validator: any
-  path that validates a node, and passes it a real context, also lints it.
-
-#### Linter checks
-
-Linter lints are not part of any component's validation, so each one has a
-check function that the engine invokes during the lint stage. The check's
-variant encodes the lint's scope:
-
-```rust
-// lint crate
-
-/// A linter lint's scope and check function.
-pub enum Check {
-    /// A pipeline-scoped lint, run once per pipeline.
-    Pipeline {
-        /// If set, the lint only runs on pipelines that contain at least one
-        /// node matching these interests.
-        requires: Option<NodeInterests>,
-        check: fn(&LintContext<'_>, &mut LintSink<'_>),
-    },
-    /// A node-scoped lint, run once per node that matches `interests`.
-    Node {
-        interests: NodeInterests,
-        check: fn(&LintContext<'_>, NodeRef<'_>, &mut LintSink<'_>),
-    },
-}
-
-/// Which node types a lint is interested in.
-pub enum NodeInterests {
-    /// Every node.
-    All,
-    /// Nodes of the listed types (URNs).
-    Types(&'static [&'static str]),
-}
-```
-
-The engine, not the lint, invokes each check at every construct of the
-right kind, and skips it wherever it resolves to `allow` or where its
-interests do not match. A linter lint resolved to `expect` is still run, so
-that the engine can tell whether the expectation was fulfilled. Each
-invocation gets a context and a sink bound to exactly that lint and that
-location:
-
-```rust
-/// Context for linter checks: the whole pipeline.
-pub struct LintContext<'a> {
-    /// Per-run state shared by every check invocation in this pipeline's run.
-    state: &'a PipelineLintState<'a>,
-}
-
-impl<'a> LintContext<'a> {
-    /// The pipeline being linted, with resolved policies.
-    pub fn pipeline(&self) -> &'a ResolvedPipelineConfig;
-
-    /// A node's config as JSON. Never fails.
-    pub fn raw_config(&self, node: &NodeId) -> &'a serde_json::Value;
-
-    /// A node's config deserialized as `T`. Cached per run.
-    pub fn typed_config<T: DeserializeOwned + Send + Sync + 'static>(
-        &self,
-        node: &NodeId,
-    ) -> Result<Arc<T>, LintError>;
-
-    /// Connectivity queries over the pipeline graph (upstream, downstream,
-    /// paths between nodes). Built at most once per run.
-    pub fn graph(&self) -> &PipelineGraph;
-}
-
-impl LintSink<'_> {
-    /// Emit a diagnostic for the lint being checked, at the location being
-    /// checked. Returns a builder for related nodes.
-    pub fn emit(&mut self, message: impl Into<String>) -> DiagnosticBuilder<'_>;
-}
-
-impl DiagnosticBuilder<'_> {
-    /// Add a related node (pipeline-scoped lints only).
-    pub fn related(self, node: &NodeId) -> Self;
-}
-```
-
-Linters therefore cannot emit undeclared lints either: a check can only
-emit through a sink bound to its own lint.
-
-**Caching.** Several linter checks often look at the same pipeline, so the
-engine creates a `PipelineLintState` at the start of each pipeline's lint
-run and drops it at the end. Cached values never outlive a run or leak
-between pipelines. It holds:
-
-- the pipeline being linted;
-- the graph, in a `OnceCell` that is filled on the first `graph()` call;
-- typed node configs, in a map keyed by `(NodeId, TypeId)`.
-
-The engine builds a small `LintContext` for each check invocation, pointing
-at the shared state. Caches are filled lazily.
-
-Because checks share the context through `&self`, filling a cache on a miss
-requires interior mutability. The config cache is a map behind a `RefCell`
-holding `Arc<dyn Any + Send + Sync>` values; a lookup clones the `Arc` and
-downcasts it to `Arc<T>`. Returning `Arc<T>` rather than `&T` avoids holding
-a `RefCell` borrow across the caller's use of the value, without `unsafe` or
-new dependencies, at the cost of a reference count increment per call. If
-lint runs are ever parallelized, the `RefCell` becomes a lock or concurrent
-map without changing the API. `graph()` can return a plain reference because
-a `OnceCell` never changes once set.
-
-**Failure.** `raw_config` cannot fail. `typed_config` can: validation has
-proven that each node config deserializes into _that node's_ config type,
-but a check may ask for a different type, such as a small view struct. A
-failed `typed_config` is treated as an internal error in the lint (reported
-as an event), not as a lint diagnostic, and does not affect admission.
-
-### Declaring config lints
-
-`ReceiverFactory`, `ProcessorFactory`, and `ExporterFactory` each gain a
-`lints: Option<&'static LintSetDescriptor>` field naming the node's lint set.
-The hand-written `Clone` impls for these factories are updated accordingly.
-Each factory declares at most one lint set, and nodes without lints use
-`None`.
-
-A config lint is emitted while a node of the declaring type is validated,
-and only for nodes of that type. It is strictly node-local: the validator
-only has the node's own configuration. Rules that involve other nodes or the
-pipeline's structure are declared by a linter (see
-[Declaring linters](#declaring-linters)).
-
-For example, the batch processor could declare a config lint for a
-configuration that disables batching:
+For example, the batch processor's `forwards_everything` lint:
 
 ```rust
 // batch_processor/lint.rs
@@ -929,35 +536,79 @@ fn validate_batch_config(
 }
 ```
 
-`BatchLint::ForwardsEverything` is named
-`urn:otel:processor:batch:forwards_everything`, is evaluated for each batch
-processor node, and can be allowed on an individual node.
+The engine creates a `ConfigLintContext` for each node it validates, holding
+that node's precomputed [level table](#level-tables). The validator
+registers its lint set to get a typed handle, mirroring the `register`
+function that `#[metric_set]` generates, and emits through the handle:
 
-**Shared validators.** The shared helpers in `config::validation`,
-`validate_typed_config::<T>` and `no_config`, gain the context parameter and
-ignore it. The roughly 40 nodes that use them do not change, and nodes
-without lints never register a set. The handful of hand-written validators
-gain the parameter mechanically.
+```rust
+impl BatchLint {
+    pub fn register<'a>(cx: &'a mut ConfigLintContext<'_>) -> LintHandle<'a, BatchLint>;
+}
+
+impl ConfigLintContext<'_> {
+    /// A context that drops everything. Used when a config is validated
+    /// for a purpose other than admission.
+    pub fn discard() -> ConfigLintContext<'static>;
+}
+
+impl<L: LintSet> LintHandle<'_, L> {
+    /// Emit a diagnostic for `lint` at the node being validated.
+    pub fn emit(&mut self, lint: L, message: impl Into<String>);
+
+    /// Like `emit`, but only builds the message if it will be recorded.
+    pub fn emit_with(&mut self, lint: L, message: impl FnOnce() -> String);
+}
+```
+
+`emit` looks up the lint's final level by `lint.index()` and acts on it
+immediately:
+
+```text
+ emit(L::X, msg)
+   levels[L::X.index()]
+     allow                -> dropped; the message is never stored
+     expect               -> dropped; marks the expectation fulfilled
+     warn / deny / forbid -> recorded as a diagnostic with that level
+```
+
+Config lints are expected to be cheap, so validators always evaluate all of
+them and never need to ask whether a lint is enabled; suppression costs an
+index and a branch. Validation already deserializes the config, so the
+typed value is shared between validation and linting.
+
+`register` checks that `L::DESCRIPTOR` is the descriptor declared by the
+node's factory, comparing pointers, so a node cannot emit lints it has not
+declared. A mismatch is a bug in the node rather than in the user's
+configuration: it is reported as an internal error event, does not affect
+admission, and the handle drops every diagnostic.
+
+**Shared validators.** `validate_typed_config::<T>` and `no_config` in
+`config::validation` gain the context parameter and ignore it, so the
+roughly 40 nodes that use them do not change. The handful of hand-written
+validators gain the parameter mechanically.
 
 **Extension validators.** `ExtensionFactory` and `ControllerExtensionFactory`
 share the same `validate_config` signature, so the shared helpers work for
 them too. Extensions do not declare config lints for now: they are
-validated with a context that has no lint set, so registering one would
-fail the registration check. Letting extensions emit config lints the same
-way as nodes is listed under [Future possibilities](#future-possibilities).
+validated with a context that has no lint set, so registering one fails the
+registration check.
 
-### Declaring linters
+**Testing.** Node unit tests use a test helper that returns a context with
+every lint at `warn` and exposes the recorded diagnostics.
+
+### Writing linters
 
 A linter is declared by a `LinterFactory` registered in the
 `LINTER_FACTORIES` distributed slice, the same way node and extension
-factories are registered:
+factories are registered. Each lint in the linter's lint set has exactly
+one check function, which the engine invokes during the lint stage:
 
 ```rust
 // lint crate
 pub struct LinterFactory {
     /// The linter's URN, e.g. `urn:otel:linter:core-nodes`.
     pub name: &'static str,
-    /// The linter's lint set.
     pub lints: &'static LintSetDescriptor,
     /// Exactly one check per lint in `lints`.
     pub checks: &'static [LintCheck],
@@ -971,38 +622,80 @@ pub struct LintCheck {
 
 #[distributed_slice]
 pub static LINTER_FACTORIES: [LinterFactory] = [..];
+
+/// A linter lint's scope and check function.
+pub enum Check {
+    /// A pipeline lint, run once per pipeline.
+    Pipeline {
+        /// If set, the lint only runs on pipelines that contain at least one
+        /// node matching these interests.
+        requires: Option<NodeInterests>,
+        check: fn(&LintContext<'_>, &mut LintSink<'_>),
+    },
+    /// A node lint, run once per node that matches `interests`.
+    Node {
+        interests: NodeInterests,
+        check: fn(&LintContext<'_>, NodeRef<'_>, &mut LintSink<'_>),
+    },
+}
+
+/// Which node types a lint is interested in.
+pub enum NodeInterests {
+    /// Every node.
+    All,
+    /// Nodes of the listed types (URNs).
+    Types(&'static [&'static str]),
+}
 ```
 
-Linters and their lints map **strictly one to one**: every lint in the set
-has exactly one check, and every check names a lint in the set. Building
-the registry fails if a lint has no check, has more than one, or if a check
-names an index outside the set. A unit test in every crate that defines a
-linter runs the same check, so mistakes are caught in CI.
+Linter checks can be expensive (graph traversal, deserializing many node
+configs), so unlike config lints the engine decides whether to run each
+one. It invokes a check at every construct of the right kind, skipping
+pipelines and nodes that do not match its interests and locations where the
+lint resolves to `allow`. A lint resolved to `expect` is still run, so that
+the engine can tell whether the expectation was fulfilled; its diagnostics
+are suppressed. Each invocation gets a context, and a sink bound to exactly
+that lint and location, so a check cannot emit any other lint:
 
-Every linter linked into the engine is active for every pipeline, including
-the observability pipeline. There is no configuration to place or
-instantiate a linter; its lints are controlled only by levels.
+```rust
+/// Context for linter checks: the whole pipeline.
+pub struct LintContext<'a> {
+    /// Per-run state shared by every check invocation in this pipeline's run.
+    state: &'a PipelineLintState<'a>,
+}
 
-### Built-in linters
+impl<'a> LintContext<'a> {
+    /// The pipeline being linted, with resolved policies.
+    pub fn pipeline(&self) -> &'a ResolvedPipelineConfig;
 
-Rules written by the engine maintainers that are not local to one node's
-configuration are packaged as built-in linters. They live in the crates
-of the nodes they are about:
+    /// A node's config as JSON. Never fails.
+    pub fn raw_config(&self, node: &NodeId) -> &'a serde_json::Value;
 
-| Linter                          | Crate           | Rules about                        |
-|---------------------------------|-----------------|------------------------------------|
-| `urn:otel:linter:core-nodes`    | `core-nodes`    | Core nodes and pipelines generally |
-| `urn:otel:linter:contrib-nodes` | `contrib-nodes` | Contrib nodes                      |
+    /// A node's config deserialized as `T`. Cached per run.
+    pub fn typed_config<T: DeserializeOwned + Send + Sync + 'static>(
+        &self,
+        node: &NodeId,
+    ) -> Result<Arc<T>, LintError>;
 
-Because a built-in linter lives next to the nodes it lints, it can refer to
-their URN constants and, if desired, their config types. A linter in
-`contrib-nodes` that needs to reason about core nodes refers to them by
-URN. Whether built-in linters should read node configuration through the
-nodes' own config types or through small view structs is an
-[unresolved question](#unresolved-questions).
+    /// Connectivity queries over the pipeline graph (upstream, downstream,
+    /// paths between nodes). Built at most once per run.
+    pub fn graph(&self) -> &PipelineGraph;
+}
 
-For example, the core-nodes linter could include a lint for two batch
-processors on the same path:
+impl LintSink<'_> {
+    /// Emit a diagnostic for the lint being checked, at the location being
+    /// checked. Returns a builder for related nodes.
+    pub fn emit(&mut self, message: impl Into<String>) -> DiagnosticBuilder<'_>;
+}
+
+impl DiagnosticBuilder<'_> {
+    /// Add a related node (pipeline lints only).
+    pub fn related(self, node: &NodeId) -> Self;
+}
+```
+
+For example, the built-in `linter:core-nodes` linter could include a lint
+for two batch processors on the same path:
 
 ```rust
 // core-nodes/src/linter.rs
@@ -1037,20 +730,48 @@ fn check_redundant_batch(cx: &LintContext<'_>, sink: &mut LintSink<'_>) {
 }
 ```
 
-`CoreNodesLint::RedundantBatch` is named
-`urn:otel:linter:core-nodes:redundant_batch` (shortcut
-`linter:core-nodes:redundant_batch`). It runs once per pipeline containing a
-batch processor, reports one diagnostic per offending pair with both nodes
-as related locations, and can be allowed for a pipeline (or any enclosing
-scope) like any other pipeline-scoped lint.
+`linter:core-nodes:redundant_batch` runs once per pipeline containing a
+batch processor and reports one diagnostic per offending pair, with both
+nodes as related locations.
+
+**Built-in linters.** `linter:core-nodes` and `linter:contrib-nodes` live in
+the `core-nodes` and `contrib-nodes` crates, next to the nodes they lint, so
+they can refer to those nodes' URN constants and, if desired, their config
+types (see [Unresolved questions](#unresolved-questions)). A linter that
+reasons about nodes in another crate refers to them by URN.
+
+**Caching.** Several checks often look at the same pipeline, so the engine
+creates a `PipelineLintState` at the start of each pipeline's lint run and
+drops it at the end. Cached values never outlive a run or leak between
+pipelines. It holds:
+
+- the pipeline being linted;
+- the graph, in a `OnceCell` that is filled on the first `graph()` call;
+- typed node configs, in a map keyed by `(NodeId, TypeId)`.
+
+Because checks share the context through `&self`, filling a cache on a miss
+requires interior mutability. The config cache is a map behind a `RefCell`
+holding `Arc<dyn Any + Send + Sync>` values; a lookup clones the `Arc` and
+downcasts it to `Arc<T>`. Returning `Arc<T>` rather than `&T` avoids holding
+a `RefCell` borrow across the caller's use of the value, without `unsafe` or
+new dependencies, at the cost of a reference count increment per call. If
+lint runs are ever parallelized, the `RefCell` becomes a lock or concurrent
+map without changing the API. `graph()` can return a plain reference because
+a `OnceCell` never changes once set.
+
+**Failure.** `raw_config` cannot fail. `typed_config` can: validation has
+proven that each node config deserializes into _that node's_ config type,
+but a check may ask for a different type, such as a small view struct. A
+failed `typed_config` is treated as an internal error in the lint (reported
+as an event), not as a lint diagnostic, and does not affect admission.
 
 ### Pseudo-linters
 
 Lints that the engine detects itself are declared with the same derive in
-the `lint` crate, as two lint sets:
+the `lint` crate, as two lint sets registered under reserved URNs:
 
 ```rust
-/// Lints about the lint configuration. Registered as `urn:otel:linter:meta`.
+/// Registered as `urn:otel:linter:meta`.
 #[derive(Clone, Copy, Lints)]
 pub enum MetaLint {
     /// ...
@@ -1064,8 +785,7 @@ pub enum MetaLint {
     UnfulfilledLintExpectations,
 }
 
-/// Lints about pipeline structure detected by the engine. Registered as
-/// `urn:otel:linter:engine`.
+/// Registered as `urn:otel:linter:engine`.
 #[derive(Clone, Copy, Lints)]
 pub enum EngineLint {
     /// ...
@@ -1074,21 +794,17 @@ pub enum EngineLint {
 }
 ```
 
-The registry registers these sets under their reserved pseudo-linter URNs.
-They have no `LinterFactory` and no checks; the 1:1 rule applies only to
-real linters. A `LinterFactory` that uses a reserved URN is a registry
-error. The engine emits these lints through a `LintHandle` bound to the
-level table of the location where it detected the condition, so they are
-suppressed in exactly the same way as config lints.
+Pseudo-linters have no `LinterFactory` and no checks. The engine emits their
+lints directly from the code that already detects each condition, so
+detection logic is not duplicated, through a `LintHandle` bound to the level
+table of the location where it detected the condition. They are therefore
+suppressed in the same way as config lints. Unlike a node's lint set, their
+lints are located at different kinds of scope: `unconnected_node` at a
+node, `unknown_lints` at whichever scope holds the offending `lints:` block,
+and `unfulfilled_lint_expectations` at the pipeline or node that set the
+`expect`.
 
-Unlike a node's lint set, pseudo-linter lints are located at different
-kinds of scope: `unconnected_node` at a node, `unknown_lints` at whichever
-scope holds the offending `lints:` block, and
-`unfulfilled_lint_expectations` at the pipeline or node that set the
-`expect`. The engine therefore keeps level tables for them at every scope
-it may emit at (see [Level tables](#level-tables)).
-
-### Gathering lints
+### Registry
 
 Lints are gathered into a `LintRegistry` once per process:
 
@@ -1108,29 +824,39 @@ pseudo-linter sets to build the registry. The `renamed_from` aliases of
 every lint are entered in the same name table, so selectors that use an old
 name resolve to the lint and trigger `linter:meta:renamed_and_removed_lints`.
 
-The registry records each lint's scope: node for config lints, the
-`Check` variant for linter lints, and the emission site for pseudo-linter
-lints. It also keeps, for each lint set, the full names of its lints in
-index order. This is what [level tables](#level-tables) are built from.
+The registry records each lint's scope (node for config lints, the `Check`
+variant for linter lints, and the emission site for pseudo-linter lints) and
+keeps, for each lint set, the full names of its lints in index order. This
+is what [level tables](#level-tables) are built from.
+
+Naming rules:
+
+- `linter` is a new URN kind, alongside `receiver`, `processor`, `exporter`,
+  and `extension`.
+- `urn:otel:linter:meta` and `urn:otel:linter:engine` are reserved for the
+  pseudo-linters.
+- A lint id uses the same character set as URN segments (`[a-z0-9._-]`) and
+  cannot contain `:`.
+- The category names and `warnings` are reserved and may not be used as lint
+  ids, so that they remain unambiguous as selectors. The derive enforces
+  this at compile time.
 
 Building the registry fails with a hard error if:
 
 - two lints, or a lint and an alias, have the same full name;
-- a linter's lints and checks are not one to one; or
+- a linter's lints and checks are not one to one: a lint has no check or
+  more than one, or a check names an index outside the set; or
 - a linter uses a reserved pseudo-linter URN.
 
-The derive already rejects reserved lint ids at compile time.
-
 The same checks run as a unit test in the `component-inventory` crate, which
-already links every node crate, so collisions are caught in CI rather than
-at deploy time.
+already links every node crate, so mistakes are caught in CI rather than at
+deploy time.
 
-### Executing lints
+### Admission
 
-Linting is woven into the existing validation path rather than running as a
-separate stage after it. Level resolution moves ahead of component
-validation, so that node validators can drop suppressed diagnostics as they
-emit them:
+Linting is woven into the existing validation path. Level resolution moves
+ahead of component validation, so that config lints can be dropped as they
+are emitted:
 
 ```text
  parse --> validate() --> LINT CONFIG --> validate_engine_components --> LINT STAGE --> compile_initial_context --> run
@@ -1140,18 +866,17 @@ emit them:
 ```
 
 Resolving levels only needs the registry and the `lints:` blocks, which
-are both available after structural validation, so nothing is lost by
-doing it first. When the lint stage runs, every URN is known to the
-registry and every node and extension config has been validated, so
-linter checks can rely on both, just as clippy relies on code having
-type-checked.
+are both available after structural validation. When the lint stage runs,
+every URN is known to the registry and every node config has been
+validated, so linter checks can rely on both, just as clippy relies on code
+having type-checked.
 
-**Lint scopes.** Resolution (`OtelDataflowSpec::resolve()`) currently merges
-policies and drops the root and group config. Lint levels cannot be merged
-the same way: resolving a level and checking `forbid` require each scope
-separately. `ResolvedPipelineConfig` therefore gains a `lint_scopes` field
-holding the outer `lints:` blocks, unmerged and in order. The pipeline and
-node blocks are already reachable through the `PipelineConfig` it holds.
+**Scope chains.** Resolution (`OtelDataflowSpec::resolve()`) currently
+merges policies and drops the root and group config. Lint levels cannot be
+merged the same way: resolving a level and checking `forbid` require each
+scope separately. `ResolvedPipelineConfig` therefore gains a `lint_scopes`
+field holding the outer `lints:` blocks, unmerged and in order. The pipeline
+and node blocks are already reachable through the `PipelineConfig` it holds.
 
 | Pipeline               | Scope chain (outermost to innermost)                   |
 |------------------------|--------------------------------------------------------|
@@ -1174,21 +899,17 @@ pub struct ResolvedLevel {
 }
 ```
 
-To fill an entry, the engine walks the scope chain from the location
-outwards. In the first scope with any entry matching the lint, it takes the
-most specific matching entry (full name, then component and category, then
-component, then category). If no scope matches, it uses the lint's default
-level. A `warn` is then promoted to `deny` if the `warnings` selector
-resolves to `deny` or `forbid` at the same location, and finally the level
-is lowered to at most `lint_cap`, if set.
+Each entry is computed with the rules in
+[How a lint's level is decided](#how-a-lints-level-is-decided), including
+`warnings` and the cap, so diagnostics need no further processing once
+emitted. The engine builds the following tables for each pipeline being
+admitted:
 
-The engine builds the following tables for each pipeline being admitted:
-
-| Location    | Tables                                                                                     |
-|-------------|--------------------------------------------------------------------------------------------|
-| Root, group | `MetaLint` (built once per admission of that scope)                                        |
-| Pipeline    | `MetaLint`, and every linter's pipeline-scoped lints                                       |
-| Node        | `MetaLint`, `EngineLint`, the node type's lint set, and every linter's node-scoped lints   |
+| Location    | Tables                                                                                   |
+|-------------|------------------------------------------------------------------------------------------|
+| Root, group | `MetaLint` (built once per admission of that scope)                                      |
+| Pipeline    | `MetaLint`, and every linter's pipeline lints                                            |
+| Node        | `MetaLint`, `EngineLint`, the node type's lint set, and every linter's node lints        |
 
 Tables are small (one entry per declared lint) and live only for the
 duration of the admission. Each table also has a bitset recording which
@@ -1199,97 +920,65 @@ duration of the admission. Each table also has a bitset recording which
 **A. Lint configuration.** After structural validation:
 
 1. **Check `lints:` blocks.** Each `lints:` block being admitted has its
-   selectors checked against the registry, emitting
-   `linter:meta:unknown_lints` and `linter:meta:renamed_and_removed_lints`
-   located at that block's scope. The root
-   block is checked at startup. Group blocks are checked at startup and on
-   group creation. Pipeline and node blocks are checked whenever their
-   pipeline is created or replaced, whether through a pipeline update or a
-   reconcile.
+   selectors checked against the registry, emitting `unknown_lints` and
+   `renamed_and_removed_lints` at that block's scope. The root block is
+   checked at startup. Group blocks are checked at startup and on group
+   creation. Pipeline and node blocks are checked whenever their pipeline is
+   created or replaced, whether through a pipeline update or a reconcile.
 2. **Check `forbid`.** Using the registry to map lints to categories and
    components, check every scope for an entry that would change the level of
    a lint forbidden in an enclosing scope or by a less specific selector in
    the same scope. A conflict is a hard error, and nothing else is run.
-3. **Build level tables** for every pipeline being admitted, as described
-   above.
+3. **Build level tables** for every pipeline being admitted.
 
 **B. Component validation.** `validate_engine_components` runs as it does
-today, except that it creates a `ConfigLintContext` for each node, bound to
-the node's level table and lint set, and passes it to the node's
-`validate_config`. A validation error is a hard error and stops admission as
-it does today; any diagnostics the failing node had already emitted are
-discarded with it. Every node is validated, including nodes that are
-unconnected and will be removed when the pipeline is built, so they also
-receive their config lints.
-
-Pipeline extensions are validated in the same pass with a context that
-has no lint set. Controller extensions are validated by
-`validate_controller_extensions` in the same way.
+today, except that it passes each node's `validate_config` a
+`ConfigLintContext` bound to the node's level table and lint set. A
+validation error is a hard error and stops admission as it does today; any
+diagnostics the failing node had already emitted are discarded with it.
+Extensions are validated with a context that has no lint set.
 
 **C. Lint stage.** For each resolved pipeline being admitted:
 
-1. **Report unconnected nodes.** Determine which nodes are unconnected,
-   using `PipelineConfig::remove_unconnected_nodes` on a copy of the
-   pipeline (as `OtelDataflowSpec::validate()` already does for the
-   observability pipeline), and emit `linter:engine:unconnected_node` for
-   each. The pipeline itself is not modified; see
-   [Unconnected nodes](#unconnected-nodes).
-2. **Run pipeline-scoped linter lints.** For every linter, run each
-   `Check::Pipeline` whose `requires` (if any) matches at least one node in
-   the pipeline. If the lint's level at the pipeline is `allow`, skip it;
-   otherwise invoke its check.
-3. **Run node-scoped linter lints.** For each node, run every linter's
-   `Check::Node` whose `NodeInterests` match the node's type. If the lint's
-   level at the node is `allow`, skip it; otherwise invoke its check with
-   that node.
-4. **Report unfulfilled expectations.** Emit
-   `linter:meta:unfulfilled_lint_expectations` for each `expect` entry in
-   the pipeline or its nodes that no diagnostic fulfilled, from any source:
-   config lints emitted during component validation, engine-emitted lints,
-   and linter lints.
+1. **Report unconnected nodes** (see [Unconnected nodes](#unconnected-nodes)).
+2. **Run pipeline lints.** For every linter, run each `Check::Pipeline`
+   whose `requires` (if any) matches at least one node in the pipeline,
+   unless its level at the pipeline is `allow`.
+3. **Run node lints.** For each node, run every linter's `Check::Node` whose
+   `NodeInterests` match the node's type, unless its level at the node is
+   `allow`.
+4. **Report unfulfilled expectations.** Emit `unfulfilled_lint_expectations`
+   for each `expect` entry in the pipeline or its nodes that no diagnostic
+   fulfilled, from any source.
 
-Linter checks run on the pipeline as configured, including unconnected
-nodes, so that every lint sees the same pipeline and every `lints:` entry,
-on every node, takes effect. A `PipelineLintState` is created for each
-pipeline's run and shared by all of its check invocations (see
-[Linter checks](#linter-checks)).
-
-Diagnostics from all three stages are collected with the level they had
-when emitted. Because levels are final when the tables are built, there is
-no separate step to apply the cap or `warnings`.
+The result is a `LintReport` per pipeline, containing the diagnostics and
+whether any of them is an error.
 
 #### Unconnected nodes
 
 Pruning is unchanged. `PipelineFactory::build()` still removes unconnected
 nodes when it builds a pipeline, and still fails with `EmptyPipeline` if no
-nodes remain. The lint stage only reports them. The build-time
-`otel_info!`/`otel_warn!` events for removed nodes are kept for now, since
-they describe what the build actually did on each core; whether they become
-redundant with `linter:engine:unconnected_node` can be revisited separately.
+nodes remain. The lint stage only reports them: it finds unconnected nodes
+with `PipelineConfig::remove_unconnected_nodes` on a copy of the pipeline
+(as `OtelDataflowSpec::validate()` already does for the observability
+pipeline) and emits `linter:engine:unconnected_node` for each. The
+build-time `otel_info!`/`otel_warn!` events for removed nodes are kept for
+now, since they describe what the build actually did on each core.
 
-As a consequence, an unconnected node is validated and linted like any
-other node before it is removed: it may receive config lints, linter lints,
-and engine-emitted lints, its `lints:` entries apply, and its `expect`
-entries are checked.
+Every other lint sees the pipeline as configured, including unconnected
+nodes, so that all lints see the same pipeline and every `lints:` entry,
+on every node, takes effect.
 
 #### Other callers of `validate_config`
 
-`validate_config` is also called outside admission:
+`node_context_declarations` (`crates/engine/src/context_declaration.rs`)
+validates each node again before collecting its context declarations, and
+the validator tests in `crates/validation/tests/validate_config_tests.rs`
+call every registered validator. Both pass `ConfigLintContext::discard()`.
 
-- `node_context_declarations` (`crates/engine/src/context_declaration.rs`)
-  validates each node again before collecting its context declarations.
-  It passes `ConfigLintContext::discard()`, so diagnostics are not reported
-  twice.
-- The validator tests in `crates/validation/tests/validate_config_tests.rs`,
-  which check that every registered validator rejects invalid configs,
-  pass `ConfigLintContext::discard()`.
-- Node unit tests that test their lints use a test helper that returns a
-  context with every lint at `warn` and exposes the recorded diagnostics.
+#### Entry point and outcome
 
-The result is a `LintReport` per pipeline, containing the diagnostics and
-whether any of them is an error.
-
-**Entry point.** A single function in the controller, roughly
+A single function in the controller, roughly
 `validate_and_lint(spec, factory) -> Result<LintReport, Error>`, performs
 validation, component validation, and the lint stage. It is used by:
 
@@ -1301,8 +990,7 @@ Today these paths call validation inconsistently (group creation, for
 example, does not run component validation), so sharing one entry point
 also makes validation consistent.
 
-**Acting on the report.** Every reported diagnostic, error or warning, is
-emitted as a `pipeline.lint.diagnostic` event (see
+Every reported diagnostic is emitted as an event (see
 [Emitting lint events](#emitting-lint-events)). In addition:
 
 | Path                  | Error diagnostics     | Warning diagnostics  |
@@ -1311,7 +999,7 @@ emitted as a `pipeline.lint.diagnostic` event (see
 | `--validate-and-exit` | Non-zero exit         | Zero exit            |
 | Live reconfiguration  | Change rejected       | Change is admitted   |
 
-**Locations.** Diagnostics locate problems by config path (e.g.
+Diagnostics locate problems by config path (e.g.
 `groups.dev.pipelines.main.nodes.debug`). File, line, and column are not
 available: `serde_yaml` 0.9 does not retain source positions, and
 environment variable substitution happens before parsing, so offsets would
@@ -1343,12 +1031,10 @@ desired config, carries the new field. The capability table in
 `docs/admin/live-reconfiguration.md` gains a matching row.
 
 **Lint-only pipeline changes.** A pipeline change that only modifies the
-pipeline's or its nodes' `lints:` blocks goes through the full lint stage
-like any other pipeline change: the pipeline is linted with the new levels,
-any error rejects the change, and the resulting warnings are emitted as
-`pipeline.lint.diagnostic` events. Because lints do not affect a running
-pipeline, `ResolvedPipelineConfig::runtime_matches` ignores `lints:` blocks,
-so an admitted lint-only change is planned as a `noop` rollout: the new
+pipeline's or its nodes' `lints:` blocks is admitted like any other
+pipeline change. Because lints do not affect a running pipeline,
+`ResolvedPipelineConfig::runtime_matches` ignores `lints:` blocks, so an
+admitted lint-only change is planned as a `noop` rollout: the new
 configuration is committed and the pipeline keeps running without a
 restart.
 
@@ -1369,10 +1055,10 @@ is the diagnostic's message.
 | `node.id`               | Location is a node                              | Node the diagnostic points at                                                                                                  |
 | `node.urn`              | Location is a node                              | URN of that node                                                                                                               |
 | `lint.name`             | Always                                          | Full lint name, e.g. `urn:otel:processor:batch:<lint_id>`                                                                      |
-| `lint.related.node.ids` | Pipeline-scoped lint with related nodes         | Ids of the related nodes (string array)                                                                                        |
+| `lint.related.node.ids` | Pipeline lint with related nodes                | Ids of the related nodes (string array)                                                                                        |
 | `lint.level`            | Always                                          | Final level after `warnings` and the cap; one of `warn`, `deny`, `forbid`                                                      |
 | `lint.level.selector`   | Level was set by a `lints:` entry or a CLI flag | The selector that set the level, e.g. `correctness` or `warnings`                                                              |
-| `lint.level.scope`      | Level was set by a `lints:` entry or a CLI flag | Where that selector was configured; one of `cli`, `root`, `group`, `pipeline`, `node` (never `node` for pipeline-scoped lints) |
+| `lint.level.scope`      | Level was set by a `lints:` entry or a CLI flag | Where that selector was configured; one of `cli`, `root`, `group`, `pipeline`, `node` (never `node` for pipeline lints)        |
 
 The identity attributes use the canonical entity keys
 (`crates/engine/src/attributes.rs`). The telemetry guides place entity
@@ -1382,8 +1068,11 @@ pipeline is never built at all, so there is no pipeline or node entity
 context to attach. Lint events therefore carry identity as record attributes,
 as other config-time events already do.
 
-The lint cap is not represented separately: a capped diagnostic simply has a
-lower `lint.level`.
+Diagnostics located at the root or a group (only possible for meta lints)
+carry no pipeline attributes. When a lint fires at its default level,
+`lint.level.selector` and `lint.level.scope` are omitted. The lint cap is
+not represented separately: a capped diagnostic simply has a lower
+`lint.level`.
 
 The event is declared in the Weaver registry as
 `semconv/groups/event.pipeline.lint.diagnostic.yaml`, and the
@@ -1410,6 +1099,13 @@ that the event is exercised in CI.
 
 ### Alternatives considered
 
+- **Lint levels in `policies`.** Lint configuration could be a field of the
+  existing `policies` blocks instead of a dedicated `lints:` block. Policies
+  are resolved by taking the first scope that sets a field and replacing
+  the field wholesale, while lint configuration has to be merged per
+  selector: if the root sets `correctness: forbid`, enabling a specific
+  lint in a pipeline must not remove that. Policies also do not exist at
+  node scope, which is where individual suppressions are most useful.
 - **Extensions as linters.** An earlier version of this design let pipeline
   and controller extensions declare lints, with built-in lints packaged as
   controller extensions. Extensions are a poor fit for components whose only
@@ -1520,6 +1216,9 @@ If there is no prior art, say so -- new ideas are welcome.
 
 ## Unresolved questions
 
+- How should a node-scope `lints:` entry that names a pipeline lint exactly,
+  which can never take effect, be reported: as a hard error or as a meta
+  lint?
 - Should a linked third-party linter be active by default? Linking a
   linter activates all of its lints at their categories' default levels. A
   linter could instead declare a default level for its lints (e.g. `allow`)
@@ -1587,4 +1286,4 @@ If there is no prior art, say so -- new ideas are welcome.
   to a token provider sends to a plain `http://` endpoint.
 - Returning lint warnings in admin API responses.
 - A `Connection` lint scope for rules about individual edges. Connections
-  can already be inspected from pipeline-scoped lints through `graph()`.
+  can already be inspected from pipeline lints through `graph()`.
