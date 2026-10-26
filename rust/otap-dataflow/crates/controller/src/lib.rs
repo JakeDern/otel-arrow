@@ -1483,8 +1483,8 @@ impl<
         // observed state store and the internal telemetry system, and by the
         // controller context below.
         let telemetry_registry = TelemetryRegistryHandle::new();
-        let metric_unregister_grace = engine.telemetry.metric_unregister_grace_period;
-        telemetry_registry.set_metric_unregister_grace(metric_unregister_grace);
+        telemetry_registry
+            .set_metric_unregister_grace(engine.telemetry.metric_unregister_grace_period);
         let controller_ctx = ControllerContext::new(telemetry_registry.clone());
         let controller_ctx = match state_directory {
             Some(root) => controller_ctx.with_state_directory(root),
@@ -1973,20 +1973,13 @@ impl<
         // In standard engine mode, keep the main thread blocked until an explicit
         // engine-wide shutdown drains every pipeline. An empty engine, or one whose
         // last pipeline stops independently, must remain available for live control.
-        let (shutdown_signal_listener, termination_signal_rx) =
+        let shutdown_signal_listener =
             if run_mode == RunMode::ParkMainThread && options.handle_os_signals {
                 // Listen for SIGINT/SIGTERM and trigger graceful shutdown via the
                 // control plane.
-                let (signal_tx, signal_rx) = std_mpsc::sync_channel(1);
-                (
-                    Some(Self::spawn_shutdown_signal_listener(
-                        signal_control_plane,
-                        signal_tx,
-                    )?),
-                    Some(signal_rx),
-                )
+                Some(Self::spawn_shutdown_signal_listener(signal_control_plane)?)
             } else {
-                (None, None)
+                None
             };
 
         if run_mode == RunMode::ParkMainThread {
@@ -2057,11 +2050,6 @@ impl<
                 );
             }
         }
-
-        Self::wait_for_metric_unregister_grace(
-            metric_unregister_grace,
-            termination_signal_rx.as_ref(),
-        );
 
         // All telemetry producers and pipelines have finished; shut down the
         // remaining support tasks and the metric aggregator gracefully.
@@ -2288,33 +2276,8 @@ impl<
     /// apply.
     ///
     /// The returned handle cancels and joins the listener during controller teardown.
-    /// Keeps the admin endpoint and metric aggregator running for the metric
-    /// unregister grace period after every pipeline has stopped, so scrapers can
-    /// read the final values of the stopped pipelines. A termination signal
-    /// (including the one that triggered the shutdown) ends the wait early.
-    fn wait_for_metric_unregister_grace(
-        grace: Duration,
-        termination_signal_rx: Option<&std_mpsc::Receiver<()>>,
-    ) {
-        if grace.is_zero() {
-            return;
-        }
-        otel_info!(
-            "controller.metric_unregister_grace.wait",
-            grace_secs = grace.as_secs_f64(),
-            message = "Pipelines stopped; serving final metrics until the grace period ends or a termination signal arrives"
-        );
-        match termination_signal_rx {
-            Some(rx) => {
-                let _ = rx.recv_timeout(grace);
-            }
-            None => thread::sleep(grace),
-        }
-    }
-
     fn spawn_shutdown_signal_listener(
         control_plane: Arc<dyn ControlPlane>,
-        termination_signal_tx: std_mpsc::SyncSender<()>,
     ) -> Result<ShutdownSignalListenerHandle, Error> {
         // Construct the runtime and register handlers before spawning the waiter.
         // This closes the window in which the thread existed but the process still
@@ -2346,7 +2309,6 @@ impl<
                         signal = signal_name,
                         message = "OS termination signal received, initiating graceful shutdown. Send the signal again to force immediate exit."
                     );
-                    let _ = termination_signal_tx.try_send(());
 
                         // Give pipelines a generous deadline to drain (60 s by default).
                         // Note: this exceeds the default Kubernetes
