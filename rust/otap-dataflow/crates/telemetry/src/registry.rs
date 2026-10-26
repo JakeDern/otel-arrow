@@ -19,6 +19,7 @@ use parking_lot::Mutex;
 use slotmap::new_key_type;
 use std::fmt::Debug;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 new_key_type! {
     /// This key is used to identify a specific entity entry in the entity registry (slotmap index).
@@ -317,17 +318,37 @@ impl TelemetryRegistryHandle {
         })
     }
 
+    /// Sets how long unregistered metric sets stay visible to readers.
+    ///
+    /// During the grace period an unregistered metric set keeps its entity and
+    /// final values, still accepts late snapshots, and is still reported by
+    /// scrapes. This gives a scraper time to observe the final values of
+    /// components that shut down. `Duration::ZERO` (the default) removes metric
+    /// sets as soon as any pending export completes.
+    pub fn set_metric_unregister_grace(&self, grace: Duration) {
+        self.registry.lock().metrics.set_unregister_grace(grace);
+    }
+
     /// Unregisters a metric set by key.
     #[must_use]
     pub fn unregister_metric_set(&self, metrics_key: MetricSetKey) -> bool {
+        self.unregister_metric_set_at(metrics_key, Instant::now())
+    }
+
+    /// Unregisters a metric set using an explicit unregistration time.
+    ///
+    /// The explicit time keeps grace-period tests deterministic; production
+    /// callers use [`Self::unregister_metric_set`].
+    pub(crate) fn unregister_metric_set_at(&self, metrics_key: MetricSetKey, now: Instant) -> bool {
         let mut reg = self.registry.lock();
         let defer_dirty_unregistration = reg.defer_dirty_metric_unregistration;
-        match reg
-            .metrics
-            .unregister(metrics_key, defer_dirty_unregistration)
-        {
+        let TelemetryRegistry {
+            entities, metrics, ..
+        } = &mut *reg;
+        metrics.sweep_expired_unregisters(entities, Instant::now());
+        match metrics.unregister(metrics_key, defer_dirty_unregistration, now) {
             Some(MetricSetUnregister::Removed(entity_key)) => {
-                let _ = reg.entities.unregister(entity_key);
+                let _ = entities.unregister(entity_key);
                 true
             }
             Some(MetricSetUnregister::Deferred) => true,
@@ -436,6 +457,7 @@ impl TelemetryRegistryHandle {
         let TelemetryRegistry {
             entities, metrics, ..
         } = &mut *reg;
+        metrics.sweep_expired_unregisters(entities, Instant::now());
         let (batch, checkpoints) = metrics.begin_export_batch(entities, time_unix_nano);
         MetricExportTransaction {
             registry: self.clone(),
@@ -481,6 +503,7 @@ impl TelemetryRegistryHandle {
         let TelemetryRegistry {
             entities, metrics, ..
         } = &mut *reg;
+        metrics.sweep_expired_unregisters(entities, Instant::now());
         metrics.visit_admin_metrics_and_reset(entities, f, keep_all_zeroes);
     }
 
@@ -526,9 +549,12 @@ impl TelemetryRegistryHandle {
             MetricsIterator<'a>,
         ),
     {
-        let reg = self.registry.lock();
-        reg.metrics
-            .visit_current_with_item_attrs(&reg.entities, f, keep_all_zeroes);
+        let mut reg = self.registry.lock();
+        let TelemetryRegistry {
+            entities, metrics, ..
+        } = &mut *reg;
+        metrics.sweep_expired_unregisters(entities, Instant::now());
+        metrics.visit_current_with_item_attrs(entities, f, keep_all_zeroes);
     }
 }
 
@@ -747,6 +773,133 @@ mod tests {
         assert!(telemetry_registry.unregister_metric_set(metrics_key));
         assert_eq!(telemetry_registry.metric_set_count(), 0);
         assert_eq!(telemetry_registry.entity_count(), 0);
+    }
+
+    fn scraped_values(registry: &TelemetryRegistryHandle) -> Vec<Vec<MetricValue>> {
+        let mut scraped = Vec::new();
+        registry.visit_current_metrics(|_, _, iter| {
+            scraped.push(iter.map(|(_, value)| value.clone()).collect());
+        });
+        scraped
+    }
+
+    /// Scenario: a metric set is unregistered while an unregister grace period is configured.
+    /// Guarantees: a scraper still sees the final values (and the entity) until the grace
+    /// period ends.
+    #[test]
+    fn test_unregistration_grace_keeps_final_values_scrapeable() {
+        let telemetry_registry = TelemetryRegistryHandle::new();
+        telemetry_registry.set_metric_unregister_grace(Duration::from_secs(3600));
+        let metric_set: MetricSet<MockMetricSet> =
+            telemetry_registry.register_metric_set(MockAttributeSet::new("grace".to_owned()));
+        let metrics_key = metric_set.metric_set_key();
+
+        telemetry_registry.accumulate_metric_set_snapshot(
+            metrics_key,
+            0,
+            &[MetricValue::U64(13), MetricValue::U64(21)],
+        );
+        assert!(telemetry_registry.unregister_metric_set(metrics_key));
+
+        assert_eq!(telemetry_registry.metric_set_count(), 1);
+        assert_eq!(telemetry_registry.entity_count(), 1);
+        assert_eq!(
+            scraped_values(&telemetry_registry),
+            vec![vec![MetricValue::U64(13), MetricValue::U64(21)]]
+        );
+    }
+
+    /// Scenario: a producer's terminal snapshot is accumulated after its metric set was
+    /// unregistered, but within the grace period.
+    /// Guarantees: the late snapshot is counted instead of silently dropped.
+    #[test]
+    fn test_unregistration_grace_accepts_late_snapshots() {
+        let telemetry_registry = TelemetryRegistryHandle::new();
+        telemetry_registry.set_metric_unregister_grace(Duration::from_secs(3600));
+        let metric_set: MetricSet<MockMetricSet> =
+            telemetry_registry.register_metric_set(MockAttributeSet::new("late".to_owned()));
+        let metrics_key = metric_set.metric_set_key();
+
+        telemetry_registry.accumulate_metric_set_snapshot(
+            metrics_key,
+            0,
+            &[MetricValue::U64(1), MetricValue::U64(2)],
+        );
+        assert!(telemetry_registry.unregister_metric_set(metrics_key));
+        telemetry_registry.accumulate_metric_set_snapshot(
+            metrics_key,
+            0,
+            &[MetricValue::U64(10), MetricValue::U64(20)],
+        );
+
+        assert_eq!(
+            scraped_values(&telemetry_registry),
+            vec![vec![MetricValue::U64(11), MetricValue::U64(22)]]
+        );
+    }
+
+    /// Scenario: the grace period of an unregistered metric set has elapsed.
+    /// Guarantees: the next registry access removes the metric set and releases its entity.
+    #[test]
+    fn test_unregistration_grace_expires() {
+        let grace = Duration::from_secs(30);
+        let telemetry_registry = TelemetryRegistryHandle::new();
+        telemetry_registry.set_metric_unregister_grace(grace);
+        let metric_set: MetricSet<MockMetricSet> =
+            telemetry_registry.register_metric_set(MockAttributeSet::new("expired".to_owned()));
+        let metrics_key = metric_set.metric_set_key();
+        telemetry_registry.accumulate_metric_set_snapshot(
+            metrics_key,
+            0,
+            &[MetricValue::U64(13), MetricValue::U64(21)],
+        );
+
+        let Some(unregistered_at) = Instant::now().checked_sub(grace * 2) else {
+            return;
+        };
+        assert!(telemetry_registry.unregister_metric_set_at(metrics_key, unregistered_at));
+
+        assert!(scraped_values(&telemetry_registry).is_empty());
+        assert_eq!(telemetry_registry.metric_set_count(), 0);
+        assert_eq!(telemetry_registry.entity_count(), 0);
+    }
+
+    /// Scenario: deferred ITS export and an unregister grace period are both active.
+    /// Guarantees: committing the final export does not remove the metric set before the grace
+    /// period ends, and the values are exported exactly once.
+    #[test]
+    fn test_unregistration_grace_outlives_final_its_export() {
+        let telemetry_registry = TelemetryRegistryHandle::new();
+        telemetry_registry
+            .registry
+            .lock()
+            .defer_dirty_metric_unregistration = true;
+        telemetry_registry.set_metric_unregister_grace(Duration::from_secs(3600));
+        let metric_set: MetricSet<MockMetricSet> =
+            telemetry_registry.register_metric_set(MockAttributeSet::new("its".to_owned()));
+        let metrics_key = metric_set.metric_set_key();
+
+        telemetry_registry.accumulate_metric_set_snapshot(
+            metrics_key,
+            0,
+            &[MetricValue::U64(13), MetricValue::U64(21)],
+        );
+        assert!(telemetry_registry.unregister_metric_set(metrics_key));
+
+        let final_batch = telemetry_registry.drain_metric_export_batch_at(u64::MAX);
+        assert_eq!(final_batch.metric_sets.len(), 1);
+        assert_eq!(telemetry_registry.metric_set_count(), 1);
+        assert_eq!(telemetry_registry.entity_count(), 1);
+        assert!(
+            telemetry_registry
+                .drain_metric_export_batch_at(u64::MAX)
+                .is_empty(),
+            "a retained metric set must not be exported again"
+        );
+        assert_eq!(
+            scraped_values(&telemetry_registry),
+            vec![vec![MetricValue::U64(13), MetricValue::U64(21)]]
+        );
     }
 
     #[test]
