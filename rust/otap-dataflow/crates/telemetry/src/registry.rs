@@ -20,6 +20,7 @@ use slotmap::new_key_type;
 use std::fmt::Debug;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
+use tokio::sync::Notify;
 
 new_key_type! {
     /// This key is used to identify a specific entity entry in the entity registry (slotmap index).
@@ -42,6 +43,8 @@ new_key_type! {
 pub struct TelemetryRegistryHandle {
     pub(crate) registry: Arc<Mutex<TelemetryRegistry>>,
     metrics_flusher: Arc<Mutex<Option<MetricsFlushHandle>>>,
+    /// Wakes the metrics collector when the first grace deadline is queued.
+    unregister_notify: Arc<Notify>,
 }
 
 /// An owned metrics export that is committed only after downstream delivery.
@@ -114,6 +117,7 @@ impl TelemetryRegistryHandle {
         Self {
             registry: Arc::new(Mutex::new(TelemetryRegistry::default())),
             metrics_flusher: Arc::new(Mutex::new(None)),
+            unregister_notify: Arc::new(Notify::new()),
         }
     }
 
@@ -339,19 +343,51 @@ impl TelemetryRegistryHandle {
     /// The explicit time keeps grace-period tests deterministic; production
     /// callers use [`Self::unregister_metric_set`].
     pub(crate) fn unregister_metric_set_at(&self, metrics_key: MetricSetKey, now: Instant) -> bool {
+        let (found, first_deadline_queued) = {
+            let mut reg = self.registry.lock();
+            let TelemetryRegistry {
+                entities, metrics, ..
+            } = &mut *reg;
+            let had_deadline = metrics.next_unregister_deadline().is_some();
+            let found = match metrics.unregister(metrics_key, now) {
+                Some(MetricSetUnregister::Removed(entity_key)) => {
+                    let _ = entities.unregister(entity_key);
+                    true
+                }
+                Some(MetricSetUnregister::Deferred) => true,
+                None => false,
+            };
+            (
+                found,
+                !had_deadline && metrics.next_unregister_deadline().is_some(),
+            )
+        };
+        // Deadlines are queued in order, so only the first one can move the
+        // collector's next wakeup earlier. Notify outside the registry lock.
+        if first_deadline_queued {
+            self.unregister_notify.notify_one();
+        }
+        found
+    }
+
+    /// Notified when a grace deadline is queued while none was pending.
+    pub(crate) fn unregister_notify(&self) -> Arc<Notify> {
+        Arc::clone(&self.unregister_notify)
+    }
+
+    /// Returns the earliest queued unregister grace deadline, if any.
+    pub(crate) fn next_metric_unregister_deadline(&self) -> Option<Instant> {
+        self.registry.lock().metrics.next_unregister_deadline()
+    }
+
+    /// Removes metric sets whose grace deadline is at or before `now` and
+    /// returns the next queued deadline.
+    pub(crate) fn sweep_expired_metric_unregisters(&self, now: Instant) -> Option<Instant> {
         let mut reg = self.registry.lock();
         let TelemetryRegistry {
             entities, metrics, ..
         } = &mut *reg;
-        metrics.sweep_expired_unregisters(entities, Instant::now());
-        match metrics.unregister(metrics_key, now) {
-            Some(MetricSetUnregister::Removed(entity_key)) => {
-                let _ = entities.unregister(entity_key);
-                true
-            }
-            Some(MetricSetUnregister::Deferred) => true,
-            None => false,
-        }
+        metrics.sweep_expired_unregisters(entities, now)
     }
 
     /// Adds a new metrics snapshot to the aggregator for the given key and bucket.
@@ -455,7 +491,6 @@ impl TelemetryRegistryHandle {
         let TelemetryRegistry {
             entities, metrics, ..
         } = &mut *reg;
-        metrics.sweep_expired_unregisters(entities, Instant::now());
         let (batch, checkpoints) = metrics.begin_export_batch(entities, time_unix_nano);
         MetricExportTransaction {
             registry: self.clone(),
@@ -501,7 +536,6 @@ impl TelemetryRegistryHandle {
         let TelemetryRegistry {
             entities, metrics, ..
         } = &mut *reg;
-        metrics.sweep_expired_unregisters(entities, Instant::now());
         metrics.visit_admin_metrics_and_reset(entities, f, keep_all_zeroes);
     }
 
@@ -547,12 +581,9 @@ impl TelemetryRegistryHandle {
             MetricsIterator<'a>,
         ),
     {
-        let mut reg = self.registry.lock();
-        let TelemetryRegistry {
-            entities, metrics, ..
-        } = &mut *reg;
-        metrics.sweep_expired_unregisters(entities, Instant::now());
-        metrics.visit_current_with_item_attrs(entities, f, keep_all_zeroes);
+        let reg = self.registry.lock();
+        reg.metrics
+            .visit_current_with_item_attrs(&reg.entities, f, keep_all_zeroes);
     }
 }
 
@@ -837,8 +868,9 @@ mod tests {
         );
     }
 
-    /// Scenario: the grace period of an unregistered metric set has elapsed.
-    /// Guarantees: the next registry access removes the metric set and releases its entity.
+    /// Scenario: the grace period of an unregistered metric set elapses.
+    /// Guarantees: a sweep before the deadline keeps it; a sweep at the deadline removes it and
+    /// releases its entity even though its values were never exported (no exporter exists).
     #[test]
     fn test_unregistration_grace_expires() {
         let grace = Duration::from_secs(30);
@@ -853,14 +885,170 @@ mod tests {
             &[MetricValue::U64(13), MetricValue::U64(21)],
         );
 
+        let unregistered_at = Instant::now();
+        let deadline = unregistered_at + grace;
+        assert!(telemetry_registry.unregister_metric_set_at(metrics_key, unregistered_at));
+        assert_eq!(
+            telemetry_registry.next_metric_unregister_deadline(),
+            Some(deadline)
+        );
+
+        assert_eq!(
+            telemetry_registry
+                .sweep_expired_metric_unregisters(deadline - Duration::from_millis(1)),
+            Some(deadline)
+        );
+        assert_eq!(telemetry_registry.metric_set_count(), 1);
+
+        assert_eq!(
+            telemetry_registry.sweep_expired_metric_unregisters(deadline),
+            None
+        );
+        assert!(scraped_values(&telemetry_registry).is_empty());
+        assert_eq!(telemetry_registry.metric_set_count(), 0);
+        assert_eq!(telemetry_registry.entity_count(), 0);
+    }
+
+    /// Scenario: metric sets are unregistered at different times.
+    /// Guarantees: a sweep removes only the expired ones, in deadline order, and reports the
+    /// next deadline.
+    #[test]
+    fn test_unregistration_grace_sweeps_in_deadline_order() {
+        let grace = Duration::from_secs(30);
+        let telemetry_registry = TelemetryRegistryHandle::new();
+        telemetry_registry.set_metric_unregister_grace(grace);
+        let first: MetricSet<MockMetricSet> =
+            telemetry_registry.register_metric_set(MockAttributeSet::new("first".to_owned()));
+        let second: MetricSet<MockMetricSet> =
+            telemetry_registry.register_metric_set(MockAttributeSet::new("second".to_owned()));
+
+        let start = Instant::now();
+        let later = start + Duration::from_secs(10);
+        assert!(telemetry_registry.unregister_metric_set_at(first.metric_set_key(), start));
+        assert!(telemetry_registry.unregister_metric_set_at(second.metric_set_key(), later));
+        // A repeated unregister must not queue a second deadline.
+        assert!(telemetry_registry.unregister_metric_set_at(first.metric_set_key(), later));
+
+        assert_eq!(
+            telemetry_registry.sweep_expired_metric_unregisters(start + grace),
+            Some(later + grace)
+        );
+        assert_eq!(telemetry_registry.metric_set_count(), 1);
+        assert_eq!(
+            telemetry_registry.sweep_expired_metric_unregisters(later + grace),
+            None
+        );
+        assert_eq!(telemetry_registry.metric_set_count(), 0);
+        assert_eq!(telemetry_registry.entity_count(), 0);
+    }
+
+    /// Scenario: an exporter exists and an expired metric set still has unexported values.
+    /// Guarantees: the sweep keeps it until the export commit removes it, so the final values
+    /// are exported exactly once.
+    #[test]
+    fn test_unregistration_grace_expired_dirty_waits_for_export() {
+        let grace = Duration::from_secs(30);
+        let telemetry_registry = TelemetryRegistryHandle::new();
+        telemetry_registry
+            .registry
+            .lock()
+            .metrics
+            .set_has_metric_exporter();
+        telemetry_registry.set_metric_unregister_grace(grace);
+        let metric_set: MetricSet<MockMetricSet> =
+            telemetry_registry.register_metric_set(MockAttributeSet::new("dirty".to_owned()));
+        let metrics_key = metric_set.metric_set_key();
+        telemetry_registry.accumulate_metric_set_snapshot(
+            metrics_key,
+            0,
+            &[MetricValue::U64(13), MetricValue::U64(21)],
+        );
+
+        // The export commit checks readiness against the wall clock, so the
+        // deadline must already be in the past.
+        let Some(unregistered_at) = Instant::now().checked_sub(grace * 2) else {
+            return;
+        };
+        assert!(telemetry_registry.unregister_metric_set_at(metrics_key, unregistered_at));
+        assert_eq!(
+            telemetry_registry.sweep_expired_metric_unregisters(Instant::now()),
+            None
+        );
+        assert_eq!(telemetry_registry.metric_set_count(), 1);
+
+        let final_batch = telemetry_registry.drain_metric_export_batch_at(u64::MAX);
+        assert_eq!(
+            final_batch.metric_sets[0].values,
+            vec![MetricValue::U64(13), MetricValue::U64(21)]
+        );
+        assert_eq!(telemetry_registry.metric_set_count(), 0);
+        assert_eq!(telemetry_registry.entity_count(), 0);
+    }
+
+    /// Scenario: an export removes an expired metric set before its queued deadline is swept.
+    /// Guarantees: the sweep skips the stale queue entry.
+    #[test]
+    fn test_unregistration_grace_sweep_skips_entries_removed_by_export() {
+        let grace = Duration::from_secs(30);
+        let telemetry_registry = TelemetryRegistryHandle::new();
+        telemetry_registry
+            .registry
+            .lock()
+            .metrics
+            .set_has_metric_exporter();
+        telemetry_registry.set_metric_unregister_grace(grace);
+        let metric_set: MetricSet<MockMetricSet> =
+            telemetry_registry.register_metric_set(MockAttributeSet::new("stale".to_owned()));
+        let metrics_key = metric_set.metric_set_key();
+        telemetry_registry.accumulate_metric_set_snapshot(
+            metrics_key,
+            0,
+            &[MetricValue::U64(13), MetricValue::U64(21)],
+        );
         let Some(unregistered_at) = Instant::now().checked_sub(grace * 2) else {
             return;
         };
         assert!(telemetry_registry.unregister_metric_set_at(metrics_key, unregistered_at));
 
-        assert!(scraped_values(&telemetry_registry).is_empty());
+        let _ = telemetry_registry.drain_metric_export_batch_at(u64::MAX);
         assert_eq!(telemetry_registry.metric_set_count(), 0);
+        assert!(
+            telemetry_registry
+                .next_metric_unregister_deadline()
+                .is_some()
+        );
+
+        assert_eq!(
+            telemetry_registry.sweep_expired_metric_unregisters(Instant::now()),
+            None
+        );
         assert_eq!(telemetry_registry.entity_count(), 0);
+    }
+
+    /// Scenario: several metric sets are unregistered while a grace period is configured.
+    /// Guarantees: only the first queued deadline notifies the collector.
+    #[tokio::test]
+    async fn test_unregistration_grace_notifies_on_first_deadline_only() {
+        let telemetry_registry = TelemetryRegistryHandle::new();
+        telemetry_registry.set_metric_unregister_grace(Duration::from_secs(30));
+        let notify = telemetry_registry.unregister_notify();
+        let first: MetricSet<MockMetricSet> =
+            telemetry_registry.register_metric_set(MockAttributeSet::new("first".to_owned()));
+        let second: MetricSet<MockMetricSet> =
+            telemetry_registry.register_metric_set(MockAttributeSet::new("second".to_owned()));
+
+        assert!(telemetry_registry.unregister_metric_set(first.metric_set_key()));
+        assert!(telemetry_registry.unregister_metric_set(second.metric_set_key()));
+
+        let wait = Duration::from_millis(10);
+        assert!(
+            tokio::time::timeout(wait, notify.notified()).await.is_ok(),
+            "the first deadline must notify"
+        );
+        assert!(
+            tokio::time::timeout(wait, notify.notified()).await.is_err(),
+            "later deadlines must not notify again"
+        );
     }
 
     /// Scenario: deferred ITS export and an unregister grace period are both active.
@@ -900,6 +1088,14 @@ mod tests {
             scraped_values(&telemetry_registry),
             vec![vec![MetricValue::U64(13), MetricValue::U64(21)]]
         );
+
+        let after_deadline = Instant::now() + Duration::from_secs(3601);
+        assert_eq!(
+            telemetry_registry.sweep_expired_metric_unregisters(after_deadline),
+            None
+        );
+        assert_eq!(telemetry_registry.metric_set_count(), 0);
+        assert_eq!(telemetry_registry.entity_count(), 0);
     }
 
     #[test]
