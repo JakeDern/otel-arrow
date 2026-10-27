@@ -99,7 +99,6 @@ impl Drop for MetricExportTransaction {
 pub(crate) struct TelemetryRegistry {
     pub(crate) entities: EntityRegistry,
     pub(crate) metrics: MetricSetRegistry,
-    defer_dirty_metric_unregistration: bool,
 }
 
 impl Default for TelemetryRegistryHandle {
@@ -120,7 +119,7 @@ impl TelemetryRegistryHandle {
 
     pub(crate) fn configure_metrics_collector(&self, flusher: MetricsFlushHandle) {
         *self.metrics_flusher.lock() = Some(flusher);
-        self.registry.lock().defer_dirty_metric_unregistration = true;
+        self.registry.lock().metrics.set_has_metric_exporter();
     }
 
     /// Flushes snapshots accepted by the internal metrics collector, if one is configured.
@@ -341,12 +340,11 @@ impl TelemetryRegistryHandle {
     /// callers use [`Self::unregister_metric_set`].
     pub(crate) fn unregister_metric_set_at(&self, metrics_key: MetricSetKey, now: Instant) -> bool {
         let mut reg = self.registry.lock();
-        let defer_dirty_unregistration = reg.defer_dirty_metric_unregistration;
         let TelemetryRegistry {
             entities, metrics, ..
         } = &mut *reg;
         metrics.sweep_expired_unregisters(entities, Instant::now());
-        match metrics.unregister(metrics_key, defer_dirty_unregistration, now) {
+        match metrics.unregister(metrics_key, now) {
             Some(MetricSetUnregister::Removed(entity_key)) => {
                 let _ = entities.unregister(entity_key);
                 true
@@ -728,7 +726,8 @@ mod tests {
         telemetry_registry
             .registry
             .lock()
-            .defer_dirty_metric_unregistration = true;
+            .metrics
+            .set_has_metric_exporter();
         let metric_set: MetricSet<MockMetricSet> =
             telemetry_registry.register_metric_set(MockAttributeSet::new("final".to_owned()));
         let metrics_key = metric_set.metric_set_key();
@@ -873,7 +872,8 @@ mod tests {
         telemetry_registry
             .registry
             .lock()
-            .defer_dirty_metric_unregistration = true;
+            .metrics
+            .set_has_metric_exporter();
         telemetry_registry.set_metric_unregister_grace(Duration::from_secs(3600));
         let metric_set: MetricSet<MockMetricSet> =
             telemetry_registry.register_metric_set(MockAttributeSet::new("its".to_owned()));
