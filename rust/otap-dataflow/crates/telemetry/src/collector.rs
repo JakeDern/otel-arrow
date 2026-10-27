@@ -153,41 +153,43 @@ impl InternalCollector {
         self.drain_pending();
         let _ = self
             .registry
-            .sweep_expired_metric_unregisters(Instant::now());
+            .reap_expired_metric_unregisters(Instant::now());
     }
 
-    /// Aggregates snapshots until the channel closes, and removes unregistered
+    /// Aggregates snapshots until the channel closes, and also removes unregistered
     /// metric sets when their grace deadline passes.
     ///
     /// The task sleeps only while a grace deadline is queued; the registry
     /// notifies it when the first deadline is queued.
     async fn collection_loop(&self) -> Result<(), Error> {
         let unregister_notify = self.registry.unregister_notify();
-        // No registry lock before the first message: a deadline queued before
-        // this loop started left a stored permit, so the first poll of
-        // `notified()` picks it up.
         let mut next_deadline = None;
         let sweep_timer = tokio::time::sleep(Duration::ZERO);
         tokio::pin!(sweep_timer);
         loop {
-            // Deadline branches come first: they are rarely ready, so a busy
-            // snapshot channel cannot starve the sweep.
             tokio::select! {
                 biased;
 
+                // Next pending unregister is ready
                 () = &mut sweep_timer, if next_deadline.is_some() => {
                     let now = tokio::time::Instant::now().into_std();
-                    next_deadline = self.registry.sweep_expired_metric_unregisters(now);
+                    next_deadline = self.registry.reap_expired_metric_unregisters(now);
                     if let Some(deadline) = next_deadline {
                         sweep_timer.as_mut().reset(sweep_instant(deadline));
                     }
                 }
+
+                // Registry notified us of a new unregister. This happens when
+                // an unregister hits the registry while there were no existing
+                // pending unregisters.
                 () = unregister_notify.notified() => {
                     next_deadline = self.registry.next_metric_unregister_deadline();
                     if let Some(deadline) = next_deadline {
                         sweep_timer.as_mut().reset(sweep_instant(deadline));
                     }
                 }
+
+                // Metrics collection message
                 message = self.metrics_receiver.recv_async() => {
                     let Ok(message) = message else {
                         return Ok(());

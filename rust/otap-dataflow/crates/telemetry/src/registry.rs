@@ -382,12 +382,12 @@ impl TelemetryRegistryHandle {
 
     /// Removes metric sets whose grace deadline is at or before `now` and
     /// returns the next queued deadline.
-    pub(crate) fn sweep_expired_metric_unregisters(&self, now: Instant) -> Option<Instant> {
+    pub(crate) fn reap_expired_metric_unregisters(&self, now: Instant) -> Option<Instant> {
         let mut reg = self.registry.lock();
         let TelemetryRegistry {
             entities, metrics, ..
         } = &mut *reg;
-        metrics.sweep_expired_unregisters(entities, now)
+        metrics.reap_expired_unregisters(entities, now)
     }
 
     /// Adds a new metrics snapshot to the aggregator for the given key and bucket.
@@ -894,14 +894,13 @@ mod tests {
         );
 
         assert_eq!(
-            telemetry_registry
-                .sweep_expired_metric_unregisters(deadline - Duration::from_millis(1)),
+            telemetry_registry.reap_expired_metric_unregisters(deadline - Duration::from_millis(1)),
             Some(deadline)
         );
         assert_eq!(telemetry_registry.metric_set_count(), 1);
 
         assert_eq!(
-            telemetry_registry.sweep_expired_metric_unregisters(deadline),
+            telemetry_registry.reap_expired_metric_unregisters(deadline),
             None
         );
         assert!(scraped_values(&telemetry_registry).is_empty());
@@ -930,12 +929,12 @@ mod tests {
         assert!(telemetry_registry.unregister_metric_set_at(first.metric_set_key(), later));
 
         assert_eq!(
-            telemetry_registry.sweep_expired_metric_unregisters(start + grace),
+            telemetry_registry.reap_expired_metric_unregisters(start + grace),
             Some(later + grace)
         );
         assert_eq!(telemetry_registry.metric_set_count(), 1);
         assert_eq!(
-            telemetry_registry.sweep_expired_metric_unregisters(later + grace),
+            telemetry_registry.reap_expired_metric_unregisters(later + grace),
             None
         );
         assert_eq!(telemetry_registry.metric_set_count(), 0);
@@ -971,7 +970,7 @@ mod tests {
         };
         assert!(telemetry_registry.unregister_metric_set_at(metrics_key, unregistered_at));
         assert_eq!(
-            telemetry_registry.sweep_expired_metric_unregisters(Instant::now()),
+            telemetry_registry.reap_expired_metric_unregisters(Instant::now()),
             None
         );
         assert_eq!(telemetry_registry.metric_set_count(), 1);
@@ -1019,7 +1018,7 @@ mod tests {
         );
 
         assert_eq!(
-            telemetry_registry.sweep_expired_metric_unregisters(Instant::now()),
+            telemetry_registry.reap_expired_metric_unregisters(Instant::now()),
             None
         );
         assert_eq!(telemetry_registry.entity_count(), 0);
@@ -1091,7 +1090,7 @@ mod tests {
 
         let after_deadline = Instant::now() + Duration::from_secs(3601);
         assert_eq!(
-            telemetry_registry.sweep_expired_metric_unregisters(after_deadline),
+            telemetry_registry.reap_expired_metric_unregisters(after_deadline),
             None
         );
         assert_eq!(telemetry_registry.metric_set_count(), 0);

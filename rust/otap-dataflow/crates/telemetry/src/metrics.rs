@@ -1128,7 +1128,7 @@ impl MetricSetRegistry {
     ///
     /// An expired entry that still has values to export stays pending; the
     /// export commit that drains it completes the unregister.
-    pub(crate) fn sweep_expired_unregisters(
+    pub(crate) fn reap_expired_unregisters(
         &mut self,
         entities: &mut EntityRegistry,
         now: Instant,
