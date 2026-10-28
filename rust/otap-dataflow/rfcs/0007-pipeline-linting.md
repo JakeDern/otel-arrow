@@ -331,7 +331,7 @@ impl LintSink<'_> {
     pub fn emit(&mut self, message: impl Into<String>) -> DiagnosticBuilder<'_>;
 }
 
-/// A sampel batch processor lint
+/// A sample node-scoped batch processor lint
 static FORWARDS_EVERYTHING: Lint = Lint {
     info: LintInfo {
         id: "forwards_everything",
@@ -359,58 +359,7 @@ fn check_forwards_everything(cx: &LintContext<'_>, node: NodeRef<'_>, sink: &mut
     }
 }
 
-```
-
-A few notes:
-
-Checks can be expensive, so the engine skips a check whose category
-resolves to `allow` for the pipeline, and at pipelines or nodes that do not
-match its interests. Each invocation gets a sink bound to exactly one lint
-and location, so a check cannot emit any other lint. The graph is built once
-per pipeline's lint run.
-
-Lints see node configs only as `serde_json::Value`, exactly as submitted.
-The framework does not deserialize them into the node's config type, and
-fields left to their defaults are absent. A lint that relies on a default
-must account for it. A pack is free to deserialize a `Value` into a type it
-has access to. See [Typed configuration](#typed-configuration) for the
-tradeoffs.
-
-For example, the batch processor's existing build-time
-`batch.config.forwards_everything` warning becomes a node lint:
-
-```rust
-static FORWARDS_EVERYTHING: Lint = Lint {
-    info: LintInfo {
-        id: "forwards_everything",
-        category: Category::Suspicious,
-        summary: "batch processor forwards every request without batching",
-        docs: "With min_size 0 and no max_size, every request is forwarded as \
-               it arrives. Set min_size, or remove the processor.",
-    },
-    check: Check::Node {
-        node_type: OTAP_BATCH_PROCESSOR_URN,
-        check: check_forwards_everything,
-    },
-};
-
-fn check_forwards_everything(cx: &LintContext<'_>, node: NodeRef<'_>, sink: &mut LintSink<'_>) {
-    let config = cx.raw_config(node.id());
-    for (format, settings) in format_settings(config) {
-        // `min_size` and `max_size` are read with the processor's defaults
-        // applied by hand.
-        if forwards_everything(settings) {
-            sink.emit(format!(
-                "{format} format: min_size is 0 and max_size is unset, so requests are never batched"
-            ));
-        }
-    }
-}
-```
-
-And a pipeline lint flagging several batch processors on the same path:
-
-```rust
+/// A sample pipeline-scoped lint with an interest in the batch processor
 static REDUNDANT_BATCH: Lint = Lint {
     info: LintInfo {
         id: "redundant_batch",
@@ -442,7 +391,23 @@ fn check_redundant_batch(cx: &LintContext<'_>, sink: &mut LintSink<'_>) {
         }
     }
 }
+
 ```
+
+A few notes:
+
+Checks can be expensive, so the engine skips a check whose category
+resolves to `allow` for the pipeline, and at pipelines or nodes that do not
+match its interests. Each invocation gets a sink bound to exactly one lint
+and location, so a check cannot emit any other lint. The graph is built once
+per pipeline's lint run.
+
+Lints see node configs only as `serde_json::Value`, exactly as submitted.
+The framework does not deserialize them into the node's config type, and
+fields left to their defaults are absent. A lint that relies on a default
+must account for it. A pack is free to deserialize a `Value` into a type it
+has access to. See [Typed configuration](#typed-configuration) for the
+tradeoffs.
 
 Each check is a plain function and is unit tested by calling it with a
 pipeline config and a recording sink.
