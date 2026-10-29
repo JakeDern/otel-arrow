@@ -38,7 +38,7 @@ systems. This is a proposal for a similar system for Dataflow Engine pipelines.
 
 ### What is a lint?
 
-A lint is a special diagnostic, indicating one opinion about how pipelines or 
+A lint is a special diagnostic indicating one opinion about how pipelines or 
 nodes should generally be configured. A lint is distinct from a validation or
 type-checking error which are hard errors for configurations that don't describe
 a valid pipeline at all.
@@ -54,6 +54,34 @@ Lints therefore are checked after validation:
            structural     validate_config per node       unconnected nodes,
                                                          binding to 0.0.0.0
 ```
+
+### Where lints come from
+
+All lints are provided in packs via a new `lints` component type. See 
+[Authoring lints](#authoring-lints). Every lint pack compiled into the engine 
+runs by default (subject to its interests and enforcement level) and is controlled
+through [levels](#configuring-lints).
+
+The engine additionally may define some special lints, such as `engine:unconnected_node`,
+for nodes that are not connected to the rest of the pipeline. These would not be defined
+in a pack per se, but still belong to a reserved `urn:otel:lints:engine` pack/namespace
+and are configured like any other lint.
+
+### Lint names
+
+Every lint is named after the pack that provides it followed by the lint's
+id. Names follow the shortcut rules of component URNs (see
+[URN format](../docs/urns.md)) including special resolution for the otel namespace.
+
+```text
+urn:otel:lints:core-nodes:redundant_batch     built-in pack, canonical form
+lints:core-nodes:redundant_batch              built-in pack, otel shortcut form
+urn:acme:lints:prod_policy:no_debug_exporters third-party pack
+```
+
+Names identify a lint in diagnostics and documentation. They are not used in
+configuration, which only refers to categories (see
+[Configuring lints](#configuring-lints)).
 
 ### Linting levels and categories
 
@@ -131,35 +159,6 @@ pipeline `dev/main`:
 | `correctness` | `allow` | group `default`                   |
 | `suspicious`  | `allow` | group `default`                   |
 | `style`       | `allow` | group `default`                   |
-
-
-### Where lints come from
-
-All lints are provided by **lint packs**. A lint pack is a component that
-only carries lints. Every lint pack compiled into the engine runs by default
-(subject to its interests and enforcement level) and is controlled 
-through [levels](#configuring-lints). The engine can arrange core and contrib node
-lints into packs and ship them.
-
-The engine additionally defines some special lints, such as `engine:unconnected_node`,
-for nodes that are not connected to the rest of the pipeline. It lives in the
-reserved `urn:otel:lints:engine` namespace and is configured like any other lint.
-
-### Lint names
-
-Every lint is named after the pack that provides it followed by the lint's
-id. Names follow the shortcut rules of component URNs (see
-[URN format](../docs/urns.md)) including special resolution for the otel namespace.
-
-```text
-urn:otel:lints:core-nodes:redundant_batch     built-in pack, canonical form
-lints:core-nodes:redundant_batch              built-in pack, otel shortcut form
-urn:acme:lints:prod_policy:no_debug_exporters third-party pack
-```
-
-Names identify a lint in diagnostics and documentation. They are not used in
-configuration, which only refers to categories (see
-[Configuring lints](#configuring-lints)).
 
 ### Locations
 
