@@ -16,3 +16,15 @@ persisted cursor, so every later segment flush is rejected with "invalid consume
 offset regressed". The segment files are written but never handed to the subscriber, the cursor
 never moves, the WAL is never purged, and the disk budget fills. After that the gateway refuses
 every batch with "storage at capacity" while it stays up and reports ready.
+
+## More Detailed
+
+1. Before the crash: wal holds the history, covering WAL positions [0, P). Rotation renames it to wal.N, which is already complete because it is the old file under a new name. The new wal and its header never reach the disk.
+2. Restart: WalWriter::open finds wal missing or empty and writes a header saying "starts at 0". The cursor sidecar holds whatever was last saved. In our test that is P, because run 1 had flushed everything.
+3. Replay: replay reads wal.N from the cursor onward and puts any entries past the cursor into the open segment. In our test there were none.
+4. Live ingest (m-0): wal.N is still present, so the writer numbers m-0 from wal.N's end. That gives position P, which is correct.
+5. First seal succeeds: the cursor moves to just past m-0, which is at least P, and is saved. Because the cursor has now passed wal.N's end, wal.N is purged.
+6. Next ingest (m-1): with no rotated file left, the writer uses the header value of 0. m-1 is numbered from about 0 instead of about P.
+7. Second seal fails: its cursor is about 0, which is below the saved cursor of about P, so the cursor update  is rejected with "safe offset regressed". Every later seal fails the same way until we catch up to P.
+8. We only notify subscribers after the cursor update succeeds so the last segment remains orphaned until a restart scans for orphaned files.
+
