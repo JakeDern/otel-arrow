@@ -123,6 +123,10 @@ pub(crate) mod logging;
 // can be tested deterministically. See the module docs for details.
 pub(crate) mod fs_compat;
 
+// Named crash points that turmoil barrier tests can suspend at. No-ops unless
+// built with `--cfg quiver_turmoil` and a test registers a matching barrier.
+pub(crate) mod crash_point;
+
 pub mod budget;
 pub mod config;
 pub mod engine;
@@ -138,6 +142,11 @@ pub(crate) mod wal;
 // `--cfg quiver_turmoil` (which also pulls in turmoil); see fs_compat.rs.
 #[cfg(all(test, quiver_turmoil))]
 mod turmoil_sim;
+
+// Deterministic crash reproductions that stop the process at a named
+// `crash_point` with a turmoil barrier. Only compiled under `--cfg quiver_turmoil`.
+#[cfg(all(test, quiver_turmoil))]
+mod turmoil_crash_tests;
 
 pub use budget::{BudgetConfigError, DiskBudget};
 pub use config::{

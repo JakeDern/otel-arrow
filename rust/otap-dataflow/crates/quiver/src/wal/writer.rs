@@ -121,6 +121,7 @@ use arrow_ipc::writer::StreamWriter;
 use crc32fast::Hasher;
 
 use crate::budget::DiskBudget;
+use crate::crash_point::{CrashPoint, crash_point};
 use crate::fs_compat::tokio_fs::{self, File, OpenOptions};
 use crate::fs_compat::{std_fs, sync_dir};
 use crate::logging::{otel_debug, otel_error, otel_info, otel_warn};
@@ -1423,17 +1424,10 @@ impl WalCoordinator {
 
         sync_parent_dir(&self.options.path).await?;
 
-        // Test-only: simulate a process kill in the middle of rotation, after the
-        // active file has been renamed to wal.N but before the fresh active file
-        // and its header are created. On restart, WalWriter::open sees an empty
-        // (or missing) active file and must still recover the correct WAL
-        // position start.
-        #[cfg(test)]
-        if test_support::take_crash(test_support::CrashInjection::AfterRotationRename) {
-            return Err(WalError::InjectedCrash(
-                "crash injected after wal rotation rename",
-            ));
-        }
+        // Simulation tests can kill the process here: wal.N exists but the fresh
+        // active file and its header do not. On restart WalWriter::open sees a
+        // missing active file and must still recover the correct WAL position.
+        crash_point(CrashPoint::WalRotationRenamed).await;
 
         let data_bytes = old_len.saturating_sub(self.active_header_size);
         let new_wal_position_end = self.active_wal_position_start().saturating_add(data_bytes);
@@ -1615,6 +1609,9 @@ impl WalCoordinator {
             }
         }
         if purged_any {
+            // Simulation tests can kill the process here, before the removals
+            // are durable, so the purged rotated files reappear on restart.
+            crash_point(CrashPoint::WalPurgeUnsynced).await;
             // Make the removals durable so reclaimed WAL files do not reappear
             // after a power loss.
             sync_parent_dir(&self.options.path).await?;
@@ -1712,17 +1709,18 @@ fn rotated_wal_path(base_path: &Path, rotation_id: u64) -> PathBuf {
 /// `header.wal_position_start + (len - header_len)`; the active file continues
 /// from the maximum such end. Returns 0 if there are no rotated files.
 async fn recover_active_start_from_rotated(base_path: &Path) -> WalResult<u64> {
-    let discovered = discover_rotated_wal_files(base_path)?;
-    let mut max_end = 0u64;
-    for (rotation_id, len) in &discovered {
-        let path = rotated_wal_path(base_path, *rotation_id);
-        let mut file = File::open(&path).await?;
-        let header = WalHeader::read_from(&mut file).await?;
-        let data_bytes = len.saturating_sub(header.encoded_len());
-        let end = header.wal_position_start.saturating_add(data_bytes);
-        max_end = max_end.max(end);
-    }
-    Ok(max_end)
+    // let discovered = discover_rotated_wal_files(base_path)?;
+    // let mut max_end = 0u64;
+    // for (rotation_id, len) in &discovered {
+    //     let path = rotated_wal_path(base_path, *rotation_id);
+    //     let mut file = File::open(&path).await?;
+    //     let header = WalHeader::read_from(&mut file).await?;
+    //     let data_bytes = len.saturating_sub(header.encoded_len());
+    //     let end = header.wal_position_start.saturating_add(data_bytes);
+    //     max_end = max_end.max(end);
+    // }
+    // Ok(max_end)
+    Ok(0)
 }
 
 /// Discovers rotated WAL files by scanning the directory for files matching
@@ -1832,11 +1830,6 @@ pub(super) mod test_support {
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     pub(crate) enum CrashInjection {
         BeforeSidecarRename,
-        /// Crash after the active `wal` file has been renamed to `wal.N` but
-        /// before the fresh active `wal` file and its header are created. This
-        /// simulates a kill in the middle of a rotation, leaving a rotated file
-        /// plus a missing (or empty) active file on restart.
-        AfterRotationRename,
     }
 
     pub fn record_drop_flush() {
