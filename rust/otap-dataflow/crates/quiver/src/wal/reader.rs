@@ -59,12 +59,12 @@
 
 #[cfg(test)]
 use self::test_support::ReadFailure;
-use std::fs::File;
 use std::io::{ErrorKind, Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 
 use crc32fast::Hasher;
 
+use crate::fs_compat::std_fs::{self, File};
 use crate::logging::{otel_error, otel_warn};
 use crate::record_bundle::{SchemaFingerprint, SlotId};
 
@@ -790,7 +790,7 @@ impl MultiFileWalReader {
         }
 
         // Open active file if it exists
-        if base_path.exists() {
+        if crate::fs_compat::path_exists(&base_path) {
             match WalReader::open(&base_path) {
                 Ok(reader) => {
                     let wal_position_end = reader.wal_position_end()?;
@@ -879,7 +879,7 @@ fn discover_rotated_wal_files(base_path: &Path) -> WalResult<Vec<(u64, PathBuf)>
     let prefix = format!("{base_name}.");
     let mut discovered = Vec::new();
 
-    let entries = match std::fs::read_dir(parent) {
+    let entries = match std_fs::read_dir(parent) {
         Ok(entries) => entries,
         Err(err) if err.kind() == ErrorKind::NotFound => return Ok(discovered),
         Err(err) => return Err(WalError::Io(err)),

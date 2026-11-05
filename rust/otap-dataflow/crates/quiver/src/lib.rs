@@ -117,6 +117,12 @@
 // Declare logging module first so macros are available to subsequent modules
 pub(crate) mod logging;
 
+// Filesystem facade. On normal builds this re-exports std::fs / tokio::fs
+// unchanged. When the crate is built with `--cfg quiver_turmoil` it routes all
+// filesystem access through turmoil's simulated filesystem so crash-consistency
+// can be tested deterministically. See the module docs for details.
+pub(crate) mod fs_compat;
+
 pub mod budget;
 pub mod config;
 pub mod engine;

@@ -468,7 +468,7 @@ rust_2021_compatibility = { level = "warn", priority = -1 }
 rust_2024_compatibility = { level = "warn", priority = -1 }
 future_incompatible = { level = "warn", priority = -1 }
 nonstandard_style = { level = "warn", priority = -1 }
-unexpected_cfgs = { level = "warn", check-cfg = ["cfg(tokio_unstable)", "cfg(validation_tests)", "cfg(feature, values(\"test-helpers\"))"] }
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(tokio_unstable)", "cfg(validation_tests)", "cfg(quiver_turmoil)", "cfg(feature, values(\"test-helpers\"))"] }
 
 # Strict safety & quality standards
 missing_docs = "deny"

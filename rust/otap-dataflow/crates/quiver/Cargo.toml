@@ -49,6 +49,16 @@ tempfile.workspace = true
 [lints]
 workspace = true
 
+# Turmoil deterministic-simulation POC. Turmoil is only linked when the crate is
+# built with `--cfg quiver_turmoil` (see src/fs_compat.rs). It is NOT enabled by
+# `--all-features`, so normal and CI builds are unaffected. The lib's fs_compat
+# module references turmoil under that cfg, so it must be a normal (not dev)
+# dependency. Run the sim tests via:
+#   CARGO_TARGET_DIR=target/turmoil RUSTFLAGS="--cfg quiver_turmoil" \
+#     cargo test -p otel-arrow-dfe-quiver turmoil
+[target.'cfg(quiver_turmoil)'.dependencies]
+turmoil = { version = "0.7.2", features = ["unstable-fs", "unstable-barriers"] }
+
 [[bench]]
 name = "ingest"
 harness = false

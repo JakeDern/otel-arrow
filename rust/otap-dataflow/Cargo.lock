@@ -8221,6 +8221,7 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
+ "turmoil",
 ]
 
 [[package]]
@@ -9489,6 +9490,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "63b8176103e19a2643978565ca18b50549f6101881c443590420e4dc998a3c69"
 
 [[package]]
+name = "rand_distr"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a8615d50dcf34fa31f7ab52692afec947c4dd0ab803cc87cb3b0b4570ff7463"
+dependencies = [
+ "num-traits",
+ "rand 0.9.5",
+]
+
+[[package]]
 name = "rand_pcg"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -10235,6 +10246,12 @@ dependencies = [
  "serde_derive_internals 0.30.0",
  "syn 3.0.9",
 ]
+
+[[package]]
+name = "scoped-tls"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e1cf6437eb19a8f4a6cc0f7dca544973b0b78843adbfeb3683d1a94a0024a294"
 
 [[package]]
 name = "scopeguard"
@@ -11923,6 +11940,22 @@ dependencies = [
  "rustls-pki-types",
  "sha1 0.11.0",
  "thiserror 2.0.21",
+]
+
+[[package]]
+name = "turmoil"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0061c28f1469e94771bb8aa626ce6b29265c2fb5034115046a170b0cba2e33d2"
+dependencies = [
+ "bytes",
+ "indexmap 2.14.2",
+ "rand 0.9.5",
+ "rand_distr",
+ "scoped-tls",
+ "tokio",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]

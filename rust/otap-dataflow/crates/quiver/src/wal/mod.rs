@@ -70,6 +70,8 @@ mod reader;
 mod replay;
 #[cfg(test)]
 mod tests;
+#[cfg(all(test, quiver_turmoil))]
+mod turmoil_tests;
 mod writer;
 
 // Reader exports for WAL iteration and replay.

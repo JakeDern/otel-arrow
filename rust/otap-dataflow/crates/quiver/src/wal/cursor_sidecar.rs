@@ -26,8 +26,9 @@ use std::io::SeekFrom;
 use std::path::{Path, PathBuf};
 
 use crc32fast::Hasher;
-use tokio::fs::{File, OpenOptions};
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
+
+use crate::fs_compat::tokio_fs::{self, File, OpenOptions};
 
 use super::writer::sync_parent_dir;
 use super::{WalError, WalResult};
@@ -222,7 +223,7 @@ impl CursorSidecar {
                 "crash injected before cursor sidecar rename",
             ));
         }
-        tokio::fs::rename(&tmp_path, path).await?;
+        tokio_fs::rename(&tmp_path, path).await?;
         sync_parent_dir(path).await?;
         Ok(())
     }

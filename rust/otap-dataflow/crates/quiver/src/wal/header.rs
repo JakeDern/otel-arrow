@@ -26,7 +26,6 @@
 
 use std::io::SeekFrom;
 
-use tokio::fs::File;
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 
 use super::{WAL_MAGIC, WalError};
@@ -124,8 +123,9 @@ impl WalHeader {
     ///
     /// See the [`reader`](super::reader) module documentation for the design
     /// rationale behind sync I/O for WAL reading.
-    pub fn read_from_sync(file: &mut std::fs::File) -> Result<Self, WalError> {
-        use std::io::{Read, Seek};
+    pub fn read_from_sync<F: std::io::Read + std::io::Seek>(
+        file: &mut F,
+    ) -> Result<Self, WalError> {
         let _ = file.seek(SeekFrom::Start(0))?;
 
         // First read minimum header to get the actual header size
@@ -166,7 +166,10 @@ impl WalHeader {
     }
 
     /// Writes the header to a file.
-    pub async fn write_to(&self, file: &mut File) -> Result<(), WalError> {
+    pub async fn write_to<F: AsyncWriteExt + AsyncSeekExt + Unpin>(
+        &self,
+        file: &mut F,
+    ) -> Result<(), WalError> {
         let _ = file.seek(SeekFrom::Start(0)).await?;
         file.write_all(&self.encode()).await?;
         file.flush().await?;
@@ -175,7 +178,9 @@ impl WalHeader {
 
     /// Reads the header size from a file without consuming the full header.
     /// Returns the header size in bytes.
-    pub async fn read_header_size(file: &mut File) -> Result<u16, WalError> {
+    pub async fn read_header_size<F: AsyncReadExt + AsyncSeekExt + Unpin>(
+        file: &mut F,
+    ) -> Result<u16, WalError> {
         let _ = file.seek(SeekFrom::Start(0)).await?;
         let mut buf = [0u8; WAL_HEADER_MIN_LEN];
         let _ = file.read_exact(&mut buf).await?;
@@ -202,7 +207,9 @@ impl WalHeader {
     }
 
     /// Reads the header from a file.
-    pub async fn read_from(file: &mut File) -> Result<Self, WalError> {
+    pub async fn read_from<F: AsyncReadExt + AsyncSeekExt + Unpin>(
+        file: &mut F,
+    ) -> Result<Self, WalError> {
         let _ = file.seek(SeekFrom::Start(0)).await?;
 
         // First read minimum header to get the actual header size

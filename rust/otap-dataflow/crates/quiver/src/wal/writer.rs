@@ -115,13 +115,14 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use tokio::fs::{File, OpenOptions};
 use tokio::io::{AsyncSeekExt, AsyncWriteExt};
 
 use arrow_ipc::writer::StreamWriter;
 use crc32fast::Hasher;
 
 use crate::budget::DiskBudget;
+use crate::fs_compat::tokio_fs::{self, File, OpenOptions};
+use crate::fs_compat::{std_fs, sync_dir};
 use crate::logging::{otel_debug, otel_error, otel_info, otel_warn};
 use crate::record_bundle::{PayloadRef, RecordBundle, SlotId};
 
@@ -453,7 +454,7 @@ pub(crate) struct WalOffset {
 impl WalWriter {
     pub async fn open(options: WalWriterOptions) -> WalResult<Self> {
         if let Some(parent) = options.path.parent() {
-            tokio::fs::create_dir_all(parent).await?;
+            tokio_fs::create_dir_all(parent).await?;
         }
 
         let mut file = OpenOptions::new()
@@ -472,6 +473,14 @@ impl WalWriter {
             let header = WalHeader::new(options.segment_cfg_hash);
             header.write_to(&mut file).await?;
             file.flush().await?;
+            // On a real filesystem the just-written (unsynced) header is visible
+            // to the fresh read handle that detect_next_sequence opens, because
+            // both share the OS page cache. Turmoil models stricter per-handle
+            // visibility: an unsynced write is invisible to other handles. Make
+            // the header durable here so the subsequent scan reads it back and
+            // positions the write cursor after the header rather than at 0.
+            #[cfg(quiver_turmoil)]
+            sync_file_data(&file).await?;
             (0, header.encoded_len()) // New file starts at WAL position 0
         } else if metadata.len() < WAL_HEADER_MIN_LEN as u64 {
             otel_error!(
@@ -905,6 +914,22 @@ impl ActiveWalFile {
     ///
     /// This temporarily converts the tokio File to a std File to perform
     /// a blocking sync_data call, then converts it back.
+    ///
+    /// Under `--cfg quiver_turmoil` this is a deliberate no-op. A simulated
+    /// crash (`Sim::crash`) cancels the host's tasks -- which runs this `Drop`
+    /// -- BEFORE it discards the pending filesystem writes. Syncing here would
+    /// make the pending WAL header durable and mask exactly the crash-in-the-
+    /// middle-of-rotation bug we are trying to expose. A real process kill
+    /// (SIGKILL) never runs destructors either, so skipping is also the more
+    /// faithful model.
+    #[cfg(quiver_turmoil)]
+    fn flush_now_sync(&mut self) {}
+
+    /// Synchronous flush for use in `Drop` where async is not available.
+    ///
+    /// This temporarily converts the tokio File to a std File to perform
+    /// a blocking sync_data call, then converts it back.
+    #[cfg(not(quiver_turmoil))]
     fn flush_now_sync(&mut self) {
         // Take ownership of the file temporarily. If already taken (shouldn't
         // happen in Drop), skip the sync.
@@ -1199,7 +1224,7 @@ impl WalCoordinator {
     /// Note: Uses sync I/O via `WalReader` - this is acceptable because it's
     /// only called during startup/recovery.
     fn scan_file_for_entries(&self, path: &Path) -> WalResult<ScanResult> {
-        if !path.exists() {
+        if !crate::fs_compat::path_exists(path) {
             return Ok(ScanResult {
                 last_sequence: None,
                 last_valid_offset: 0,
@@ -1355,7 +1380,7 @@ impl WalCoordinator {
         self.next_rotation_id = self.next_rotation_id.saturating_add(1);
 
         let new_rotated_path = rotated_wal_path(&self.options.path, rotation_id);
-        tokio::fs::rename(&self.options.path, &new_rotated_path).await?;
+        tokio_fs::rename(&self.options.path, &new_rotated_path).await?;
 
         // Set rotated file to read-only to prevent accidental corruption.
         // Rotated WAL files should never be modified.
@@ -1365,16 +1390,20 @@ impl WalCoordinator {
             // Note: Permission changes use std::fs as tokio doesn't wrap these
             #[cfg(unix)]
             {
+                // Under --cfg quiver_turmoil, std_fs::Permissions is turmoil's
+                // shim type which provides an inherent from_mode, making this
+                // trait import unused; keep it for the real std::fs build.
+                #[allow(unused_imports)]
                 use std::os::unix::fs::PermissionsExt;
-                let permissions = std::fs::Permissions::from_mode(0o440);
-                std::fs::set_permissions(&new_rotated_path, permissions)?;
+                let permissions = std_fs::Permissions::from_mode(0o440);
+                std_fs::set_permissions(&new_rotated_path, permissions)?;
             }
 
             #[cfg(not(unix))]
             {
-                let mut permissions = std::fs::metadata(&new_rotated_path)?.permissions();
+                let mut permissions = std_fs::metadata(&new_rotated_path)?.permissions();
                 permissions.set_readonly(true);
-                std::fs::set_permissions(&new_rotated_path, permissions)?;
+                std_fs::set_permissions(&new_rotated_path, permissions)?;
             }
         }
 
@@ -1515,7 +1544,9 @@ impl WalCoordinator {
     }
 
     async fn record_wal_position(&mut self, wal_pos: u64) -> WalResult<()> {
-        if self.cursor_state.wal_position == wal_pos && self.sidecar_path.exists() {
+        if self.cursor_state.wal_position == wal_pos
+            && crate::fs_compat::path_exists(&self.sidecar_path)
+        {
             return Ok(());
         }
         self.cursor_state.wal_position = wal_pos;
@@ -1532,15 +1563,15 @@ impl WalCoordinator {
                 // volumeMounts, Azure Files SMB mounts).
                 #[cfg(not(unix))]
                 if self.options.enforce_file_readonly {
-                    let mut permissions = std::fs::metadata(&front.path)?.permissions();
+                    let mut permissions = std_fs::metadata(&front.path)?.permissions();
                     // The clippy warning about world-writable files only applies to Unix.
                     #[allow(clippy::permissions_set_readonly_false)]
                     permissions.set_readonly(false);
-                    std::fs::set_permissions(&front.path, permissions)?;
+                    std_fs::set_permissions(&front.path, permissions)?;
                 }
 
                 let purged_bytes = front.total_bytes();
-                tokio::fs::remove_file(&front.path).await?;
+                tokio_fs::remove_file(&front.path).await?;
                 self.aggregate_bytes = self.aggregate_bytes.saturating_sub(purged_bytes);
 
                 if let Some(ref budget) = self.options.budget {
@@ -1619,15 +1650,9 @@ async fn sync_file_data(file: &File) -> WalResult<()> {
 ///
 /// On non-Unix platforms this is a no-op since directory sync semantics differ.
 pub(super) async fn sync_parent_dir(path: &Path) -> WalResult<()> {
-    #[cfg(unix)]
-    {
-        if let Some(parent) = path.parent() {
-            let dir = File::open(parent).await?;
-            dir.sync_all().await?;
-        }
+    if let Some(parent) = path.parent() {
+        sync_dir(parent).await?;
     }
-    #[cfg(not(unix))]
-    let _ = path; // silence unused warning
     Ok(())
 }
 
@@ -1677,7 +1702,7 @@ fn discover_rotated_wal_files(base_path: &Path) -> WalResult<Vec<(u64, u64)>> {
     let prefix = format!("{base_name}.");
     let mut discovered = Vec::new();
 
-    let entries = match std::fs::read_dir(parent) {
+    let entries = match std_fs::read_dir(parent) {
         Ok(entries) => entries,
         Err(err) if err.kind() == ErrorKind::NotFound => return Ok(discovered),
         Err(err) => return Err(WalError::Io(err)),
