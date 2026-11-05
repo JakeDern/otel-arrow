@@ -1,5 +1,33 @@
 # The data directory's own entry is never made durable, so a crash can strand it
 
+## Status
+
+Fixed, and broader than originally described below.
+
+- Not only `data_dir`: `segments/` and `wal/` were never synced after creation
+  either.
+- The active WAL file's own directory entry was never synced -- not when it was
+  first created at open, and not when rotation recreated it -- until the first
+  rotation or cursor save happened to sync `wal/`. Appends to it could be
+  fsynced and acknowledged and still disappear with the file. This is the real
+  cause behind `BUG4.md`.
+- The fix: `fs_compat::create_dir_all_durable` creates the directory and syncs
+  every ancestor and then the directory itself, top-down (a parent's entry is
+  durable before its child's); the engine uses it for `segments/` and the WAL
+  writer for `wal/`. New active WAL files are now `sync_all`ed and their parent
+  directory synced, both at open and in `reopen_wal_file` during rotation.
+
+Corrections to the text below:
+
+- The cursor sidecar lives in `data_dir/wal`, so persisting it syncs `wal/`, not
+  `data_dir`. Only progress files sync `data_dir`.
+- The "child exists, parent missing" state is only reachable in turmoil (its
+  `sync_dir(X)` also makes X's own creation durable, unlike POSIX `fsync(X)`).
+  The real-filesystem impact is the lost-entry problem above, which matters on
+  filesystems or mount options without journal ordering of directory updates.
+- `QUIVER_SIM_PRECREATE_DATADIR` is no longer needed; with the fix the
+  "parent directory not found" failures do not occur.
+
 ## Summary
 
 Quiver creates its data directory tree with `create_dir_all` (`data_dir`, then

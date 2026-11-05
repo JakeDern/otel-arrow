@@ -457,6 +457,16 @@ impl SegmentStore {
         }
     }
 
+    /// Makes prior segment file deletions durable by fsyncing the segment
+    /// directory.
+    ///
+    /// `remove_file` only updates the in-memory directory; after a power loss
+    /// the deleted entries can reappear. Call this after a batch of deletions
+    /// so reclaimed segments stay reclaimed across crashes.
+    pub(crate) async fn sync_segment_dir(&self) -> std::io::Result<()> {
+        crate::fs_compat::sync_dir(&self.segment_dir).await
+    }
+
     /// Schedules deferred cleanup of an orphaned segment file.
     ///
     /// This is used to clean up partially-written or uncompleted segment files

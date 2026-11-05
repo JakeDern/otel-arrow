@@ -42,16 +42,63 @@ QUIVER_SIM_SEED=0 CARGO_TARGET_DIR=target/turmoil RUSTFLAGS="--cfg quiver_turmoi
 Environment knobs: `QUIVER_SIM_SEED`, `QUIVER_SIM_SEED_START`,
 `QUIVER_SIM_SEEDS`, `QUIVER_SIM_CRASH_PROB` (default 0.02),
 `QUIVER_SIM_INGESTS` (default 60), `QUIVER_SIM_CHECKPOINT`,
-`QUIVER_SIM_FULL_LOG=1` (print the entire crash log on failure), and the two
-candidate-fix toggles `QUIVER_SIM_FIX_A` / `QUIVER_SIM_FIX_B` used for root-cause
-classification (see Findings). All default off and are simulation-build only.
+`QUIVER_SIM_FULL_LOG=1` (print the entire crash log on failure).
+
+Diagnostics: `QUIVER_SIM_TRACE=1` (WAL append / purge / segment flush / delete
+trace), `QUIVER_SIM_DEBUG_DIRS=1` (data-directory existence per incarnation),
+`QUIVER_SIM_REOPEN_PROBE=1` (extra clean restarts to tell genuine loss from
+delayed delivery).
+
+Workload / realism knobs (all default off, so existing seeds replay unchanged):
+
+| Knob | Effect |
+| --- | --- |
+| `QUIVER_SIM_TORN_BLOCK=n` | unsynced writes may be torn at `n`-byte blocks on crash |
+| `QUIVER_SIM_RANDOM_SYNC=p` | each write may be persisted early (page-cache writeback) |
+| `QUIVER_SIM_BUDGET=n` | bounded `DiskBudget` (bytes), exercising ingest-path cleanup |
+| `QUIVER_SIM_DROP_OLDEST=1` | DropOldest retention with the budget; skips invariant L |
+| `QUIVER_SIM_DEFER_EVERY=n` | every `n`-th claim is deferred instead of acked |
+| `QUIVER_SIM_MAINTAIN_EVERY=n` | run `maintain()` every `n` ids during the pump |
+| `QUIVER_SIM_SECOND_SUB=1` | a second, lagging subscriber must also receive every id |
+
+All of these are simulation-build only. The earlier candidate-fix toggles
+`QUIVER_SIM_FIX_A` / `QUIVER_SIM_FIX_B` and `QUIVER_SIM_PRECREATE_DATADIR` have
+been removed: both WAL fixes are now permanent and the data-directory
+durability gap is fixed (see "Status update" below).
 
 Normal builds and tests are unaffected:
 
 ```bash
-cargo test -p otel-arrow-dfe-quiver        # 452 pass; 1 pre-existing repro fail
+cargo test -p otel-arrow-dfe-quiver        # all pass
 cargo check -p otel-arrow-dfe-quiver --all-features   # turmoil not linked
 ```
+
+## Status update
+
+The findings below are the original investigation and are kept as a record.
+Since then, eight issues have been tracked in `BUG.md` through `BUG8.md`, and
+the following are fixed (each with a public-API regression test where a real
+filesystem can reproduce it):
+
+- `BUG.md` -- empty active WAL after a mid-rotation crash restarts at 0.
+- `BUG2.md` -- rotated WAL positions recomputed from 0 instead of headers.
+- `BUG3.md` -- directories and new active WAL files never made durable
+  (broader than first described; also the real cause of `BUG4.md`).
+- `BUG6.md` -- WAL wedged at capacity by resurrected, already-covered rotated
+  files (cause corrected).
+- `BUG7.md` -- subscriber wedged on "segment N not found" after the ingest-path
+  cleanup deleted a segment before progress was flushed.
+- `BUG8.md` -- segment deletions never made durable (plus redelivery of
+  durably acked segments whose deletion was lost).
+
+`BUG4.md` was a misdiagnosis of `BUG3.md`; `BUG5.md` no longer reproduces and
+its mechanism is unsupported. The harness also now treats `WalAtCapacity` as
+documented backpressure (`QuiverError::is_at_capacity()`).
+
+With all fixes applied, a 35-minute sweep of 1,500 seeds across five
+configurations (crash probability 0.03-0.15, up to 300 ingests, two subscribers,
+bounded budget with Backpressure and DropOldest, deferred acks, frequent
+`maintain()`, torn writes and random early writeback) found no violations.
 
 ## Design
 
@@ -207,6 +254,7 @@ Replay: `QUIVER_SIM_SEED=1 QUIVER_SIM_CRASH_PROB=0.05 QUIVER_SIM_INGESTS=40`.
 
 ```bash
 # Per-seed: toggle the candidate fixes (sim build only, default off).
+# (historical: these toggles have been removed; both fixes are now permanent)
 QUIVER_SIM_SEED=13 QUIVER_SIM_FIX_A=1 ...   # BUG.md seed: cursor error clears
 QUIVER_SIM_SEED=0  QUIVER_SIM_FIX_A=1 ...   # still fails (beyond wal tail)
 QUIVER_SIM_SEED=0  QUIVER_SIM_FIX_A=1 QUIVER_SIM_FIX_B=1 ...   # clears

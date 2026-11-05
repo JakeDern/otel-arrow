@@ -1,5 +1,23 @@
 # WAL replay after a crash leaves a committed entry in a gap between the persisted cursor and a lost in-flight segment
 
+## Status
+
+**Not reproduced after the durability fixes; mechanism below is unsupported.**
+Kept for the record.
+
+- The described seed passes once `BUG3.md` and `BUG8.md` are fixed.
+- The analysis below conflates producer ids with WAL sequence numbers. In this
+  run WAL sequences had reset after an early crash and several were reused, so
+  nothing ties id 136 to a "boundary entry".
+- A segment file is fsynced (and its directory synced) before the cursor is
+  persisted, so a persisted cursor can only go backwards if durable state was
+  lost or the cursor was clamped because WAL data vanished. The observed
+  `cursor_seq` regression therefore points at the missing-directory-sync class
+  (`BUG3.md`, `BUG8.md`), not at replay boundary logic. This was not confirmed
+  by a trace.
+- The command below references `QUIVER_SIM_FIX_A` / `QUIVER_SIM_FIX_B` /
+  `QUIVER_SIM_PRECREATE_DATADIR`, which no longer exist or are unnecessary.
+
 ## Summary
 
 When a segment is being finalized and the process is killed, the in-flight

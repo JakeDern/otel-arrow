@@ -66,6 +66,13 @@ use crate::{DiskBudget, QuiverError};
 
 const DATA_DIR: &str = "/data";
 const SUB_ID: &str = "sim-subscriber";
+const SUB2_ID: &str = "sim-subscriber-2";
+
+fn second_sub_enabled() -> bool {
+    std::env::var("QUIVER_SIM_SECOND_SUB")
+        .map(|v| v == "1")
+        .unwrap_or(false)
+}
 const SLOT: u16 = 0;
 /// Max simulated-time steps allowed for a single checkpoint drain.
 const DRAIN_STEP_BUDGET: usize = 2_000;
@@ -177,6 +184,8 @@ struct Tracker {
     redeliver_violations: Vec<u64>,
     /// Fatal invariant-3 violations (phantom/corruption).
     corruption: Vec<String>,
+    /// Ids delivered at least once to the second subscriber (if enabled).
+    delivered2: std::collections::BTreeSet<u64>,
 }
 
 impl Tracker {
@@ -201,12 +210,17 @@ impl Tracker {
         }
     }
 
-    /// Ids committed but not yet delivered (invariant L check input).
+    /// Ids committed but not yet delivered (invariant L check input). With a
+    /// second subscriber enabled, an id counts as delivered only once BOTH
+    /// subscribers have seen it.
     fn undelivered_committed(&self) -> Vec<u64> {
+        let second = second_sub_enabled();
         match self.committed_max {
             None => Vec::new(),
             Some(max) => (0..=max)
-                .filter(|id| !self.delivered.contains(id))
+                .filter(|id| {
+                    !self.delivered.contains(id) || (second && !self.delivered2.contains(id))
+                })
                 .collect(),
         }
     }
@@ -247,7 +261,23 @@ fn run_seed(cfg: &SeedConfig) -> (Result<(), Violation>, Arc<OracleShared>, Stri
     let _ = builder.rng_seed(cfg.seed);
     // Let turmoil apply its own filesystem semantics (page-cache writeback,
     // etc.). Our job is only to crash before ops; turmoil's job is durability.
-    let _ = builder.fs();
+    {
+        let fs = builder.fs();
+        // Optional realism knobs (default off so existing seeds replay):
+        // QUIVER_SIM_TORN_BLOCK=n  -> unsynced writes may be torn at n-byte
+        //                             block granularity on crash.
+        // QUIVER_SIM_RANDOM_SYNC=p -> each write may be randomly persisted
+        //                             early (page-cache writeback), so a crash
+        //                             can keep some unsynced data.
+        let torn = env_u64("QUIVER_SIM_TORN_BLOCK", 0);
+        if torn > 0 {
+            let _ = fs.block_size(torn);
+        }
+        let rsync = env_f64("QUIVER_SIM_RANDOM_SYNC", 0.0);
+        if rsync > 0.0 {
+            let _ = fs.sync_probability(rsync);
+        }
+    }
     // Large simulation-duration budget so long drains don't trip the clock.
     let _ = builder.simulation_duration(Duration::from_secs(86_400));
     let mut sim = builder.build();
@@ -301,6 +331,15 @@ fn run_seed(cfg: &SeedConfig) -> (Result<(), Violation>, Arc<OracleShared>, Stri
             engine
                 .activate_subscriber(&sub)
                 .map_err(|e| invariant4("ACT", e))?;
+            // QUIVER_SIM_SECOND_SUB=1: a second, independently-progressing
+            // subscriber that must also receive every committed id.
+            if second_sub_enabled() {
+                let sub2 = SubscriberId::new(SUB2_ID).expect("valid id");
+                let _ = engine.register_subscriber(sub2.clone());
+                engine
+                    .activate_subscriber(&sub2)
+                    .map_err(|e| invariant4("ACT2", e))?;
+            }
 
             let current_phase = Phase::from(phase.load(Ordering::SeqCst));
 
@@ -393,7 +432,24 @@ async fn open_engine() -> Result<Arc<QuiverEngine>, QuiverError> {
         .segment(segment)
         .read_mode(SegmentReadMode::Standard)
         .build()?;
-    QuiverEngine::open(config, Arc::new(DiskBudget::unlimited())).await
+    // QUIVER_SIM_BUDGET=n (bytes, 0 = unlimited) bounds disk usage with the
+    // Backpressure policy, exercising the soft-cap cleanup path in ingest.
+    let cap = env_u64("QUIVER_SIM_BUDGET", 0);
+    // QUIVER_SIM_DROP_OLDEST=1 uses the lossy DropOldest policy instead of
+    // Backpressure; loss is then expected and invariant L is relaxed to only
+    // ids not counted as force-dropped (see QUIVER_SIM_DROP_OLDEST handling).
+    let policy = if std::env::var("QUIVER_SIM_DROP_OLDEST").is_ok_and(|v| v == "1") {
+        crate::RetentionPolicy::DropOldest
+    } else {
+        crate::RetentionPolicy::Backpressure
+    };
+    let budget = if cap == 0 {
+        DiskBudget::unlimited()
+    } else {
+        DiskBudget::for_config(cap, &config, policy)
+            .map_err(|e| QuiverError::invalid_config(e.to_string()))?
+    };
+    QuiverEngine::open(config, Arc::new(budget)).await
 }
 
 /// A simple boxed string error so host futures can surface a message that the
@@ -414,9 +470,11 @@ fn invariant4(context: &str, e: impl std::fmt::Display) -> Box<dyn std::error::E
     Box::new(SimError(format!("INVARIANT4_{context}: {e}")))
 }
 
-/// Is this error an acceptable storage-capacity backpressure error (allowed)?
+/// Is this error documented backpressure (allowed)? Both the disk-budget
+/// `StorageAtCapacity` and the WAL's `WalAtCapacity` are reported as
+/// recoverable capacity errors by the public API.
 fn is_capacity(e: &QuiverError) -> bool {
-    matches!(e, QuiverError::StorageAtCapacity { .. })
+    e.is_at_capacity()
 }
 
 /// Debug probe (enabled by QUIVER_SIM_DEBUG_DIRS=1): report the existence of the
@@ -469,6 +527,16 @@ async fn pump(
 
         // Interleave delivery so segments get consumed and purged.
         drain_some(engine, sub, tracker).await?;
+
+        // QUIVER_SIM_MAINTAIN_EVERY=n: run maintain() (progress flush + segment
+        // cleanup) every n ids, independent of checkpoints.
+        let maintain_every = env_u64("QUIVER_SIM_MAINTAIN_EVERY", 0);
+        if maintain_every > 0 && (id + 1).is_multiple_of(maintain_every) {
+            let _ = engine
+                .maintain()
+                .await
+                .map_err(|e| invariant4("MAINTAIN_PUMP", e))?;
+        }
 
         // Periodic checkpoint (still armed: a crash may interrupt it, which is
         // fine -- we just won't evaluate L for that attempt).
@@ -531,6 +599,10 @@ async fn drain_all(
             break;
         }
     }
+    if second_sub_enabled() {
+        let sub2 = SubscriberId::new(SUB2_ID).expect("valid id");
+        while drain_one(engine, &sub2, tracker).await? {}
+    }
     // Persist progress so durable-ack tracking is meaningful.
     debug_dirs("pre-maintain-drain");
     let _ = engine
@@ -559,6 +631,12 @@ async fn drain_some(
             break;
         }
     }
+    // The second subscriber lags: it drains at most one bundle per round, so
+    // segments stay pinned by it while the first subscriber races ahead.
+    if second_sub_enabled() {
+        let sub2 = SubscriberId::new(SUB2_ID).expect("valid id");
+        let _ = drain_one(engine, &sub2, tracker).await?;
+    }
     Ok(())
 }
 
@@ -579,7 +657,20 @@ async fn drain_one(
         .data()
         .payload(SlotId::new(SLOT))
         .ok_or_else(|| invariant4("PAYLOAD", "missing slot payload"))?;
+    // QUIVER_SIM_DEFER_EVERY=n: every n-th claim is deferred instead of acked
+    // (returned to pending); it must be redelivered later.
+    let defer_every = env_u64("QUIVER_SIM_DEFER_EVERY", 0);
+    if defer_every > 0 {
+        static CLAIMS: AtomicU64 = AtomicU64::new(0);
+        if CLAIMS.fetch_add(1, Ordering::Relaxed) % defer_every == defer_every - 1 {
+            let _ = handle.defer();
+            return Ok(true);
+        }
+    }
     match decode_delivered(batch) {
+        Ok(id) if sub.as_str() == SUB2_ID => {
+            let _ = tracker.lock().delivered2.insert(id);
+        }
         Ok(id) => {
             tracker.lock().note_delivered(id);
         }
@@ -672,7 +763,8 @@ fn drive(
     }
 
     // Fatal invariant L: all committed ids delivered after the no-crash drain.
-    {
+    // Skipped under DropOldest, where losing data to the budget is by design.
+    if !std::env::var("QUIVER_SIM_DROP_OLDEST").is_ok_and(|v| v == "1") {
         let undelivered = tracker.lock().undelivered_committed();
         if !undelivered.is_empty() {
             // Diagnostic (QUIVER_SIM_REOPEN_PROBE=1): bounce once more with the

@@ -178,6 +178,7 @@ impl WalHeader {
 
     /// Reads the header size from a file without consuming the full header.
     /// Returns the header size in bytes.
+    #[cfg(test)]
     pub async fn read_header_size<F: AsyncReadExt + AsyncSeekExt + Unpin>(
         file: &mut F,
     ) -> Result<u16, WalError> {

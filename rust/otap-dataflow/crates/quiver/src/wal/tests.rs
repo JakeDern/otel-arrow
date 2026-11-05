@@ -2449,23 +2449,7 @@ async fn wal_recovery_handles_rotated_files_with_gaps_in_ids() {
 
     let descriptor = logs_descriptor();
 
-    // Manually create rotated files with gaps in their IDs
-    // We'll create wal.2 and wal.7 (skipping 1, 3-6)
-    for rotation_id in [2u64, 7u64] {
-        let rotated_path = rotated_path_for(&wal_path, rotation_id as usize);
-        let mut file = std::fs::OpenOptions::new()
-            .create(true)
-            .write(true)
-            .truncate(true)
-            .open(&rotated_path)
-            .expect("create rotated file");
-        WalHeader::new([0x77; 16])
-            .write_to_sync(&mut file)
-            .expect("write header");
-        file.flush().expect("flush");
-    }
-
-    // Create the active WAL file
+    // Create the active WAL file holding one entry.
     {
         let mut writer = WalWriter::open(WalWriterOptions::new(
             wal_path.clone(),
@@ -2477,6 +2461,16 @@ async fn wal_recovery_handles_rotated_files_with_gaps_in_ids() {
 
         let bundle = single_slot_bundle(&descriptor, 0x01, &[1]);
         let _ = writer.append_bundle(&bundle).await.expect("append");
+    }
+
+    // Manually create rotated files with gaps in their IDs: wal.2 and wal.7
+    // (skipping 1, 3-6). Each holds a copy of the active file's entry so the
+    // files carry unconsumed data (the cursor is still at 0) and must be kept;
+    // empty rotated files would be fully covered and purged at open.
+    let active_bytes = std::fs::read(&wal_path).expect("read active");
+    for rotation_id in [2u64, 7u64] {
+        let rotated_path = rotated_path_for(&wal_path, rotation_id as usize);
+        std::fs::write(&rotated_path, &active_bytes).expect("create rotated file");
     }
 
     // Reopen and verify the writer picks up where it left off

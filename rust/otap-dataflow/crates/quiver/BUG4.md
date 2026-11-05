@@ -1,5 +1,30 @@
 # A crash loses segments that were cleaned up before the subscriber durably consumed them
 
+## Status
+
+**Diagnosis below is wrong; this is `BUG3.md`.** Kept for the record.
+
+The seed-5 trace contradicts the mechanism described here:
+
+- After the first injected crash the whole `/data/wal` and `/data/segments`
+  directories are gone (`QUIVER_SIM_DEBUG_DIRS=1` shows
+  `/data/wal=false /data/segments=false`) and WAL sequence numbers restart at 0.
+  Ids 0..=3 were lost with the WAL directory before any segment held them; the
+  later "segment 0" holds ids 4..=8.
+- The proposed mechanism could not produce this failure anyway: the harness
+  records an id as delivered when it is claimed, before the ack, so an id that
+  was acked in memory would already count as delivered.
+- The run used an unlimited budget, so the ingest-path cleanup never ran, and
+  `maintain()` flushes progress before cleaning up.
+
+With the `BUG3.md` fix the seed passes. The command below references
+`QUIVER_SIM_FIX_A` / `QUIVER_SIM_FIX_B`, which no longer exist (both fixes are
+now permanent).
+
+There is a real issue nearby -- the ingest path deleting segments before
+progress is flushed -- but its effect is a wedged subscriber, not loss. See
+`BUG7.md`.
+
 ## Summary
 
 Quiver finalizes an open segment to a segment file, persists the WAL consumer

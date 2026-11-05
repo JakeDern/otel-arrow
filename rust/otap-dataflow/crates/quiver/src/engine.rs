@@ -418,16 +418,18 @@ impl QuiverEngine {
 
         // Ensure directories exist
         let segment_dir = segment_dir(&config);
-        crate::fs_compat::std_fs::create_dir_all(&segment_dir).map_err(|e| {
-            otel_error!(
-                "quiver.engine.init",
-                path = %segment_dir.display(),
-                error = %e,
-                error_type = "io",
-                reason = "dir_create_failed",
-            );
-            SegmentError::io(segment_dir.clone(), e)
-        })?;
+        crate::fs_compat::create_dir_all_durable(&segment_dir)
+            .await
+            .map_err(|e| {
+                otel_error!(
+                    "quiver.engine.init",
+                    path = %segment_dir.display(),
+                    error = %e,
+                    error_type = "io",
+                    reason = "dir_create_failed",
+                );
+                SegmentError::io(segment_dir.clone(), e)
+            })?;
 
         // Probe whether the filesystem supports chmod/set_permissions.
         // Some filesystems (e.g., Azure Files SMB mounts, certain k8s
@@ -775,16 +777,23 @@ impl QuiverEngine {
         // If usage exceeds the soft cap, attempt cleanup before rejecting.
         if self.budget.is_over_soft_cap() {
             // Try cleaning up fully-consumed segments first (no data loss)
-            let _ = self.cleanup_completed_segments();
+            if self.cleanup_completed_segments().is_ok_and(|n| n > 0) {
+                self.sync_segment_deletions().await;
+            }
 
             if self.budget.is_over_soft_cap() {
                 // For DropOldest: force-drop pending segments until under
                 // soft_cap or nothing left to drop.
                 if self.budget.policy() == RetentionPolicy::DropOldest {
+                    let mut dropped_any = false;
                     while self.budget.is_over_soft_cap() {
                         if self.force_drop_oldest_pending_segments() == 0 {
                             break; // nothing left to reclaim
                         }
+                        dropped_any = true;
+                    }
+                    if dropped_any {
+                        self.sync_segment_deletions().await;
                     }
                 }
 
@@ -1623,6 +1632,21 @@ impl QuiverEngine {
         Ok(deleted)
     }
 
+    /// Fsyncs the segment directory so that preceding segment deletions are
+    /// durable. Failures are logged, not returned: a deletion that is not
+    /// durable is redone by a later cleanup, so this only narrows the window in
+    /// which reclaimed segments can reappear after a power loss.
+    async fn sync_segment_deletions(&self) {
+        if let Err(e) = self.segment_store.sync_segment_dir().await {
+            otel_warn!(
+                "quiver.segment.drop",
+                error = %e,
+                error_type = "io",
+                message = "failed to sync segment directory after deletions",
+            );
+        }
+    }
+
     /// Force-drops the oldest pending segments that have no active readers.
     ///
     /// This is used by the `DropOldest` retention policy to reclaim disk space
@@ -1958,6 +1982,9 @@ impl QuiverEngine {
         let expired = self.cleanup_expired_segments()?;
         let pending_results = self.segment_store.retry_pending_deletes_with_results();
         let pending_deletes_cleared = pending_results.cleared();
+        if deleted > 0 || expired > 0 || !pending_results.removed.is_empty() {
+            self.sync_segment_deletions().await;
+        }
         if pending_deletes_cleared > 0 {
             let mut pending_reclaimed = self.pending_reclaimed.lock();
             for (seq, bytes) in pending_results.removed {
@@ -7231,6 +7258,456 @@ mod tests {
             "expected at least one segment from WAL replay"
         );
 
+        engine.shutdown().await.expect("shutdown");
+    }
+
+    // -----------------------------------------------------------------------------
+    // Crash-restart with surviving rotated WAL files (public API only)
+    // -----------------------------------------------------------------------------
+
+    /// Single-row bundle carrying a unique id so delivery can be audited.
+    struct IdBundle {
+        descriptor: BundleDescriptor,
+        batch: arrow_array::RecordBatch,
+    }
+
+    impl IdBundle {
+        fn new(id: u64) -> Self {
+            let schema = Arc::new(Schema::new(vec![Field::new("id", DataType::Int64, false)]));
+            let batch = arrow_array::RecordBatch::try_new(
+                schema,
+                vec![Arc::new(arrow_array::Int64Array::from(vec![id as i64]))],
+            )
+            .expect("batch");
+            Self {
+                descriptor: BundleDescriptor::new(vec![SlotDescriptor::new(
+                    SlotId::new(0),
+                    "Logs",
+                )]),
+                batch,
+            }
+        }
+    }
+
+    impl RecordBundle for IdBundle {
+        fn descriptor(&self) -> &BundleDescriptor {
+            &self.descriptor
+        }
+        fn ingestion_time(&self) -> SystemTime {
+            SystemTime::now()
+        }
+        fn payload(&self, slot: SlotId) -> Option<PayloadRef<'_>> {
+            (slot == SlotId::new(0)).then_some(PayloadRef {
+                schema_fingerprint: [7; 32],
+                batch: &self.batch,
+            })
+        }
+        fn item_count(&self) -> u64 {
+            1
+        }
+    }
+
+    /// Config for the crash-restart tests: fsync every append (so an `Ok`
+    /// ingest is durable), rotate the WAL every couple of entries, and never
+    /// finalize a segment except via an explicit `flush()`.
+    fn crash_restart_config(dir: &Path) -> QuiverConfig {
+        QuiverConfig::builder()
+            .data_dir(dir)
+            .wal(WalConfig {
+                flush_interval: Duration::ZERO,
+                rotation_target_bytes: NonZeroU64::new(1024).unwrap(),
+                max_size_bytes: NonZeroU64::new(4 * 1024 * 1024).unwrap(),
+                max_rotated_files: 1000,
+            })
+            .segment(SegmentConfig {
+                target_size_bytes: NonZeroU64::new(64 * 1024 * 1024).unwrap(),
+                max_open_duration: Duration::from_secs(3600),
+                ..Default::default()
+            })
+            .build()
+            .expect("config")
+    }
+
+    /// Opens the engine and (re)registers + activates the subscriber.
+    async fn open_with_subscriber(dir: &Path, sub: &SubscriberId) -> Result<Arc<QuiverEngine>> {
+        let engine = QuiverEngine::open(crash_restart_config(dir), test_budget()).await?;
+        engine.register_subscriber(sub.clone()).expect("register");
+        engine.activate_subscriber(sub).expect("activate");
+        Ok(engine)
+    }
+
+    /// Claims + acks every available bundle, returning the delivered ids.
+    fn drain_ids(engine: &Arc<QuiverEngine>, sub: &SubscriberId) -> Vec<u64> {
+        let mut ids = Vec::new();
+        while let Some(handle) = engine.poll_next_bundle(sub).expect("poll") {
+            let batch = handle.data().payload(SlotId::new(0)).expect("slot 0");
+            let col = batch
+                .column(0)
+                .as_any()
+                .downcast_ref::<arrow_array::Int64Array>()
+                .expect("id column");
+            ids.push(col.value(0) as u64);
+            handle.ack();
+        }
+        ids
+    }
+
+    /// Scenario: Using only the public engine API, a segment is flushed (which
+    /// persists the WAL cursor and purges the rotated WAL files it covers), more
+    /// bundles are ingested so that newer rotated WAL files whose headers start
+    /// at a non-zero WAL position remain on disk, and then the process dies
+    /// without `shutdown()` or any destructor running (power loss; every ingest
+    /// was already fsynced because `flush_interval` is zero). The engine is
+    /// reopened and the replayed tail is flushed on its own, then more bundles
+    /// are ingested, flushed and drained, and the engine is restarted again.
+    /// Guarantees: no `open`, `ingest`, `flush`, or `maintain` call fails, and
+    /// every `ingest` that returned `Ok` is delivered exactly once across the
+    /// restarts. Regressing this means a restart with surviving rotated WAL
+    /// files mis-positions the WAL stream, so finalizing replayed entries is
+    /// rejected with "safe offset beyond wal tail".
+    #[tokio::test]
+    async fn crash_restart_with_surviving_rotated_wal_files_preserves_delivery() {
+        let dir = tempdir().expect("tempdir");
+        let sub = SubscriberId::new("crash-restart").expect("sub id");
+        let mut delivered: Vec<u64> = Vec::new();
+        let mut next_id = 0u64;
+
+        // Run 1: a large finalized prefix, then an unfinalized tail that
+        // spans several rotated WAL files. Then "pull the plug".
+        {
+            let engine = open_with_subscriber(dir.path(), &sub)
+                .await
+                .expect("open 1");
+            for _ in 0..40 {
+                engine
+                    .ingest(&IdBundle::new(next_id))
+                    .await
+                    .expect("ingest 1a");
+                next_id += 1;
+            }
+            engine.flush().await.expect("flush 1");
+            delivered.extend(drain_ids(&engine, &sub));
+            let _ = engine.maintain().await.expect("maintain 1");
+            for _ in 0..6 {
+                engine
+                    .ingest(&IdBundle::new(next_id))
+                    .await
+                    .expect("ingest 1b");
+                next_id += 1;
+            }
+            // Power loss: no shutdown(), no destructors.
+            std::mem::forget(engine);
+        }
+
+        // Run 2: recover, keep ingesting, flush, drain, then crash again.
+        {
+            let engine = open_with_subscriber(dir.path(), &sub)
+                .await
+                .expect("open 2");
+            // Finalize the replayed tail on its own, then add live data.
+            engine
+                .flush()
+                .await
+                .expect("flush 2a (segment holding only replayed entries)");
+            for _ in 0..6 {
+                engine
+                    .ingest(&IdBundle::new(next_id))
+                    .await
+                    .expect("ingest 2");
+                next_id += 1;
+            }
+            engine.flush().await.expect("flush 2b");
+            delivered.extend(drain_ids(&engine, &sub));
+            let _ = engine.maintain().await.expect("maintain 2");
+            std::mem::forget(engine);
+        }
+
+        // Run 3: recover once more and drain whatever replay produces.
+        {
+            let engine = open_with_subscriber(dir.path(), &sub)
+                .await
+                .expect("open 3");
+            engine.flush().await.expect("flush 3");
+            delivered.extend(drain_ids(&engine, &sub));
+            engine.shutdown().await.expect("shutdown 3");
+        }
+
+        let mut sorted = delivered.clone();
+        sorted.sort_unstable();
+        let expected: Vec<u64> = (0..next_id).collect();
+        assert_eq!(
+            sorted, expected,
+            "every committed id must be delivered exactly once; delivery order was {delivered:?}"
+        );
+    }
+
+    /// Lists rotated WAL files (`quiver.wal.N`) in the data directory.
+    fn rotated_wal_files(dir: &Path) -> Vec<PathBuf> {
+        let mut files: Vec<PathBuf> = fs::read_dir(dir.join("wal"))
+            .expect("read wal dir")
+            .filter_map(|e| e.ok())
+            .map(|e| e.path())
+            .filter(|p| {
+                p.file_name()
+                    .and_then(|n| n.to_str())
+                    .and_then(|n| n.strip_prefix("quiver.wal."))
+                    .is_some_and(|suffix| suffix.parse::<u64>().is_ok())
+            })
+            .collect();
+        files.sort();
+        files
+    }
+
+    /// Scenario: Bundles are ingested and flushed in several rounds; each
+    /// `flush()` persists the WAL cursor and deletes the rotated WAL files it
+    /// now covers. The process then loses power before any of those deletions
+    /// reached disk (directory entries are only durable once the directory is
+    /// fsynced), so every purged rotated file reappears on restart -- modelled
+    /// by restoring the purged files byte-for-byte. Their combined size alone
+    /// exceeds the WAL size cap, but the persisted cursor is past all of them.
+    /// Guarantees: after the restart `ingest` keeps succeeding. Rotated files
+    /// that the persisted cursor already covers hold no unconsumed data and
+    /// must not count against the WAL cap. Regressing this wedges the engine:
+    /// replay leaves the open segment empty, every append is rejected with
+    /// `WalAtCapacity`, and the capacity path's finalize is a no-op that never
+    /// persists a cursor or purges anything, so no retry can ever succeed.
+    #[tokio::test]
+    async fn rotated_wal_files_covered_by_cursor_do_not_wedge_ingest_after_restart() {
+        let dir = tempdir().expect("tempdir");
+        let cap = 8 * 1024u64;
+        let config = QuiverConfig::builder()
+            .data_dir(dir.path())
+            .wal(WalConfig {
+                flush_interval: Duration::ZERO,
+                rotation_target_bytes: NonZeroU64::new(1024).unwrap(),
+                max_size_bytes: NonZeroU64::new(cap).unwrap(),
+                max_rotated_files: 100,
+            })
+            .segment(SegmentConfig {
+                target_size_bytes: NonZeroU64::new(64 * 1024 * 1024).unwrap(),
+                max_open_duration: Duration::from_secs(3600),
+                ..Default::default()
+            })
+            .build()
+            .expect("config");
+
+        // Run 1: rounds of ingest + flush. Remember every rotated file just
+        // before each flush purges it.
+        let mut next_id = 0u64;
+        let mut purged: std::collections::BTreeMap<PathBuf, Vec<u8>> =
+            std::collections::BTreeMap::new();
+        {
+            let engine = QuiverEngine::open(config.clone(), test_budget())
+                .await
+                .expect("open 1");
+            while purged.values().map(|b| b.len() as u64).sum::<u64>() <= 2 * cap {
+                for _ in 0..4 {
+                    engine
+                        .ingest(&IdBundle::new(next_id))
+                        .await
+                        .expect("ingest 1");
+                    next_id += 1;
+                }
+                for path in rotated_wal_files(dir.path()) {
+                    let bytes = fs::read(&path).expect("read rotated");
+                    let _ = purged.insert(path, bytes);
+                }
+                engine.flush().await.expect("flush 1");
+            }
+            assert!(
+                rotated_wal_files(dir.path()).is_empty(),
+                "every rotated file should be covered by the cursor and purged"
+            );
+
+            // Power loss before the purges were durable: no shutdown, no
+            // destructors, and the deleted directory entries come back.
+            std::mem::forget(engine);
+            for (path, bytes) in &purged {
+                fs::write(path, bytes).expect("restore rotated");
+            }
+        }
+
+        // Run 2: ingestion must make progress.
+        let engine = QuiverEngine::open(config, test_budget())
+            .await
+            .expect("open 2");
+        for _ in 0..8 {
+            engine
+                .ingest(&IdBundle::new(next_id))
+                .await
+                .expect("ingest after restart must not wedge at WAL capacity");
+            next_id += 1;
+        }
+        engine.shutdown().await.expect("shutdown");
+    }
+
+    /// Scenario: A subscriber's progress file records a finalized segment as
+    /// not yet fully acknowledged. The subscriber then acks the rest of that
+    /// segment in memory only (no `maintain()`/`flush_progress()` afterwards).
+    /// Later, disk-budget pressure makes `ingest()` run its built-in cleanup,
+    /// which deletes the now-complete segment file. The process loses power
+    /// before the acks are persisted (no shutdown, no destructors), and the
+    /// engine is reopened and the subscriber re-registered.
+    /// Guarantees: after the restart the subscriber can keep consuming --
+    /// `poll_next_bundle` does not fail. The deleted segment was complete, so
+    /// nothing is lost; the stale persisted progress must not leave the
+    /// subscriber pointing at a file that no longer exists. Regressing this
+    /// wedges the subscriber: every poll fails with "segment N not found".
+    #[tokio::test]
+    async fn segment_deleted_by_ingest_cleanup_before_progress_flush_does_not_wedge_subscriber() {
+        let dir = tempdir().expect("tempdir");
+        let sub = SubscriberId::new("cleanup-crash").expect("sub id");
+        let segment_target = 4 * 1024u64;
+        let config = QuiverConfig::builder()
+            .data_dir(dir.path())
+            .wal(WalConfig {
+                flush_interval: Duration::ZERO,
+                rotation_target_bytes: NonZeroU64::new(2 * 1024).unwrap(),
+                max_size_bytes: NonZeroU64::new(16 * 1024).unwrap(),
+                max_rotated_files: 16,
+            })
+            .segment(SegmentConfig {
+                target_size_bytes: NonZeroU64::new(segment_target).unwrap(),
+                max_open_duration: Duration::from_secs(3600),
+                ..Default::default()
+            })
+            .build()
+            .expect("config");
+        // Tight budget: hard cap = minimum allowed, soft cap one segment below.
+        let budget = || {
+            Arc::new(
+                DiskBudget::for_config(
+                    16 * 1024 + 2 * segment_target,
+                    &config,
+                    RetentionPolicy::Backpressure,
+                )
+                .expect("budget"),
+            )
+        };
+
+        let mut next_id = 0u64;
+        {
+            let engine = QuiverEngine::open(config.clone(), budget())
+                .await
+                .expect("open 1");
+            engine.register_subscriber(sub.clone()).expect("register");
+            engine.activate_subscriber(&sub).expect("activate");
+
+            // Finalize one segment and durably record it as partially acked.
+            for _ in 0..3 {
+                engine
+                    .ingest(&IdBundle::new(next_id))
+                    .await
+                    .expect("ingest");
+                next_id += 1;
+            }
+            engine.flush().await.expect("flush");
+            let first = engine
+                .poll_next_bundle(&sub)
+                .expect("poll")
+                .expect("bundle");
+            first.ack();
+            let _ = engine.flush_progress().await.expect("flush progress");
+
+            // Ack everything in memory only, then keep ingesting and acking
+            // (never calling maintain) until budget pressure makes ingest()
+            // delete completed segment files on its own.
+            let first_seq = engine.segment_store().segment_sequences()[0];
+            let mut rounds = 0;
+            while engine
+                .segment_store()
+                .segment_sequences()
+                .contains(&first_seq)
+            {
+                let _ = drain_ids(&engine, &sub);
+                match engine.ingest(&IdBundle::new(next_id)).await {
+                    Ok(()) => next_id += 1,
+                    Err(e) if e.is_at_capacity() => {}
+                    Err(e) => panic!("unexpected ingest error: {e}"),
+                }
+                engine.flush().await.expect("flush");
+                rounds += 1;
+                assert!(rounds < 1000, "ingest cleanup never ran");
+            }
+
+            // Power loss before any progress flush.
+            std::mem::forget(engine);
+        }
+
+        let engine = QuiverEngine::open(config.clone(), budget())
+            .await
+            .expect("open 2");
+        engine.register_subscriber(sub.clone()).expect("register");
+        engine.activate_subscriber(&sub).expect("activate");
+        for _ in 0..1000 {
+            match engine
+                .poll_next_bundle(&sub)
+                .expect("poll after restart must not fail with segment not found")
+            {
+                Some(handle) => handle.ack(),
+                None => break,
+            }
+        }
+        engine.shutdown().await.expect("shutdown");
+    }
+
+    /// Scenario: A subscriber consumes and acks every bundle of several
+    /// segments, and `maintain()` durably records that progress and deletes the
+    /// fully-consumed segment files. With all tracked segments complete, the
+    /// persisted progress header records no "oldest incomplete" boundary. The
+    /// process then crashes and, after restart, earlier fully-acked segment
+    /// files are still present (their deletions had not been made durable --
+    /// modelled by restoring those files). The engine is reopened.
+    /// Guarantees: bundles that were durably acknowledged are not delivered
+    /// again after the restart. Regressing this means the persisted progress
+    /// forgets which segments were completed, so a surviving completed segment
+    /// is treated as new and its acked bundles are redelivered.
+    #[tokio::test]
+    async fn durably_acked_segments_are_not_redelivered_after_restart() {
+        let dir = tempdir().expect("tempdir");
+        let sub = SubscriberId::new("no-redelivery").expect("sub id");
+        let mut next_id = 0u64;
+        let mut segment_files: Vec<(PathBuf, Vec<u8>)> = Vec::new();
+        {
+            let engine = open_with_subscriber(dir.path(), &sub)
+                .await
+                .expect("open 1");
+            for _ in 0..3 {
+                for _ in 0..3 {
+                    engine
+                        .ingest(&IdBundle::new(next_id))
+                        .await
+                        .expect("ingest");
+                    next_id += 1;
+                }
+                engine.flush().await.expect("flush");
+                let _ = drain_ids(&engine, &sub);
+                for entry in fs::read_dir(dir.path().join("segments")).expect("read dir") {
+                    let path = entry.expect("entry").path();
+                    let bytes = fs::read(&path).expect("read segment");
+                    segment_files.push((path, bytes));
+                }
+                // Durably persists the acks, then deletes completed segments.
+                let _ = engine.maintain().await.expect("maintain");
+            }
+            std::mem::forget(engine);
+        }
+
+        // Segment deletions were not durable: the files come back.
+        for (path, bytes) in &segment_files {
+            if !path.exists() {
+                fs::write(path, bytes).expect("restore segment");
+            }
+        }
+
+        let engine = open_with_subscriber(dir.path(), &sub)
+            .await
+            .expect("open 2");
+        let redelivered = drain_ids(&engine, &sub);
+        assert!(
+            redelivered.is_empty(),
+            "durably acked ids were delivered again after restart: {redelivered:?}"
+        );
         engine.shutdown().await.expect("shutdown");
     }
 }

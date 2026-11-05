@@ -1,5 +1,45 @@
 # Repeated crashes during segment finalization can wedge ingest at "WAL at capacity" forever
 
+## Status
+
+**Real bug, wrong cause.** Fixed. The analysis below is kept for the record but
+is superseded by this section.
+
+Corrections:
+
+- "Not the documented backpressure error" is wrong. `QuiverError::is_at_capacity()`
+  and `is_recoverable()` return true for `WalAtCapacity`. The harness only
+  accepted `StorageAtCapacity`, so the original failure was a harness
+  misclassification; the harness now uses `is_at_capacity()`.
+- It is not a live-lock that clears once a crash-free window lets a
+  finalization complete. Once entered, the wedge is permanent with no further
+  crashes.
+
+Actual cause (isolated on `QUIVER_SIM_SEED=3 QUIVER_SIM_CRASH_PROB=0.10
+QUIVER_SIM_INGESTS=120 QUIVER_SIM_CHECKPOINT=10`):
+
+1. A finalization persists the cursor past some rotated WAL files and purges
+   them, but the purge is interrupted or its deletions are not durable
+   (`purge_rotated_files` never synced the WAL directory).
+2. After the crash the rotated files are back on disk, already fully covered by
+   the persisted cursor.
+3. `WalWriter::open` never purged covered files, so they count against
+   `max_size_bytes`. Replay finds nothing past the cursor, so the open segment
+   is empty.
+4. The next append fails with `WalAtCapacity`. The capacity path finalizes the
+   open segment to advance the cursor -- but the segment is empty, so
+   finalization is a no-op: no cursor is persisted and nothing is purged. The
+   retry fails the same way, forever.
+
+Fix: `WalWriter::open` purges rotated files the persisted cursor already
+covers, and `purge_rotated_files` syncs the WAL directory after deleting.
+Reproduced through the public API by
+`engine::tests::rotated_wal_files_covered_by_cursor_do_not_wedge_ingest_after_restart`,
+which restores the purged files to model deletions that were never durable.
+
+The commands below reference `QUIVER_SIM_FIX_A` / `QUIVER_SIM_FIX_B` /
+`QUIVER_SIM_PRECREATE_DATADIR`, which no longer exist or are unnecessary.
+
 ## Summary
 
 Quiver bounds the WAL size. When an append would exceed the cap, the engine

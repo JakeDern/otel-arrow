@@ -206,8 +206,26 @@ impl<P: SegmentProvider> SubscriberRegistry<P> {
                             .max(highest_persisted)
                             .max(header_floor);
 
-                        // Restore segment progress from entries
+                        // Restore segment progress from entries. A persisted
+                        // entry can reference a segment whose file is gone: the
+                        // segment was completed and deleted after this progress
+                        // file was last written (acks are persisted lazily) and
+                        // the process then crashed. Nothing can be delivered
+                        // from a missing file, so tracking it would only make
+                        // every later poll fail with "segment not found".
                         for entry in entries {
+                            if !available_segments
+                                .iter()
+                                .any(|(seq, _)| *seq == entry.seg_seq)
+                            {
+                                otel_warn!(
+                                    "quiver.subscriber.progress.load",
+                                    subscriber_id = %sub_id,
+                                    segment = entry.seg_seq.raw(),
+                                    message = "progress references a segment file that no longer exists; treating it as complete",
+                                );
+                                continue;
+                            }
                             state.add_segment(entry.seg_seq, entry.bundle_count);
                             // Mark acked bundles
                             for bundle_idx in 0..entry.bundle_count {
@@ -234,8 +252,17 @@ impl<P: SegmentProvider> SubscriberRegistry<P> {
                             } else {
                                 segment_seq < oldest_incomplete
                             };
-                            if !completed_before_snapshot {
-                                state.add_segment(segment_seq, bundle_count);
+                            state.add_segment(segment_seq, bundle_count);
+                            if completed_before_snapshot {
+                                // Track it as fully resolved rather than not at
+                                // all: `activate()` adds every available segment
+                                // the subscriber does not already track, which
+                                // would otherwise redeliver bundles that were
+                                // durably acknowledged. This happens when a
+                                // completed segment's file outlives its entry in
+                                // the progress file (e.g. its deletion was not
+                                // yet durable at the crash). Cleanup removes it.
+                                let _ = state.force_complete_segment(segment_seq);
                             }
                         }
 
@@ -1428,7 +1455,7 @@ mod tests {
     }
 
     /// Scenario: A segment finalizes after a subscriber's last progress snapshot.
-    /// Guarantees: Recovery tracks the later segment as unresolved without restoring completed segments below the persisted boundary.
+    /// Guarantees: Recovery tracks the later segment as unresolved while segments below the persisted boundary stay completed (never pending again).
     #[tokio::test]
     async fn recovery_reconciles_segments_missing_from_progress_snapshot() {
         let dir = tempdir().unwrap();
@@ -1453,7 +1480,9 @@ mod tests {
         let progress = registry.pending_segment_progress(&id).unwrap();
 
         assert!(
-            !progress.contains_key(&SegmentSeq::new(1)),
+            progress
+                .get(&SegmentSeq::new(1))
+                .is_none_or(|p| p.is_complete()),
             "segments below the persisted boundary were already completed"
         );
         assert_eq!(

@@ -132,3 +132,31 @@ mod imp {
 }
 
 pub(crate) use imp::{path_exists, std_fs, sync_dir, tokio_fs};
+
+/// Creates `path` (and any missing ancestors) and makes the new directory
+/// entries durable.
+///
+/// `create_dir_all` alone only guarantees the directories exist in the page
+/// cache: on POSIX a newly created directory entry survives a power loss only
+/// once its parent directory has been fsynced. Without this, a crash shortly
+/// after `open` can drop the directory (and everything later written into it,
+/// even fsynced files).
+///
+/// Every ancestor and then `path` itself are synced, top-down, so a parent's
+/// entry is durable before its child's. Syncing an ancestor that quiver did not
+/// create is harmless; failures above `path` are ignored because a pre-existing
+/// ancestor may not be readable, in which case it was not created by us and
+/// its entry is already durable.
+pub(crate) async fn create_dir_all_durable(path: &std::path::Path) -> std::io::Result<()> {
+    tokio_fs::create_dir_all(path).await?;
+    let mut ancestors: Vec<&std::path::Path> = path
+        .ancestors()
+        .skip(1)
+        .filter(|dir| !dir.as_os_str().is_empty())
+        .collect();
+    ancestors.reverse();
+    for dir in ancestors {
+        let _ = sync_dir(dir).await;
+    }
+    sync_dir(path).await
+}

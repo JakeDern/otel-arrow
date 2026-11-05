@@ -149,6 +149,7 @@ pub(crate) fn read_dir<P: AsRef<Path>>(path: P) -> Result<shim::ReadDir> {
     shim::read_dir(path)
 }
 
+#[allow(dead_code)]
 pub(crate) fn create_dir_all<P: AsRef<Path>>(path: P) -> Result<()> {
     let path = path.as_ref();
     sim::maybe_crash(FsOp::CreateDir, path);
