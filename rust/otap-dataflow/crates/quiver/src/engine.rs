@@ -19,6 +19,9 @@
 //!    advanced to allow cleanup of consumed entries.
 
 use std::collections::HashMap;
+// Used by the non-sim permissions probe and by the test module. Under the
+// turmoil sim the probe is gated out, so the import is unused in that lib build.
+#[cfg_attr(quiver_turmoil, allow(unused_imports))]
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -398,7 +401,7 @@ impl QuiverEngine {
 
         // Ensure directories exist
         let segment_dir = segment_dir(&config);
-        fs::create_dir_all(&segment_dir).map_err(|e| {
+        crate::fs_compat::std_fs::create_dir_all(&segment_dir).map_err(|e| {
             otel_error!(
                 "quiver.engine.init",
                 path = %segment_dir.display(),
@@ -880,7 +883,7 @@ impl QuiverEngine {
         // Track whether we're using a potentially stale/missing cursor that could cause duplicates
         let mut cursor_may_cause_duplicates = false;
 
-        let cursor_position = match tokio::fs::read(&cursor_path).await {
+        let cursor_position = match crate::fs_compat::tokio_fs::read(&cursor_path).await {
             Ok(data) => match CursorSidecar::decode(&data) {
                 Ok(c) => c.wal_position,
                 Err(e) => {
@@ -1357,7 +1360,7 @@ impl QuiverEngine {
                 // cleaned up via the periodic retry mechanism in maintain().
                 let cleanup_path = segment_path.clone();
                 let cleanup_seq = seq;
-                match fs::remove_file(&cleanup_path) {
+                match crate::fs_compat::std_fs::remove_file(&cleanup_path) {
                     Ok(()) => {
                         otel_debug!(
                             "quiver.segment.cleanup",
@@ -2030,6 +2033,8 @@ fn wal_path(config: &QuiverConfig) -> PathBuf {
 }
 
 /// Prefix for the temporary probe file created by [`probe_set_permissions_support`].
+/// Unused under the turmoil sim, where the probe is skipped.
+#[cfg_attr(quiver_turmoil, allow(dead_code))]
 const PERMS_PROBE_PREFIX: &str = ".quiver_perms_probe.";
 
 /// Probes whether the filesystem at `dir` supports `chmod`/`set_permissions`.
@@ -2041,7 +2046,22 @@ const PERMS_PROBE_PREFIX: &str = ".quiver_perms_probe.";
 ///
 /// The probe file is always cleaned up, regardless of outcome. The randomized
 /// name avoids conflicts if a previous probe file was not properly deleted.
+// Under the turmoil simulation the shim does not enforce permissions, so a
+// read-back probe would report "unsupported" anyway. Skip the probe (and its
+// crash-pointed fs calls) and disable readonly enforcement, which keeps the
+// simulation focused on the WAL/segment/progress durability paths.
+#[cfg(quiver_turmoil)]
+fn probe_set_permissions_support(_dir: &Path) -> bool {
+    false
+}
+
+#[cfg(not(quiver_turmoil))]
 fn probe_set_permissions_support(dir: &Path) -> bool {
+    probe_set_permissions_support_impl(dir)
+}
+
+#[cfg(not(quiver_turmoil))]
+fn probe_set_permissions_support_impl(dir: &Path) -> bool {
     let probe_name = format!(
         "{}{}.{}",
         PERMS_PROBE_PREFIX,

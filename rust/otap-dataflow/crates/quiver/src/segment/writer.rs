@@ -69,10 +69,12 @@
 //!
 //! [`OpenSegment`]: super::OpenSegment
 
-use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::path::Path;
 use std::sync::Arc;
+
+use crate::fs_compat::std_fs::File;
+use crate::fs_compat::{std_fs, sync_dir, tokio_fs};
 
 use arrow_array::builder::{
     FixedSizeBinaryBuilder, ListBuilder, StructBuilder, UInt16Builder, UInt32Builder, UInt64Builder,
@@ -183,19 +185,36 @@ impl SegmentWriter {
         let path = path.as_ref().to_path_buf();
         let (accumulators, manifest) = segment.into_parts()?;
 
-        // Create the file asynchronously, then convert to std::fs::File for Arrow IPC.
-        let async_file = tokio::fs::File::create(&path)
+        // Create the file asynchronously, then convert to a sync File for Arrow
+        // IPC. Under the facade the create is a crash point (it changes the
+        // directory entry); on a normal build it is a plain create.
+        let async_file = tokio_fs::File::create(&path)
             .await
             .map_err(|e| SegmentError::io(path.clone(), e))?;
         let std_file = async_file.into_std().await;
+
+        // Under the turmoil simulation BOTH the filesystem context and the crash
+        // oracle are thread-local, so capture them here and re-enter them inside
+        // the blocking closure (see fs_compat::sim).
+        #[cfg(quiver_turmoil)]
+        let sim_oracle = crate::fs_compat::sim::capture();
+        #[cfg(quiver_turmoil)]
+        let fs_handle = turmoil::fs::FsHandle::current();
 
         // Run the blocking Arrow IPC serialization on Tokio's blocking thread pool.
         // Arrow IPC requires std::io::Write, so we can't use async I/O for
         // serialization. Using spawn_blocking prevents blocking the async
         // runtime's worker threads during file writes.
-        let (file, result) = tokio::task::spawn_blocking({
+        let join = tokio::task::spawn_blocking({
             let path = path.clone();
             move || -> Result<(File, (u64, u32)), SegmentError> {
+                // Re-enter the host filesystem context and crash oracle on this
+                // worker thread.
+                #[cfg(quiver_turmoil)]
+                let _fs_guard = fs_handle.enter();
+                #[cfg(quiver_turmoil)]
+                let _sim_guard = sim_oracle.map(crate::fs_compat::sim::install);
+
                 let mut writer = BufWriter::new(std_file);
 
                 let result = Self::write_streaming(&mut writer, accumulators, manifest, &path)?;
@@ -208,13 +227,27 @@ impl SegmentWriter {
                 Ok((file, result))
             }
         })
-        .await
-        .map_err(|e| SegmentError::InvalidFormat {
-            message: format!("blocking task panicked: {e}"),
-        })??;
+        .await;
 
-        // Async fsync - convert back to tokio::fs::File for async I/O
-        tokio::fs::File::from_std(file)
+        // A panic inside the blocking task (e.g. an injected crash) comes back as
+        // a JoinError. Under the simulation we must re-raise the panic so it
+        // unwinds the host task like a real kill, instead of being converted into
+        // an ordinary error that lets quiver keep running.
+        let (file, result) = match join {
+            Ok(inner) => inner?,
+            Err(e) => {
+                #[cfg(quiver_turmoil)]
+                if e.is_panic() {
+                    std::panic::resume_unwind(e.into_panic());
+                }
+                return Err(SegmentError::InvalidFormat {
+                    message: format!("blocking task panicked: {e}"),
+                });
+            }
+        };
+
+        // Async fsync - convert back to the facade async File for async I/O.
+        tokio_fs::File::from_std(file)
             .sync_all()
             .await
             .map_err(|e| SegmentError::io(path.clone(), e))?;
@@ -234,10 +267,11 @@ impl SegmentWriter {
     async fn set_readonly(path: &Path) -> Result<(), SegmentError> {
         #[cfg(unix)]
         {
+            #[allow(unused_imports)]
             use std::os::unix::fs::PermissionsExt;
             // 0o440 = r--r----- (read-only for owner and group, no access for others)
-            let permissions = std::fs::Permissions::from_mode(0o440);
-            tokio::fs::set_permissions(path, permissions)
+            let permissions = std_fs::Permissions::from_mode(0o440);
+            tokio_fs::set_permissions(path, permissions)
                 .await
                 .map_err(|e| SegmentError::io(path.to_path_buf(), e))?;
         }
@@ -245,12 +279,12 @@ impl SegmentWriter {
         #[cfg(not(unix))]
         {
             // On non-Unix platforms, use the portable read-only flag
-            let mut permissions = tokio::fs::metadata(path)
+            let mut permissions = tokio_fs::metadata(path)
                 .await
                 .map_err(|e| SegmentError::io(path.to_path_buf(), e))?
                 .permissions();
             permissions.set_readonly(true);
-            tokio::fs::set_permissions(path, permissions)
+            tokio_fs::set_permissions(path, permissions)
                 .await
                 .map_err(|e| SegmentError::io(path.to_path_buf(), e))?;
         }
@@ -616,19 +650,11 @@ impl<W: Write> Write for HashingWriter<'_, W> {
 ///
 /// On non-Unix platforms this is a no-op since directory sync semantics differ.
 async fn sync_parent_dir(path: &Path) -> Result<(), SegmentError> {
-    #[cfg(unix)]
-    {
-        if let Some(parent) = path.parent() {
-            let dir = tokio::fs::File::open(parent)
-                .await
-                .map_err(|e| SegmentError::io(path.to_path_buf(), e))?;
-            dir.sync_all()
-                .await
-                .map_err(|e| SegmentError::io(path.to_path_buf(), e))?;
-        }
+    if let Some(parent) = path.parent() {
+        sync_dir(parent)
+            .await
+            .map_err(|e| SegmentError::io(path.to_path_buf(), e))?;
     }
-    #[cfg(not(unix))]
-    let _ = path; // silence unused warning
     Ok(())
 }
 

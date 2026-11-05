@@ -1,6 +1,6 @@
 //! Filesystem facade used by quiver so the same production code can run against
 //! either the real operating-system filesystem or turmoil's deterministic
-//! simulated filesystem.
+//! simulated filesystem with crash injection.
 //!
 //! # Why this exists
 //!
@@ -15,38 +15,37 @@
 //! filesystem (`turmoil-fs`, exposed through the `unstable-fs` feature) that
 //! models POSIX durability explicitly: writes land in a per-host pending state,
 //! `sync_all`/`sync_dir` promote them to durable, and a simulated crash discards
-//! everything still pending. By routing quiver's filesystem calls through this
-//! module we can drive those crashes deterministically from a test.
+//! everything still pending.
+//!
+//! # The single wrapper
+//!
+//! EVERY filesystem access in quiver goes through this module. On a normal build
+//! the symbols re-export the real `std::fs` / `tokio::fs` items unchanged, so
+//! there is zero behavioral change. Under `--cfg quiver_turmoil` the same
+//! symbols resolve to thin wrappers around turmoil's shims that, before each
+//! operation which MUTATES the on-disk state (write, set_len, sync, rename,
+//! remove, create/truncate open, create_dir, set_permissions), consult a seeded
+//! crash oracle (see [`sim`]). The oracle may decide to "kill" the process right
+//! before the mutation by panicking with [`sim::InjectedCrash`]; the harness
+//! then turns that into a turmoil `Sim::crash` + `Sim::bounce` and continues
+//! pumping data. Because the crash fires BEFORE the mutation, the mutation never
+//! reaches even the pending state, which is exactly a power loss at that
+//! instant.
 //!
 //! # How it is wired
 //!
-//! This facade is switched entirely by the `quiver_turmoil` cfg, NOT by a Cargo
-//! feature. That is deliberate: CI and `cargo xtask check` build the workspace
-//! with `--all-features`, and a feature would silently redirect every existing
-//! quiver test (which use real tempdirs) onto the simulated filesystem. A custom
-//! cfg is invisible to `--all-features`, exactly like `tokio_unstable`.
+//! Switched entirely by the `quiver_turmoil` cfg, NOT a Cargo feature: CI and
+//! `cargo xtask check` build with `--all-features`, and a feature would silently
+//! redirect every existing quiver test (which use real tempdirs) onto the
+//! simulated filesystem. A custom cfg is invisible to `--all-features`, exactly
+//! like `tokio_unstable`.
 //!
-//! To build/run the simulation POC:
+//! Run the simulation harness with:
 //!
 //! ```text
 //! CARGO_TARGET_DIR=target/turmoil RUSTFLAGS="--cfg quiver_turmoil" \
 //!   cargo test -p otel-arrow-dfe-quiver turmoil
 //! ```
-//!
-//! # What callers use
-//!
-//! Instead of `use tokio::fs::{File, OpenOptions}` and `std::fs::*`, modules on
-//! the durability-critical path import from here:
-//!
-//! ```ignore
-//! use crate::fs_compat::tokio_fs::{self, File, OpenOptions};
-//! use crate::fs_compat::std_fs;
-//! use crate::fs_compat::sync_dir;
-//! ```
-//!
-//! On a normal build every symbol resolves to the corresponding `std`/`tokio`
-//! item, so there is zero behavioral change. Under `--cfg quiver_turmoil` the
-//! same symbols resolve to turmoil's shims.
 
 // -------------------------------------------------------------------------
 // Production build: thin re-exports of the real std / tokio filesystem APIs.
@@ -55,15 +54,21 @@
 mod imp {
     /// Async filesystem namespace (mirrors `tokio::fs`).
     pub(crate) mod tokio_fs {
-        pub(crate) use tokio::fs::{File, OpenOptions, create_dir_all, remove_file, rename};
+        #[allow(unused_imports)]
+        pub(crate) use tokio::fs::{
+            File, OpenOptions, create_dir_all, metadata, read, remove_file, rename, set_permissions,
+        };
     }
 
     /// Synchronous filesystem namespace (mirrors `std::fs`).
     pub(crate) mod std_fs {
-        // `metadata`/`set_permissions` are only used on some platforms (the
-        // non-unix read-only purge path), so allow unused here.
+        // Some items are only used on certain platforms (the non-unix read-only
+        // purge path) or by specific call sites, so allow unused here.
         #[allow(unused_imports)]
-        pub(crate) use std::fs::{File, Permissions, metadata, read_dir, set_permissions};
+        pub(crate) use std::fs::{
+            File, OpenOptions, Permissions, create_dir_all, metadata, read_dir, remove_file,
+            set_permissions,
+        };
     }
 
     /// Fsync a directory so that a rename/create of one of its entries is
@@ -93,41 +98,34 @@ mod imp {
 }
 
 // -------------------------------------------------------------------------
-// Simulation build: route through turmoil's simulated filesystem shims.
+// Simulation build: route through turmoil's simulated filesystem shims, with a
+// seeded crash oracle in front of every mutating operation.
 // -------------------------------------------------------------------------
 #[cfg(quiver_turmoil)]
-mod imp {
-    /// Async filesystem namespace (turmoil's `tokio::fs` shim).
-    pub(crate) mod tokio_fs {
-        pub(crate) use turmoil::fs::shim::tokio::fs::{
-            File, OpenOptions, create_dir_all, remove_file, rename,
-        };
-    }
+pub(crate) mod sim;
 
-    /// Synchronous filesystem namespace (turmoil's `std::fs` shim).
-    pub(crate) mod std_fs {
-        // `metadata`/`set_permissions` are only used on some platforms (the
-        // non-unix read-only purge path), so allow unused here.
-        #[allow(unused_imports)]
-        pub(crate) use turmoil::fs::shim::std::fs::{
-            File, Permissions, metadata, read_dir, set_permissions,
-        };
-    }
+#[cfg(quiver_turmoil)]
+mod imp {
+    pub(crate) mod std_fs;
+    pub(crate) mod tokio_fs;
 
     /// Fsync a directory via turmoil's explicit `sync_dir`.
     ///
     /// turmoil models directory entries separately from file data; a freshly
     /// created file is "orphaned" (and removed on crash) until its parent's
     /// directory entry is synced. turmoil cannot open a directory as a `File`,
-    /// so it exposes a dedicated `sync_dir` free function for this.
+    /// so it exposes a dedicated `sync_dir` free function for this. This is a
+    /// durability-affecting op, so the crash oracle runs first.
     pub(crate) async fn sync_dir(path: &std::path::Path) -> std::io::Result<()> {
+        crate::fs_compat::sim::maybe_crash(crate::fs_compat::sim::FsOp::SyncDir, path);
         turmoil::fs::shim::std::fs::sync_dir(path).map_err(std::io::Error::other)
     }
 
     /// Whether `path` points at an existing entity in the simulated filesystem.
     ///
     /// `std::path::Path::exists` queries the real OS filesystem, which the shim
-    /// never touches, so route existence checks through the shim metadata.
+    /// never touches, so route existence checks through the shim metadata. This
+    /// is a pure read, so it never crashes.
     pub(crate) fn path_exists(path: &std::path::Path) -> bool {
         turmoil::fs::shim::std::fs::metadata(path).is_ok()
     }

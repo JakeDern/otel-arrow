@@ -36,10 +36,11 @@
 //! buffers. This is suitable for testing or platforms without mmap support.
 
 use std::collections::HashMap;
-use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 use std::sync::Arc;
+
+use crate::fs_compat::std_fs::File;
 
 use parking_lot::RwLock;
 
@@ -398,7 +399,16 @@ impl SegmentReader {
     #[cfg(feature = "mmap")]
     pub fn open_mmap(path: impl AsRef<Path>) -> Result<Self, SegmentError> {
         let path = path.as_ref();
+        // mmap requires a real OS file handle. On a normal build `File` is the
+        // real `std::fs::File` (facade re-export) and is mmappable. Under the
+        // turmoil simulation `File` is a shim wrapper that cannot be mmapped, so
+        // use a real `std::fs::File` there; segment reads are forced to the
+        // standard (buffered) path under the sim, so this branch never runs.
+        #[cfg(not(quiver_turmoil))]
         let file = File::open(path).map_err(|e| SegmentError::io(path.to_path_buf(), e))?;
+        #[cfg(quiver_turmoil)]
+        let file =
+            std::fs::File::open(path).map_err(|e| SegmentError::io(path.to_path_buf(), e))?;
 
         // SAFETY: We use a shared read-only mapping.
         // On Unix: MAP_SHARED | PROT_READ -- pages are backed by the file and

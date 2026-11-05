@@ -134,6 +134,11 @@ pub mod subscriber;
 pub mod telemetry;
 pub(crate) mod wal;
 
+// Deterministic crash-consistency simulation harness. Only compiled under
+// `--cfg quiver_turmoil` (which also pulls in turmoil); see fs_compat.rs.
+#[cfg(all(test, quiver_turmoil))]
+mod turmoil_sim;
+
 pub use budget::{BudgetConfigError, DiskBudget};
 pub use config::{
     DurabilityMode, QuiverConfig, RetentionConfig, RetentionPolicy, SegmentConfig, WalConfig,

@@ -15,6 +15,7 @@ use std::time::{Duration, Instant, SystemTime};
 use parking_lot::{Mutex, RwLock};
 
 use crate::budget::DiskBudget;
+use crate::fs_compat::{path_exists, std_fs};
 use crate::logging::{otel_debug, otel_error, otel_warn};
 use crate::segment::{ReconstructedBundle, SegmentReader, SegmentSeq};
 use crate::subscriber::{BundleIndex, BundleRef, SegmentProvider, SubscriberError};
@@ -138,7 +139,7 @@ impl SegmentHandle {
     /// Opens a segment file using the specified read mode.
     fn open(seq: SegmentSeq, path: PathBuf, mode: SegmentReadMode) -> Result<Self> {
         // Get file metadata for size and modification time (finalization timestamp)
-        let metadata = std::fs::metadata(&path).map_err(|e| SubscriberError::SegmentIo {
+        let metadata = std_fs::metadata(&path).map_err(|e| SubscriberError::SegmentIo {
             path: path.clone(),
             source: e,
         })?;
@@ -407,7 +408,7 @@ impl SegmentStore {
 
         // Attempt to delete the file from disk.
         let path = self.segment_path(seq);
-        if path.exists() {
+        if path_exists(&path) {
             match Self::remove_readonly_file(&path) {
                 Ok(()) => {
                     // File deleted -- release budget bytes.
@@ -490,17 +491,17 @@ impl SegmentStore {
     /// not file permissions, so this step is skipped.
     ///
     /// Note: since Rust 1.85 (https://github.com/rust-lang/rust/pull/134679),
-    /// `std::fs::remove_file` natively handles readonly files on Windows, so
+    /// `std_fs::remove_file` natively handles readonly files on Windows, so
     /// the attribute clearing is only needed for compatibility with older toolchains.
     fn remove_readonly_file(path: &Path) -> std::io::Result<()> {
         #[cfg(not(unix))]
-        if let Ok(metadata) = std::fs::metadata(path) {
+        if let Ok(metadata) = std_fs::metadata(path) {
             let mut perms = metadata.permissions();
             #[allow(clippy::permissions_set_readonly_false)]
             perms.set_readonly(false);
-            let _ = std::fs::set_permissions(path, perms);
+            let _ = std_fs::set_permissions(path, perms);
         }
-        std::fs::remove_file(path)
+        std_fs::remove_file(path)
     }
 
     /// Retries deletion of segments that previously failed.
@@ -537,7 +538,7 @@ impl SegmentStore {
         let mut results = PendingDeleteResults::default();
         for (seq, pd) in pending {
             let path = self.segment_path(seq);
-            if !path.exists() {
+            if !path_exists(&path) {
                 // File was deleted externally -- release budget and remove from pending.
                 let _ = self.pending_deletes.lock().remove(&seq);
                 if let Some(budget) = &self.budget {
@@ -685,7 +686,7 @@ impl SegmentStore {
         let cutoff = max_age.and_then(|age| now.checked_sub(age));
 
         let entries =
-            std::fs::read_dir(&self.segment_dir).map_err(|e| SubscriberError::SegmentIo {
+            std_fs::read_dir(&self.segment_dir).map_err(|e| SubscriberError::SegmentIo {
                 path: self.segment_dir.clone(),
                 source: e,
             })?;
@@ -708,7 +709,7 @@ impl SegmentStore {
                 match self.register_existing_segment(seq) {
                     Ok(bundle_count) => found.push((seq, bundle_count)),
                     Err(e) if is_expired => {
-                        let file_size = std::fs::metadata(&path)
+                        let file_size = std_fs::metadata(&path)
                             .map(|metadata| metadata.len())
                             .unwrap_or(0);
                         otel_warn!(
@@ -758,7 +759,7 @@ impl SegmentStore {
     /// Returns `true` if the file should be considered expired, or `false` if the
     /// metadata cannot be read (fail-safe: don't delete if we can't check).
     fn is_file_before_cutoff(path: &Path, cutoff: SystemTime) -> bool {
-        match std::fs::metadata(path) {
+        match std_fs::metadata(path) {
             Ok(metadata) => match metadata.modified() {
                 Ok(mtime) => mtime < cutoff,
                 Err(_) => false, // Can't determine age, don't expire

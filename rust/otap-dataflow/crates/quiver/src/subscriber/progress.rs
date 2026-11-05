@@ -43,8 +43,10 @@
 //! Progress is written via temp file -> fsync -> rename to ensure crash-safe
 //! updates. This avoids partial writes and provides atomic visibility.
 
-use std::fs::{self, OpenOptions};
 use std::io::{self, BufReader, Read};
+
+use crate::fs_compat::std_fs::{self, OpenOptions};
+use crate::fs_compat::{sync_dir, tokio_fs};
 use std::path::{Path, PathBuf};
 
 use crc32fast::Hasher as Crc32Hasher;
@@ -576,7 +578,7 @@ pub async fn write_progress_file(
 
     // Write to temp file using tokio
     {
-        let mut file = tokio::fs::OpenOptions::new()
+        let mut file = tokio_fs::OpenOptions::new()
             .write(true)
             .create(true)
             .truncate(true)
@@ -599,16 +601,13 @@ pub async fn write_progress_file(
     }
 
     // Atomic rename
-    tokio::fs::rename(&temp_path, &final_path)
+    tokio_fs::rename(&temp_path, &final_path)
         .await
         .map_err(|e| SubscriberError::progress_io(&final_path, e))?;
 
     // Sync parent directory to ensure rename is durable
-    #[cfg(unix)]
-    if let Some(parent) = final_path.parent()
-        && let Ok(dir_file) = tokio::fs::File::open(parent).await
-    {
-        let _ = dir_file.sync_all().await;
+    if let Some(parent) = final_path.parent() {
+        let _ = sync_dir(parent).await;
     }
 
     Ok(())
@@ -622,7 +621,7 @@ pub async fn write_progress_file(
 pub async fn delete_progress_file(dir: &Path, subscriber_id: &SubscriberId) -> Result<()> {
     let path = progress_file_path(dir, subscriber_id);
 
-    match tokio::fs::remove_file(&path).await {
+    match tokio_fs::remove_file(&path).await {
         Ok(()) => Ok(()),
         Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(()),
         Err(e) => Err(SubscriberError::progress_io(&path, e)),
@@ -637,7 +636,7 @@ pub async fn delete_progress_file(dir: &Path, subscriber_id: &SubscriberId) -> R
 ///
 /// Returns an error if the directory cannot be read.
 pub fn scan_progress_files(dir: &Path) -> Result<Vec<SubscriberId>> {
-    let entries = fs::read_dir(dir).map_err(|e| SubscriberError::progress_io(dir, e))?;
+    let entries = std_fs::read_dir(dir).map_err(|e| SubscriberError::progress_io(dir, e))?;
 
     let mut subscriber_ids = Vec::new();
 
@@ -673,6 +672,7 @@ pub fn scan_progress_files(dir: &Path) -> Result<Vec<SubscriberId>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
     use tempfile::tempdir;
 
     // -------------------------------------------------------------------------

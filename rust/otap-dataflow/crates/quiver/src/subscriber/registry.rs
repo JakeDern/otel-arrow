@@ -178,7 +178,7 @@ impl<P: SegmentProvider> SubscriberRegistry<P> {
         let mut highest_progress_segment: Option<SegmentSeq> = None;
 
         // Scan for existing progress files
-        if config.data_dir.exists() {
+        if crate::fs_compat::path_exists(&config.data_dir) {
             let subscriber_ids = scan_progress_files(&config.data_dir)?;
             let available_segments = if subscriber_ids.is_empty() {
                 Vec::new()
