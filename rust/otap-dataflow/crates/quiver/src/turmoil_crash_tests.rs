@@ -37,9 +37,7 @@ use crate::crash_point::CrashPoint;
 use crate::engine::QuiverEngine;
 use crate::record_bundle::{BundleDescriptor, PayloadRef, RecordBundle, SlotDescriptor, SlotId};
 use crate::segment_store::SegmentReadMode;
-use crate::wal::{
-    FlushPolicy, WalConsumerCursor, WalError, WalReader, WalWriter, WalWriterOptions,
-};
+use crate::subscriber::SubscriberId;
 use crate::{DiskBudget, QuiverError};
 
 const HOST: &str = "quiver";
@@ -184,108 +182,130 @@ fn crash_and_restart(sim: &mut turmoil::Sim<'_>, parked: Triggered<CrashPoint>, 
 // BUG.md: a crash in the middle of WAL rotation restarts the WAL at 0
 // ---------------------------------------------------------------------------
 
-fn wal_path() -> PathBuf {
-    PathBuf::from(DATA_DIR).join("wal").join("quiver.wal")
+/// Claims and acks every available bundle, returning the delivered ids.
+fn drain_ids(engine: &Arc<QuiverEngine>, sub: &SubscriberId) -> Result<Vec<u64>, String> {
+    let mut ids = Vec::new();
+    while let Some(handle) = engine.poll_next_bundle(sub).map_err(|e| e.to_string())? {
+        let batch = handle
+            .data()
+            .payload(SlotId::new(0))
+            .ok_or("bundle missing slot 0")?;
+        let col = batch
+            .column(0)
+            .as_any()
+            .downcast_ref::<Int64Array>()
+            .ok_or("id column not Int64")?;
+        ids.push(col.value(0) as u64);
+        handle.ack();
+    }
+    Ok(ids)
 }
 
-fn rotated(path: &Path, id: u64) -> PathBuf {
-    let mut name = path.as_os_str().to_os_string();
-    name.push(format!(".{id}"));
-    PathBuf::from(name)
+/// Opens the engine and (re)registers + activates the subscriber.
+async fn open_with_subscriber(
+    config: &QuiverConfig,
+    sub: &SubscriberId,
+) -> Result<Arc<QuiverEngine>, Box<dyn std::error::Error>> {
+    let engine = open_engine(config).await?;
+    // Re-registration after a restart is rejected when progress was loaded
+    // from disk; the subscriber already exists in that case.
+    let _ = engine.register_subscriber(sub.clone());
+    engine.activate_subscriber(sub)?;
+    Ok(engine)
 }
 
-/// WAL position just past the last entry of rotated file `path`, computed from
-/// its header start and data length.
-fn rotated_end(path: &Path) -> Result<u64, Box<dyn std::error::Error>> {
-    Ok(WalReader::open(path)?.wal_position_end()?)
-}
-
-/// Scenario: A `WalWriter` accumulates several entries in its active file and
-/// the process is killed by a turmoil crash in the middle of the size-triggered
-/// rotation -- after `wal` was renamed to `wal.1` and the rename synced, but
-/// before the fresh active `wal` and its header exist. After the restart one
-/// entry is appended and its cursor persisted (which purges `wal.1`), then a
-/// second entry is appended and its cursor persisted.
-/// Guarantees: the first post-restart entry continues at the end of `wal.1`,
-/// and after `wal.1` is purged the next entry is still numbered past the
-/// persisted cursor, so `persist_cursor` is not rejected with "safe offset
-/// regressed". Regressing this means a missing active file after a
-/// mid-rotation crash restarts the WAL stream at position 0 (BUG.md), so every
-/// later segment seal is rejected and its segment is never exported.
+/// Scenario: Using only the public engine API, bundles are ingested (never
+/// flushed) until the WAL's first size-triggered rotation, and the process is
+/// killed by a turmoil crash in the middle of that rotation -- after the active
+/// WAL was renamed to `wal.1` and the rename synced, but before the fresh active
+/// WAL and its header exist. The engine is reopened (replaying the history in
+/// `wal.1`), one more bundle is ingested and `flush()`ed (which advances the
+/// WAL cursor past `wal.1` and purges it), then another bundle is ingested and
+/// `flush()`ed. Finally the subscriber drains everything.
+/// Guarantees: both post-restart `flush()` calls succeed, every bundle whose
+/// `ingest` returned Ok is delivered exactly once, and the bundle whose ingest
+/// was interrupted by the crash is delivered at most once. Regressing this
+/// (BUG.md) means the restart writes a fresh active WAL header starting at
+/// position 0; once `wal.1` is purged, new entries are numbered behind the
+/// persisted cursor, so the second `flush()` fails with "invalid consumer
+/// cursor: safe offset regressed" and its segment is never delivered.
 #[test]
-fn wal_rotation_crash_does_not_restart_wal_at_zero() {
+fn rotation_crash_does_not_reject_later_flush() {
+    let config = engine_config(WalConfig {
+        // Every Ok ingest is fsynced, so it must survive the crash.
+        flush_interval: Duration::ZERO,
+        // Large enough that many bundles accumulate before the first rotation
+        // (wal.1 spans a wide WAL range) and the two post-restart ingests do
+        // not rotate again, which would rewrite the active header.
+        rotation_target_bytes: std::num::NonZeroU64::new(8 * 1024).expect("nonzero"),
+        max_size_bytes: std::num::NonZeroU64::new(4 * 1024 * 1024).expect("nonzero"),
+        max_rotated_files: 16,
+    });
+
     let mut sim = build_sim();
     let run = Arc::new(AtomicU64::new(0));
     let done = Arc::new(AtomicBool::new(false));
+    // Ids whose ingest returned Ok before the crash.
+    let committed = Arc::new(AtomicU64::new(0));
 
     let host_run = run.clone();
     let host_done = done.clone();
+    let host_committed = committed.clone();
     sim.host(HOST, move || {
         let run = host_run.load(Ordering::SeqCst);
         let done = host_done.clone();
+        let committed = host_committed.clone();
+        let config = config.clone();
         async move {
-            let path = wal_path();
+            let sub = SubscriberId::new("rotation-crash").expect("sub id");
+            let engine = open_with_subscriber(&config, &sub).await?;
+
             if run == 0 {
-                // A moderate rotation target lets many entries accumulate, so
-                // wal.1 spans a wide WAL range [0, P).
-                let options = WalWriterOptions::new(path, [0xD5; 16], FlushPolicy::Immediate)
-                    .with_rotation_target(8 * 1024)
-                    .with_max_rotated_files(10);
-                let mut writer = WalWriter::open(options).await?;
-                for id in 0..10_000 {
-                    // Parks at WalRotationRenamed once a rotation starts.
-                    let _ = writer.append_bundle(&IdBundle::new(id)).await?;
+                // Parks at WalRotationRenamed inside the ingest that triggers
+                // the first rotation.
+                for id in 0..10_000u64 {
+                    engine.ingest(&IdBundle::new(id)).await?;
+                    committed.store(id + 1, Ordering::SeqCst);
                 }
-                return Err(fail("rotation never triggered"));
+                return Err(fail("WAL rotation never triggered"));
             }
 
-            // Post-restart: the crash left wal.1 and no durable active file.
-            if crate::fs_compat::path_exists(&path) {
-                let len = crate::fs_compat::tokio_fs::metadata(&path).await?.len();
-                if len != 0 {
-                    return Err(fail(format!(
-                        "expected missing/empty active wal after crash, found {len} bytes"
-                    )));
-                }
-            }
-            let history_end = rotated_end(&rotated(&path, 1))?;
-            if history_end == 0 {
-                return Err(fail("wal.1 should hold the pre-crash history"));
-            }
+            let before_crash = committed.load(Ordering::SeqCst);
+            let m0 = 1_000_000u64;
+            let m1 = 1_000_001u64;
 
-            // Large rotation target so no further rotation rewrites the header.
-            let options = WalWriterOptions::new(path, [0xD5; 16], FlushPolicy::Immediate)
-                .with_rotation_target(1024 * 1024)
-                .with_max_rotated_files(10);
-            let mut writer = WalWriter::open(options).await?;
-
-            let first = writer.append_bundle(&IdBundle::new(1_000_000)).await?;
-            if first.position != history_end {
-                return Err(fail(format!(
-                    "first post-restart entry at {} but wal.1 ends at {history_end}",
-                    first.position
-                )));
-            }
-            writer
-                .persist_cursor(&WalConsumerCursor::from_offset(&first))
-                .await?;
-            if writer.purge_count() != 1 {
-                return Err(fail("wal.1 should be purged once the cursor passes it"));
-            }
-
-            let second = writer.append_bundle(&IdBundle::new(1_000_001)).await?;
-            match writer
-                .persist_cursor(&WalConsumerCursor::from_offset(&second))
+            // Seals the replayed history plus m0, moving the WAL cursor past
+            // the end of wal.1, which purges it.
+            engine.ingest(&IdBundle::new(m0)).await?;
+            engine
+                .flush()
                 .await
-            {
-                Ok(()) => {}
-                Err(e @ WalError::InvalidConsumerCursor(_)) => {
-                    return Err(fail(format!(
-                        "persist_cursor after purge rejected: {e} (cursor {} vs persisted {})",
-                        second.next_offset, first.next_offset
-                    )));
-                }
-                Err(e) => return Err(e.into()),
+                .map_err(|e| fail(format!("first flush after restart failed: {e}")))?;
+
+            // With wal.1 gone, m1 must still be numbered past the cursor.
+            engine.ingest(&IdBundle::new(m1)).await?;
+            engine
+                .flush()
+                .await
+                .map_err(|e| fail(format!("second flush after restart failed: {e}")))?;
+
+            let mut delivered = drain_ids(&engine, &sub).map_err(fail)?;
+            delivered.sort_unstable();
+            // The ingest that triggered the rotation crashed before returning,
+            // but its entry was already fsynced to the WAL (append happens
+            // before rotation), so replay may legitimately deliver it too.
+            let in_flight = before_crash;
+            let mut expected: Vec<u64> = (0..before_crash).collect();
+            if delivered.contains(&in_flight) {
+                expected.push(in_flight);
+            }
+            expected.extend([m0, m1]);
+            if delivered != expected {
+                return Err(fail(format!(
+                    "every committed id must be delivered exactly once \
+                     (in-flight id {in_flight} at most once): \
+                     expected {expected:?}, got {delivered:?}"
+                )));
             }
 
             done.store(true, Ordering::SeqCst);
@@ -299,6 +319,10 @@ fn wal_rotation_crash_does_not_restart_wal_at_zero() {
     });
     let parked = step_until_parked(&mut sim, &mut barrier);
     drop(barrier);
+    assert!(
+        committed.load(Ordering::SeqCst) > 1,
+        "wal.1 must hold a multi-entry history"
+    );
     crash_and_restart(&mut sim, parked, &run);
     step_until(&mut sim, "post-restart run", || done.load(Ordering::SeqCst));
 }
@@ -306,6 +330,16 @@ fn wal_rotation_crash_does_not_restart_wal_at_zero() {
 // ---------------------------------------------------------------------------
 // BUG6: purged rotated WAL files that reappear after a crash wedge ingest
 // ---------------------------------------------------------------------------
+
+fn wal_path() -> PathBuf {
+    PathBuf::from(DATA_DIR).join("wal").join("quiver.wal")
+}
+
+fn rotated(path: &Path, id: u64) -> PathBuf {
+    let mut name = path.as_os_str().to_os_string();
+    name.push(format!(".{id}"));
+    PathBuf::from(name)
+}
 
 /// Number of rotated WAL files currently present.
 fn rotated_wal_count() -> usize {
