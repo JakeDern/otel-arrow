@@ -494,6 +494,8 @@ impl SegmentStore {
     /// `std_fs::remove_file` natively handles readonly files on Windows, so
     /// the attribute clearing is only needed for compatibility with older toolchains.
     fn remove_readonly_file(path: &Path) -> std::io::Result<()> {
+        #[cfg(quiver_turmoil)]
+        crate::engine::sim_trace(format_args!("SEG_DELETE path={}", path.display()));
         #[cfg(not(unix))]
         if let Ok(metadata) = std_fs::metadata(path) {
             let mut perms = metadata.permissions();

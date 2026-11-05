@@ -1609,6 +1609,13 @@ impl WalCoordinator {
                 }
 
                 let purged_bytes = front.total_bytes();
+                #[cfg(quiver_turmoil)]
+                crate::engine::sim_trace(format_args!(
+                    "WAL_PURGE path={} end={} cursor_pos={}",
+                    front.path.display(),
+                    front.wal_position_end,
+                    self.cursor_state.wal_position,
+                ));
                 tokio_fs::remove_file(&front.path).await?;
                 self.aggregate_bytes = self.aggregate_bytes.saturating_sub(purged_bytes);
 

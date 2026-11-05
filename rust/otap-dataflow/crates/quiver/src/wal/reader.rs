@@ -546,6 +546,12 @@ impl WalConsumerCursor {
         self.safe_offset = bundle.next_offset;
         self.safe_sequence = bundle.sequence;
     }
+
+    /// Returns the safe sequence number (sim-only diagnostic).
+    #[cfg(quiver_turmoil)]
+    pub(crate) const fn safe_sequence(&self) -> u64 {
+        self.safe_sequence
+    }
 }
 
 enum ReadStatus {

@@ -46,6 +46,23 @@ use crate::wal::{
     CursorSidecar, MultiFileWalReader, ReplayBundle, WalConsumerCursor, WalWriter, WalWriterOptions,
 };
 
+/// Sim-only stderr trace, gated by QUIVER_SIM_TRACE=1. Lets the turmoil harness
+/// observe the WAL-append / segment-flush ordering that governs crash loss.
+#[cfg(quiver_turmoil)]
+#[allow(clippy::print_stderr)]
+pub(crate) fn sim_trace(args: std::fmt::Arguments<'_>) {
+    use std::sync::OnceLock;
+    static ON: OnceLock<bool> = OnceLock::new();
+    let on = *ON.get_or_init(|| {
+        std::env::var("QUIVER_SIM_TRACE")
+            .map(|v| v == "1")
+            .unwrap_or(false)
+    });
+    if on {
+        eprintln!("SIMTRACE {args}");
+    }
+}
+
 /// WAL statistics for observability.
 #[cfg(test)]
 #[derive(Debug, Clone, Copy)]
@@ -793,6 +810,12 @@ impl QuiverEngine {
                 .cumulative_wal_bytes
                 .fetch_add(wal_entry_bytes, Ordering::Relaxed);
 
+            #[cfg(quiver_turmoil)]
+            sim_trace(format_args!(
+                "WAL_APPEND seq={} next_off={}",
+                wal_offset.sequence, wal_offset.next_offset,
+            ));
+
             Some(WalConsumerCursor::from_offset(&wal_offset))
         } else {
             None
@@ -1424,6 +1447,14 @@ impl QuiverEngine {
         // Budget was already recorded above, so register_segment will skip
         // duplicate accounting (the file size was already added).
         let _ = self.segment_store.register_new_segment(seq);
+
+        #[cfg(quiver_turmoil)]
+        sim_trace(format_args!(
+            "FLUSH_DONE seg={} bytes={} cursor_seq={}",
+            seq.raw(),
+            bytes_written,
+            cursor.safe_sequence(),
+        ));
 
         Ok(())
     }

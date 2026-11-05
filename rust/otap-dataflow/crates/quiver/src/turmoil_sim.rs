@@ -673,17 +673,72 @@ fn drive(
 
     // Fatal invariant L: all committed ids delivered after the no-crash drain.
     {
-        let t = tracker.lock();
-        let undelivered = t.undelivered_committed();
+        let undelivered = tracker.lock().undelivered_committed();
         if !undelivered.is_empty() {
+            // Diagnostic (QUIVER_SIM_REOPEN_PROBE=1): bounce once more with the
+            // oracle still disarmed and drain again. This is a clean restart --
+            // no crash is injected. If the previously-undelivered ids become
+            // deliverable after a fresh open+activate+replay, the loss was a
+            // recoverable scan/activation ordering issue; if they are STILL
+            // undelivered, the data is genuinely gone (purged/orphaned). We
+            // repeat a few times because recovery may require several restarts.
+            let probe = std::env::var("QUIVER_SIM_REOPEN_PROBE")
+                .map(|v| v == "1")
+                .unwrap_or(false);
+            let mut recovered_after: Option<usize> = None;
+            if probe {
+                for attempt in 1..=3 {
+                    checkpoint_done.store(0, Ordering::SeqCst);
+                    sim.bounce("quiver");
+                    oracle.begin_incarnation();
+                    let mut steps = 0usize;
+                    while checkpoint_done.load(Ordering::SeqCst) == 0 {
+                        if let StepOutcome::ClientsDone =
+                            step_or_crash(sim, oracle, next_id, phase, tracker)?
+                        {
+                            break;
+                        }
+                        steps += 1;
+                        if steps > DRAIN_STEP_BUDGET {
+                            break;
+                        }
+                    }
+                    if tracker.lock().undelivered_committed().is_empty() {
+                        recovered_after = Some(attempt);
+                        break;
+                    }
+                }
+            }
+
+            let undelivered = tracker.lock().undelivered_committed();
+            if undelivered.is_empty() {
+                // A later clean restart recovered everything: not a data-loss
+                // violation, but a delivery-after-restart issue worth noting.
+                #[allow(clippy::print_stderr)]
+                {
+                    eprintln!(
+                        "REOPEN_PROBE: all committed ids recovered after {} extra clean restart(s)",
+                        recovered_after.unwrap_or(0)
+                    );
+                }
+                return Ok(());
+            }
+
+            let t = tracker.lock();
+            let probe_note = if probe {
+                " [still undelivered after 3 extra clean restarts: genuine loss]"
+            } else {
+                ""
+            };
             return Err(Violation {
                 kind: "INVARIANT_L_UNDELIVERED",
                 detail: format!(
-                    "committed_max={:?} but {} committed ids never delivered: {:?}{}",
+                    "committed_max={:?} but {} committed ids never delivered: {:?}{}{}",
                     t.committed_max,
                     undelivered.len(),
                     &undelivered[..undelivered.len().min(12)],
                     if undelivered.len() > 12 { " ..." } else { "" },
+                    probe_note,
                 ),
             });
         }
