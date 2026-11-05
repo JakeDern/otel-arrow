@@ -470,7 +470,22 @@ impl WalWriter {
 
         // Read or create header, extracting wal_position_start and header_size
         let (active_wal_start, active_header_size) = if is_new_file {
-            let header = WalHeader::new(options.segment_cfg_hash);
+            // Experimental Fix A (simulation only): if the active file is empty or
+            // missing but rotated files exist on disk, the WAL stream does NOT
+            // restart at 0 -- the active file continues from the end of the last
+            // rotated file. Recover that start before writing the header. This
+            // targets the BUG.md mid-rotation-crash failure where an empty active
+            // file is mistakenly treated as a brand-new WAL at position 0.
+            #[cfg(quiver_turmoil)]
+            let base_start = if crate::fs_compat::sim::fix_a_enabled() {
+                recover_active_start_from_rotated(&options.path).await?
+            } else {
+                0
+            };
+            #[cfg(not(quiver_turmoil))]
+            let base_start = 0u64;
+
+            let header = WalHeader::with_base_offset(options.segment_cfg_hash, base_start);
             header.write_to(&mut file).await?;
             file.flush().await?;
             // On a real filesystem the just-written (unsynced) header is visible
@@ -481,7 +496,7 @@ impl WalWriter {
             // positions the write cursor after the header rather than at 0.
             #[cfg(quiver_turmoil)]
             sync_file_data(&file).await?;
-            (0, header.encoded_len()) // New file starts at WAL position 0
+            (base_start, header.encoded_len())
         } else if metadata.len() < WAL_HEADER_MIN_LEN as u64 {
             otel_error!(
                 "quiver.wal.init",
@@ -1322,6 +1337,29 @@ impl WalCoordinator {
             let path = rotated_wal_path(&self.options.path, *rotation_id);
             // Read header to get actual header size for this file
             let mut file = File::open(&path).await?;
+
+            // Experimental Fix B (simulation only): honor the rotated file's own
+            // header start position instead of assuming the set begins at 0. When
+            // the oldest rotated files have been purged, a surviving wal.N begins
+            // at a non-zero WAL position; recomputing from 0 mis-places it (and
+            // hence the active file's start) by the purged prefix length.
+            #[cfg(quiver_turmoil)]
+            if crate::fs_compat::sim::fix_b_enabled() {
+                let header = WalHeader::read_from(&mut file).await?;
+                let header_size = header.encoded_len();
+                aggregate = aggregate.saturating_add(*len);
+                let data_bytes = len.saturating_sub(header_size);
+                let end = header.wal_position_start.saturating_add(data_bytes);
+                files.push_back(RotatedWalFile {
+                    path,
+                    rotation_id: *rotation_id,
+                    file_bytes: *len,
+                    wal_position_end: end,
+                });
+                max_rotation_id = max_rotation_id.max(*rotation_id);
+                continue;
+            }
+
             let header_size = WalHeader::read_header_size(&mut file).await? as u64;
 
             aggregate = aggregate.saturating_add(*len);
@@ -1677,6 +1715,26 @@ fn rotated_wal_path(base_path: &Path, rotation_id: u64) -> PathBuf {
     let mut name = base_path.as_os_str().to_os_string();
     name.push(format!(".{rotation_id}"));
     PathBuf::from(name)
+}
+
+/// Experimental Fix A helper (simulation build only): compute the WAL position
+/// where a fresh active file must start, given the rotated files on disk. Each
+/// rotated file's end is `header.wal_position_start + (len - header_len)`; the
+/// active file continues from the maximum such end. Returns 0 if there are no
+/// rotated files.
+#[cfg(quiver_turmoil)]
+async fn recover_active_start_from_rotated(base_path: &Path) -> WalResult<u64> {
+    let discovered = discover_rotated_wal_files(base_path)?;
+    let mut max_end = 0u64;
+    for (rotation_id, len) in &discovered {
+        let path = rotated_wal_path(base_path, *rotation_id);
+        let mut file = File::open(&path).await?;
+        let header = WalHeader::read_from(&mut file).await?;
+        let data_bytes = len.saturating_sub(header.encoded_len());
+        let end = header.wal_position_start.saturating_add(data_bytes);
+        max_end = max_end.max(end);
+    }
+    Ok(max_end)
 }
 
 /// Discovers rotated WAL files by scanning the directory for files matching

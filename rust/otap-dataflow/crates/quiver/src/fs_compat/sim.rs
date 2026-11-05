@@ -272,3 +272,38 @@ pub(crate) fn maybe_crash(op: FsOp, path: &Path) {
         std::panic::panic_any(crash);
     }
 }
+
+// ---------------------------------------------------------------------------
+// Experimental, env-gated candidate fixes (simulation build only).
+//
+// These let the harness classify which root cause a failing seed exercises by
+// re-running it with each fix toggled on. They affect ONLY the `quiver_turmoil`
+// build and default to OFF, so production and normal tests are untouched.
+//
+// - QUIVER_SIM_FIX_A=1: on WAL open, an empty/missing active file takes its
+//   start position from the end of the last rotated file on disk, instead of 0.
+//   This targets the BUG.md mid-rotation-crash failure mode.
+// - QUIVER_SIM_FIX_B=1: reload_rotated_files honors each rotated file's header
+//   wal_position_start instead of recomputing cumulatively from 0. This targets
+//   the partial-purge mis-placement of surviving rotated files.
+// ---------------------------------------------------------------------------
+
+fn env_flag(key: &str) -> bool {
+    std::env::var(key)
+        .map(|v| v == "1" || v == "true")
+        .unwrap_or(false)
+}
+
+/// Whether experimental Fix A is enabled.
+pub(crate) fn fix_a_enabled() -> bool {
+    use std::sync::OnceLock;
+    static FLAG: OnceLock<bool> = OnceLock::new();
+    *FLAG.get_or_init(|| env_flag("QUIVER_SIM_FIX_A"))
+}
+
+/// Whether experimental Fix B is enabled.
+pub(crate) fn fix_b_enabled() -> bool {
+    use std::sync::OnceLock;
+    static FLAG: OnceLock<bool> = OnceLock::new();
+    *FLAG.get_or_init(|| env_flag("QUIVER_SIM_FIX_B"))
+}

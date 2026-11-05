@@ -2956,6 +2956,119 @@ async fn wal_positions_stable_after_purge() {
     assert!(offset3.position < offset4.position, "offset3 < offset4");
 }
 
+/// Scenario: Several rotations produce wal.1, wal.2, ...; the consumer cursor is
+/// advanced far enough to purge ONLY the oldest rotated file(s), leaving a later
+/// rotated file (e.g. wal.2) on disk whose header starts at a non-zero WAL
+/// position P. The writer is then cleanly closed and reopened (no crash), and a
+/// new entry is appended and its cursor persisted.
+/// Guarantees: after a clean reopen with a partially-purged set of rotated files,
+/// the writer must number new entries at or beyond the persisted cursor, so
+/// `persist_cursor` is not rejected with "safe offset regressed". This isolates a
+/// cause distinct from the mid-rotation crash in BUG.md: `reload_rotated_files`
+/// recomputes each rotated file's end position cumulatively from 0 instead of
+/// honoring the start recorded in the file's header, so a surviving wal.N after
+/// an oldest-file purge is mis-placed by P and the active file's start regresses.
+#[tokio::test]
+async fn partial_purge_then_clean_reopen_does_not_regress_cursor() {
+    let (_dir, wal_path) = temp_wal("partial_purge_reopen.wal");
+    let descriptor = logs_descriptor();
+
+    // Rotation target of 1 byte: every append rotates the just-written active
+    // file, so each entry lands in its own rotated file wal.N.
+    let options = WalWriterOptions::new(wal_path.clone(), [0x99; 16], FlushPolicy::Immediate)
+        .with_rotation_target(1)
+        .with_max_rotated_files(10);
+    let mut writer = WalWriter::open(options).await.expect("writer");
+
+    // Three appends -> three rotations -> wal.1, wal.2, wal.3 on disk.
+    let o1 = writer
+        .append_bundle(&single_slot_bundle(&descriptor, 0x01, &[1, 2, 3, 4]))
+        .await
+        .expect("append 1");
+    let _o2 = writer
+        .append_bundle(&single_slot_bundle(&descriptor, 0x02, &[5, 6, 7, 8]))
+        .await
+        .expect("append 2");
+    let o3 = writer
+        .append_bundle(&single_slot_bundle(&descriptor, 0x03, &[9, 10, 11, 12]))
+        .await
+        .expect("append 3");
+    assert_eq!(writer.rotation_count(), 3, "three rotations expected");
+
+    // Advance the cursor to just past the FIRST entry only. This purges wal.1
+    // but leaves wal.2 and wal.3 (which start at non-zero WAL positions).
+    let cursor_after_first = WalConsumerCursor {
+        safe_offset: o1.next_offset,
+        safe_sequence: o1.sequence,
+    };
+    writer
+        .persist_cursor(&cursor_after_first)
+        .await
+        .expect("persist cursor past first entry");
+    assert_eq!(
+        writer.purge_count(),
+        1,
+        "only wal.1 should be purged (wal.2/wal.3 start at non-zero positions remain)"
+    );
+
+    // wal.1 gone; wal.2 and wal.3 remain.
+    assert!(
+        !rotated_path_for(&wal_path, 1).exists(),
+        "wal.1 should have been purged"
+    );
+    assert!(
+        rotated_path_for(&wal_path, 2).exists(),
+        "wal.2 should remain after purging only wal.1"
+    );
+
+    let persisted = o1.next_offset;
+
+    // Clean shutdown + reopen. No crash: the Drop flush runs normally. This is
+    // the key difference from BUG.md -- nothing is lost or truncated; we simply
+    // reopen a correct on-disk state where the oldest rotated file was purged.
+    drop(writer);
+    let reopen_options =
+        WalWriterOptions::new(wal_path.clone(), [0x99; 16], FlushPolicy::Immediate)
+            .with_rotation_target(1024 * 1024)
+            .with_max_rotated_files(10);
+    let mut writer = WalWriter::open(reopen_options)
+        .await
+        .expect("reopen after partial purge");
+
+    // Append a new entry. Its WAL position must continue from o3's end, which is
+    // well past the persisted cursor.
+    let o4 = writer
+        .append_bundle(&single_slot_bundle(&descriptor, 0x04, &[13, 14, 15, 16]))
+        .await
+        .expect("append after reopen");
+    assert!(
+        o4.position >= persisted,
+        "post-reopen entry position {} regressed below persisted cursor {}",
+        o4.position,
+        persisted
+    );
+    assert_eq!(
+        o4.position, o3.next_offset,
+        "post-reopen entry should continue from the last entry's end: expected {}, got {}",
+        o3.next_offset, o4.position
+    );
+
+    // Persisting the cursor for this new entry must not be rejected.
+    let cursor_next = WalConsumerCursor {
+        safe_offset: o4.next_offset,
+        safe_sequence: o4.sequence,
+    };
+    let result = writer.persist_cursor(&cursor_next).await;
+    assert!(
+        result.is_ok(),
+        "persist_cursor after partial-purge reopen must not regress, but was \
+         rejected: {:?} (cursor {} vs persisted {})",
+        result,
+        o4.next_offset,
+        persisted
+    );
+}
+
 /// Verifies that rotation and purge counters are tracked correctly.
 #[tokio::test]
 async fn rotation_and_purge_counters() {

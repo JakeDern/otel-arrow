@@ -275,7 +275,24 @@ fn run_seed(cfg: &SeedConfig) -> (Result<(), Violation>, Arc<OracleShared>, Stri
             let _guard = sim::install(oracle.clone());
             oracle.begin_incarnation();
 
+            debug_dirs("incarnation-start (pre-open)");
+
+            // Investigation toggle (QUIVER_SIM_PRECREATE_DATADIR=1): make the
+            // data directory itself durable before opening the engine, the way a
+            // pre-existing mounted volume would be. This tests whether the
+            // "parent directory not found" failures depend on /data never being
+            // explicitly synced (they do).
+            if std::env::var("QUIVER_SIM_PRECREATE_DATADIR")
+                .map(|v| v == "1")
+                .unwrap_or(false)
+            {
+                let _ = crate::fs_compat::tokio_fs::create_dir_all(DATA_DIR).await;
+                // Sync the ROOT so /data's own directory entry is durable.
+                let _ = crate::fs_compat::sync_dir(std::path::Path::new("/")).await;
+            }
+
             let engine = open_engine().await.map_err(|e| invariant4("OPEN", e))?;
+            debug_dirs("post-open");
 
             // (Re)register + activate the subscriber. Registration is a no-op if
             // progress was loaded from disk.
@@ -402,6 +419,25 @@ fn is_capacity(e: &QuiverError) -> bool {
     matches!(e, QuiverError::StorageAtCapacity { .. })
 }
 
+/// Debug probe (enabled by QUIVER_SIM_DEBUG_DIRS=1): report the existence of the
+/// data directory tree through the simulated filesystem at a labeled point. Used
+/// to investigate the "parent directory not found" failures.
+#[allow(clippy::print_stderr)]
+fn debug_dirs(label: &str) {
+    if std::env::var("QUIVER_SIM_DEBUG_DIRS")
+        .map(|v| v == "1")
+        .unwrap_or(false)
+    {
+        let ex = |p: &str| crate::fs_compat::path_exists(std::path::Path::new(p));
+        eprintln!(
+            "DBG_DIRS [{label}] /data={} /data/wal={} /data/segments={}",
+            ex("/data"),
+            ex("/data/wal"),
+            ex("/data/segments"),
+        );
+    }
+}
+
 /// The crashy pump phase: ingest ids (retrying the same id until Ok), draining
 /// and acking the subscriber, with periodic checkpoints. Crashes may fire inside
 /// any filesystem op and unwind this future.
@@ -496,6 +532,7 @@ async fn drain_all(
         }
     }
     // Persist progress so durable-ack tracking is meaningful.
+    debug_dirs("pre-maintain-drain");
     let _ = engine
         .maintain()
         .await
@@ -806,10 +843,17 @@ fn explore_crash_consistency() {
             }
             Err(v) => {
                 let log = oracle.crash_log();
+                // Print the full crash log when QUIVER_SIM_FULL_LOG=1, otherwise
+                // the newest 12 (enough to see the restart that produced the bad
+                // state while staying readable in a sweep).
+                let full = std::env::var("QUIVER_SIM_FULL_LOG")
+                    .map(|v| v == "1")
+                    .unwrap_or(false);
+                let take = if full { log.len() } else { 12 };
                 let log_tail: Vec<String> = log
                     .iter()
                     .rev()
-                    .take(8)
+                    .take(take)
                     .map(|r| format!("#{} {} {}", r.op_index, r.op.label(), r.path.display()))
                     .collect();
                 panic!(
@@ -818,13 +862,14 @@ fn explore_crash_consistency() {
                      invariant   = {}\n\
                      detail      = {}\n\
                      summary     = {summary}\n\
-                     crashes     = {} (last up to 8, newest first):\n  {}\n\
+                     crashes     = {} (newest first, {} shown):\n  {}\n\
                      replay with : QUIVER_SIM_SEED={seed} QUIVER_SIM_CRASH_PROB={} \
                      QUIVER_SIM_INGESTS={} cargo test -p otel-arrow-dfe-quiver \
                      explore_crash_consistency -- --nocapture\n",
                     v.kind,
                     v.detail,
                     log.len(),
+                    log_tail.len(),
                     log_tail.join("\n  "),
                     cfg.crash_prob,
                     cfg.total_ingests,

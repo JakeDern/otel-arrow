@@ -13,11 +13,12 @@ at any specific line of code?
 
 **Answer: yes.** A seeded crash-injection harness drives a full `QuiverEngine`
 and crashes the process right before arbitrary filesystem writes. Across 108
-seeds, 100% surfaced a fatal crash-consistency violation. 87 reproduced BUG.md
-(`safe offset regressed`); 21 surfaced a second, independent candidate bug
-(directory-entry durability of the data directory). Nothing in the harness names
-the rotation path -- the oracle crashes before generic filesystem operations and
-the invariants catch the fallout.
+seeds, 100% surfaced a fatal crash-consistency violation. These trace to three
+distinct root causes (see Findings): BUG.md itself (the mid-rotation crash), a
+second WAL bug in rotated-file recovery that needs no crash at all, and a
+data-directory durability gap. Nothing in the harness names the rotation path --
+the oracle crashes before generic filesystem operations and the invariants catch
+the fallout.
 
 ## How to run
 
@@ -40,7 +41,10 @@ QUIVER_SIM_SEED=0 CARGO_TARGET_DIR=target/turmoil RUSTFLAGS="--cfg quiver_turmoi
 
 Environment knobs: `QUIVER_SIM_SEED`, `QUIVER_SIM_SEED_START`,
 `QUIVER_SIM_SEEDS`, `QUIVER_SIM_CRASH_PROB` (default 0.02),
-`QUIVER_SIM_INGESTS` (default 60), `QUIVER_SIM_CHECKPOINT`.
+`QUIVER_SIM_INGESTS` (default 60), `QUIVER_SIM_CHECKPOINT`,
+`QUIVER_SIM_FULL_LOG=1` (print the entire crash log on failure), and the two
+candidate-fix toggles `QUIVER_SIM_FIX_A` / `QUIVER_SIM_FIX_B` used for root-cause
+classification (see Findings). All default off and are simulation-build only.
 
 Normal builds and tests are unaffected:
 
@@ -122,34 +126,73 @@ increasing; **5 (durable acks)** a durably-acked id is never redelivered.
 fatal violation.** Runs are deterministic: a given seed reproduces the identical
 violation every time.
 
-| Count | Invariant | Detail | Interpretation |
+By raw error message the failures split two ways:
+
+| Count | Invariant | Message | Theme |
 | --- | --- | --- | --- |
-| 87 | 4 | `invalid consumer cursor: safe offset regressed` | **BUG.md**, rediscovered |
-| 21 | 4 | `progress file I/O error: parent directory not found` | **New candidate:** data-dir entry not made durable |
+| 87 | 4 | `invalid consumer cursor: safe offset regressed` | WAL cursor regression |
+| 21 | 4 | `progress file I/O error: parent directory not found` | data-dir durability |
 
-### Finding 1: BUG.md (the target)
+But "same error message" is not "same bug". To separate the causes behind the 87
+cursor-regression seeds, two candidate fixes were added behind env flags (sim
+build only, default off): **Fix A** -- on WAL open, an empty/missing active file
+takes its start from the end of the last rotated file instead of 0; **Fix B** --
+`reload_rotated_files` honors each rotated file's header start position rather
+than recomputing cumulatively from 0. Re-running each failing seed with A, B, and
+both clears up the picture.
 
-Reproduced on the majority of seeds. Example (seed 0, `crash_prob=0.05`): the
-crash log ends with `open(create/truncate) /data/wal/quiver.wal` -- a crash while
-recreating the active WAL during rotation. On restart, `WalWriter::open` finds the
-active file absent/empty, writes a header starting at position 0, and a later
-`persist_cursor` is rejected with "safe offset regressed". This is exactly the
-BUG.md mechanism, reached from generic crash injection rather than a hand-placed
-hook. The symptom is identical to the existing non-sim repro
+### Cause 1: BUG.md -- empty active file after a mid-rotation crash
+
+47 of 50 classified cursor-regression seeds are resolved by **Fix A alone**
+(Fix B alone does not help them). The crash log for a representative seed (13)
+ends with `open(create/truncate) /data/wal/quiver.wal` -- a crash while recreating
+the active WAL during rotation. On restart `WalWriter::open` finds the active file
+absent/empty, writes a header starting at position 0, and a later `persist_cursor`
+is rejected with "safe offset regressed". This is exactly the BUG.md mechanism,
+reached from generic crash injection, not a hand-placed hook. It matches the
+existing non-sim repro
 (`wal::tests::rotation_crash_restart_at_zero_does_not_regress_later_cursor`).
 
-Replay: `QUIVER_SIM_SEED=0 QUIVER_SIM_CRASH_PROB=0.05 QUIVER_SIM_INGESTS=40`.
+Replay: `QUIVER_SIM_SEED=13 QUIVER_SIM_CRASH_PROB=0.05 QUIVER_SIM_INGESTS=40`.
 
-### Finding 2: data-directory entry is never made durable (candidate)
+### Cause 2: `reload_rotated_files` mis-places surviving rotated files
+
+The remaining 3 of 50 seeds (e.g. seed 0) need **both** fixes: with Fix A only
+they still fail, but with a different cursor error, `safe offset beyond wal tail`.
+These seeds additionally exercise a second, independent WAL bug:
+`reload_rotated_files` rebuilds each rotated file's end position by summing file
+lengths from 0, ignoring the `wal_position_start` in each file's header. When the
+oldest rotated file (`wal.1`) has been purged but a later one (`wal.2`) survives,
+the surviving file is mis-placed by the purged prefix length, and so is the active
+file's start.
+
+This cause needs **no crash at all**. A standalone test
+(`wal::tests::partial_purge_then_clean_reopen_does_not_regress_cursor`) rotates
+to produce `wal.1`/`wal.2`/`wal.3`, advances the cursor to purge only `wal.1`, then
+cleanly closes and reopens (no crash) and appends one entry. On current code the
+new entry is numbered 531 bytes too low -- exactly the logical size of the purged
+`wal.1` -- and the subsequent `persist_cursor` regresses. This test fails today,
+confirming Cause 2 is a real defect distinct from BUG.md.
+
+### Confirmation: both WAL fixes together eliminate the whole class
+
+A fresh 64-seed sweep (`crash_prob=0.05`) with **both Fix A and Fix B enabled**
+produced zero cursor-regression failures -- every remaining failure is the
+unrelated data-dir bug below. So the 87 cursor-regression seeds are fully
+explained by exactly these two WAL root causes (BUG.md dominant; the reload bug
+compounding a few), and nothing else.
+
+### Cause 3: data-directory entry is never made durable (candidate)
 
 On 21 seeds the engine crashes before/while creating `/data/segments` or
 `/data/wal` (via `create_dir_all`), and after the restart a subscriber progress
-write fails with `parent directory not found`. Root cause: quiver creates
-`data_dir` and its subdirectories but never fsyncs the parent so the directory
-entries become durable. `WalWriter`'s `sync_parent_dir` syncs `/data/wal` (for the
-WAL file's entry), but nothing syncs `/` (for `/data`) or `/data` (for the
-`wal`/`segments` subdir entries). On a crash before those entries are durable, the
-tree is partially gone and the next write errors.
+write fails with `parent directory not found`. This bug persists even with both
+WAL fixes applied, so it is independent. Root cause: quiver creates `data_dir` and
+its subdirectories but never fsyncs the parent so the directory entries become
+durable. `WalWriter`'s `sync_parent_dir` syncs `/data/wal` (for the WAL file's
+entry), but nothing syncs `/` (for `/data`) or `/data` (for the `wal`/`segments`
+subdir entries). On a crash before those entries are durable, the tree is
+partially gone and the next write errors.
 
 Severity caveat: in a typical durable-buffer deployment the data directory is a
 pre-existing, durably-mounted volume, so quiver not fsyncing its own creation is
@@ -159,6 +202,17 @@ either fsync the directory tree at creation, or document that `data_dir` must be
 pre-created and durable.
 
 Replay: `QUIVER_SIM_SEED=1 QUIVER_SIM_CRASH_PROB=0.05 QUIVER_SIM_INGESTS=40`.
+
+### Reproducing the classification
+
+```bash
+# Per-seed: toggle the candidate fixes (sim build only, default off).
+QUIVER_SIM_SEED=13 QUIVER_SIM_FIX_A=1 ...   # BUG.md seed: cursor error clears
+QUIVER_SIM_SEED=0  QUIVER_SIM_FIX_A=1 ...   # still fails (beyond wal tail)
+QUIVER_SIM_SEED=0  QUIVER_SIM_FIX_A=1 QUIVER_SIM_FIX_B=1 ...   # clears
+# Cause 2 with no crash at all:
+cargo test -p otel-arrow-dfe-quiver partial_purge_then_clean_reopen -- --nocapture
+```
 
 ## What wiring turmoil-fs into quiver required
 
