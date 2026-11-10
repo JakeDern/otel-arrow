@@ -403,37 +403,39 @@ impl LogsProtoBytesEncoder {
 
         let log_arrays = &logs_data_arrays.log_arrays;
 
-        if let Some(col) = log_arrays.time_unix_nano
+        // POC(compression): emit fields in descending field-number order (matches
+        // Go pdata). Low-entropy, event-correlated fields come first and the two
+        // per-record timestamps end up adjacent, which compresses much better.
+        if let Some(col) = &log_arrays.event_name
+            && let Some(val) = col.str_at(index)
+        {
+            result_buf.encode_string(LOG_RECORD_EVENT_NAME, val)?;
+        }
+
+        if let Some(col) = &log_arrays.span_id
+            && let Some(val) = col.slice_at(index)
+        {
+            result_buf.encode_bytes(LOG_RECORD_SPAN_ID, val)?;
+        }
+
+        if let Some(col) = &log_arrays.trace_id
+            && let Some(val) = col.slice_at(index)
+        {
+            result_buf.encode_bytes(LOG_RECORD_TRACE_ID, val)?;
+        }
+
+        if let Some(col) = &log_arrays.flags
             && let Some(val) = col.value_at(index)
         {
-            result_buf.encode_field_tag(LOG_RECORD_TIME_UNIX_NANO, wire_types::FIXED64)?;
+            result_buf.encode_field_tag(LOG_RECORD_FLAGS, wire_types::FIXED32)?;
             result_buf.extend_from_slice(&val.to_le_bytes())?;
         }
 
-        if let Some(col) = &log_arrays.severity_number
+        if let Some(col) = log_arrays.dropped_attributes_count
             && let Some(val) = col.value_at(index)
         {
-            result_buf.encode_field_tag(LOG_RECORD_SEVERITY_NUMBER, wire_types::VARINT)?;
+            result_buf.encode_field_tag(LOG_RECORD_DROPPED_ATTRIBUTES_COUNT, wire_types::VARINT)?;
             result_buf.encode_varint(val as u64)?;
-        }
-
-        if let Some(col) = &log_arrays.severity_text
-            && let Some(val) = col.str_at(index)
-        {
-            result_buf.encode_string(LOG_RECORD_SEVERITY_TEXT, val)?;
-        }
-
-        if let Some(log_body_arrays) = &logs_data_arrays.log_arrays.body
-            && log_body_arrays.is_valid(index)
-        {
-            let anyval_arrays = &log_body_arrays.anyval_arrays;
-            if let Some(value_type) = anyval_arrays.attr_type.value_at(index)
-                && let Ok(value_type) = AttributeValueType::try_from(value_type)
-            {
-                result_buf.encode_len_delimited(LOG_RECORD_BODY, |result_buf| {
-                    encode_any_value(anyval_arrays, index, value_type, result_buf)
-                })?;
-            }
         }
 
         if let Some(log_attrs) = logs_data_arrays.log_attrs.as_ref()
@@ -449,30 +451,30 @@ impl LogsProtoBytesEncoder {
             }
         }
 
-        if let Some(col) = log_arrays.dropped_attributes_count
+        if let Some(log_body_arrays) = &logs_data_arrays.log_arrays.body
+            && log_body_arrays.is_valid(index)
+        {
+            let anyval_arrays = &log_body_arrays.anyval_arrays;
+            if let Some(value_type) = anyval_arrays.attr_type.value_at(index)
+                && let Ok(value_type) = AttributeValueType::try_from(value_type)
+            {
+                result_buf.encode_len_delimited(LOG_RECORD_BODY, |result_buf| {
+                    encode_any_value(anyval_arrays, index, value_type, result_buf)
+                })?;
+            }
+        }
+
+        if let Some(col) = &log_arrays.severity_text
+            && let Some(val) = col.str_at(index)
+        {
+            result_buf.encode_string(LOG_RECORD_SEVERITY_TEXT, val)?;
+        }
+
+        if let Some(col) = &log_arrays.severity_number
             && let Some(val) = col.value_at(index)
         {
-            result_buf.encode_field_tag(LOG_RECORD_DROPPED_ATTRIBUTES_COUNT, wire_types::VARINT)?;
+            result_buf.encode_field_tag(LOG_RECORD_SEVERITY_NUMBER, wire_types::VARINT)?;
             result_buf.encode_varint(val as u64)?;
-        }
-
-        if let Some(col) = &log_arrays.flags
-            && let Some(val) = col.value_at(index)
-        {
-            result_buf.encode_field_tag(LOG_RECORD_FLAGS, wire_types::FIXED32)?;
-            result_buf.extend_from_slice(&val.to_le_bytes())?;
-        }
-
-        if let Some(col) = &log_arrays.trace_id
-            && let Some(val) = col.slice_at(index)
-        {
-            result_buf.encode_bytes(LOG_RECORD_TRACE_ID, val)?;
-        }
-
-        if let Some(col) = &log_arrays.span_id
-            && let Some(val) = col.slice_at(index)
-        {
-            result_buf.encode_bytes(LOG_RECORD_SPAN_ID, val)?;
         }
 
         if let Some(col) = log_arrays.observed_time_unix_nano
@@ -482,10 +484,11 @@ impl LogsProtoBytesEncoder {
             result_buf.extend_from_slice(&val.to_le_bytes())?;
         }
 
-        if let Some(col) = &log_arrays.event_name
-            && let Some(val) = col.str_at(index)
+        if let Some(col) = log_arrays.time_unix_nano
+            && let Some(val) = col.value_at(index)
         {
-            result_buf.encode_string(LOG_RECORD_EVENT_NAME, val)?;
+            result_buf.encode_field_tag(LOG_RECORD_TIME_UNIX_NANO, wire_types::FIXED64)?;
+            result_buf.extend_from_slice(&val.to_le_bytes())?;
         }
 
         self.root_cursor.advance();
