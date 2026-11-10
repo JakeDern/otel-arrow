@@ -3,66 +3,66 @@
     "extra": "DFE OTLP/HTTP Baseline (Logs)/1000k - Dropped Logs %",
     "name": "dropped_logs_percentage",
     "unit": "%",
-    "value": -2.040816307067871
+    "value": 0.0
   },
   {
     "extra": "DFE OTLP/HTTP Baseline (Logs)/1000k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 14.863335735456879
+    "value": 15.1842731577453
   },
   {
     "extra": "DFE OTLP/HTTP Baseline (Logs)/1000k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 15.215045298344268
+    "value": 16.07656749138741
   },
   {
     "extra": "DFE OTLP/HTTP Baseline (Logs)/1000k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 74.76940104166667
+    "value": 100.837109375
   },
   {
     "extra": "DFE OTLP/HTTP Baseline (Logs)/1000k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 82.0625
+    "value": 106.25390625
   },
   {
     "extra": "DFE OTLP/HTTP Baseline (Logs)/1000k - Log Throughput",
     "name": "logs_produced_rate",
     "unit": "logs/sec",
-    "value": 1006876.3490088227
+    "value": 1000265.075755477
   },
   {
     "extra": "DFE OTLP/HTTP Baseline (Logs)/1000k - Log Throughput",
     "name": "logs_received_rate",
     "unit": "logs/sec",
-    "value": 1011580.1480430687
+    "value": 985099.4472813662
   },
   {
     "extra": "DFE OTLP/HTTP Baseline (Logs)/1000k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.000582
+    "value": 60.000438
   },
   {
     "extra": "DFE OTLP/HTTP Baseline (Logs)/1000k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 375757911.85096425
+    "value": 375752598.8439709
   },
   {
     "extra": "DFE OTLP/HTTP Baseline (Logs)/1000k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 375644181.70212173
+    "value": 375621653.9318617
   },
   {
     "extra": "DFE OTLP/HTTP Baseline (Logs)/1000k - Egress Bytes Per Log",
     "name": "egress_bytes_per_log",
     "unit": "bytes/log",
-    "value": 371.456391841891
+    "value": 381.43620918776907
   }
 ]

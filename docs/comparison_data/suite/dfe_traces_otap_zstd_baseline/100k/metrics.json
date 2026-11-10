@@ -3,60 +3,60 @@
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/100k - Dropped Spans %",
     "name": "dropped_spans_percentage",
     "unit": "%",
-    "value": 0.0
+    "value": -0.012621480971574783
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/100k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 6.969812399058287
+    "value": 6.81360657046643
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/100k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 7.23158026233604
+    "value": 7.044984423676012
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/100k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 79.63971354166667
+    "value": 74.67669270833333
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/100k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 81.4140625
+    "value": 78.6640625
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/100k - Span Throughput",
     "name": "spans_produced_rate",
     "unit": "spans/sec",
-    "value": 100145.57602250119
+    "value": 100375.93680521564
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/100k - Span Throughput",
     "name": "spans_received_rate",
     "unit": "spans/sec",
-    "value": 100145.57602250119
+    "value": 100443.3889257916
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/100k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.000535
+    "value": 60.000537
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/100k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 4373022.542752127
+    "value": 4372111.512949275
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/100k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 4289353.197986574
+    "value": 4292419.951140759
   }
 ]

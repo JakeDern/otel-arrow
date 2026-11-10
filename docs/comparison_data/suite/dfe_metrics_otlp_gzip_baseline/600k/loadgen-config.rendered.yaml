@@ -14,7 +14,11 @@ policies:
         - start: 2
           end: 7
 
-engine: {}
+engine:
+  telemetry:
+    # Keep metric sets of stopped pipelines scrapeable so the final counts
+    # survive the drain that precedes the last scrape (see #2731).
+    metric_unregister_grace_period: 5s
 
 groups:
   default:

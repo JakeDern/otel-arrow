@@ -3,66 +3,66 @@
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/1000k - Dropped Logs %",
     "name": "dropped_logs_percentage",
     "unit": "%",
-    "value": -1.7244352102279663
+    "value": 0.0
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/1000k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 55.058607688724415
+    "value": 50.780170507635304
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/1000k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 56.971719428926136
+    "value": 51.454679587371054
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/1000k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 82.68971354166666
+    "value": 79.98893229166667
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/1000k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 97.91015625
+    "value": 88.65625
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/1000k - Log Throughput",
     "name": "logs_produced_rate",
     "unit": "logs/sec",
-    "value": 992351.2121743748
+    "value": 1000032.0010240328
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/1000k - Log Throughput",
     "name": "logs_received_rate",
     "unit": "logs/sec",
-    "value": 1000689.8636155899
+    "value": 1001812.2273797251
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/1000k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.005643
+    "value": 60.000654
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/1000k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 18175082.996869348
+    "value": 18171102.288091425
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/1000k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 18148441.480841585
+    "value": 18125466.574135303
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/1000k - Egress Bytes Per Log",
     "name": "egress_bytes_per_log",
     "unit": "bytes/log",
-    "value": 18.162553312173067
+    "value": 18.138231688006623
   }
 ]

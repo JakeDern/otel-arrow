@@ -9,60 +9,60 @@
     "extra": "DFE OTAP Transform Rename (Logs)/100k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 5.552670641601398
+    "value": 4.924293333250804
   },
   {
     "extra": "DFE OTAP Transform Rename (Logs)/100k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 5.706916120985345
+    "value": 5.052142410993129
   },
   {
     "extra": "DFE OTAP Transform Rename (Logs)/100k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 74.00130208333333
+    "value": 74.00104166666667
   },
   {
     "extra": "DFE OTAP Transform Rename (Logs)/100k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 74.31640625
+    "value": 74.47265625
   },
   {
     "extra": "DFE OTAP Transform Rename (Logs)/100k - Log Throughput",
     "name": "logs_produced_rate",
     "unit": "logs/sec",
-    "value": 99943.54714149088
+    "value": 100265.668333303
   },
   {
     "extra": "DFE OTAP Transform Rename (Logs)/100k - Log Throughput",
     "name": "logs_received_rate",
     "unit": "logs/sec",
-    "value": 99943.54714149088
+    "value": 100265.668333303
   },
   {
     "extra": "DFE OTAP Transform Rename (Logs)/100k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.000584
+    "value": 60.005524
   },
   {
     "extra": "DFE OTAP Transform Rename (Logs)/100k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 11792575.422197666
+    "value": 11413379.719918553
   },
   {
     "extra": "DFE OTAP Transform Rename (Logs)/100k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 11708513.488650117
+    "value": 11333882.262571163
   },
   {
     "extra": "DFE OTAP Transform Rename (Logs)/100k - Egress Bytes Per Log",
     "name": "egress_bytes_per_log",
     "unit": "bytes/log",
-    "value": 117.99236428443771
+    "value": 113.83138326050161
   }
 ]

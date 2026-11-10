@@ -3,60 +3,60 @@
     "extra": "DFE OTLP Baseline w/ Zstd (Metrics)/400k - Dropped Metrics %",
     "name": "dropped_metrics_percentage",
     "unit": "%",
-    "value": -0.8403362035751343
+    "value": 0.0
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Metrics)/400k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 24.778951443333227
+    "value": 24.20737388870379
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Metrics)/400k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 25.125315119528096
+    "value": 24.562113770593722
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Metrics)/400k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 77.6078125
+    "value": 75.84557291666667
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Metrics)/400k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 80.51953125
+    "value": 78.5546875
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Metrics)/400k - Metric Throughput",
     "name": "metrics_produced_rate",
     "unit": "metrics/sec",
-    "value": 399636.0558097461
+    "value": 402974.02216212725
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Metrics)/400k - Metric Throughput",
     "name": "metrics_received_rate",
     "unit": "metrics/sec",
-    "value": 400958.67883580714
+    "value": 403007.6033306407
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Metrics)/400k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.000489
+    "value": 60.000545
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Metrics)/400k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 11962169.045402562
+    "value": 11964413.66660935
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Metrics)/400k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 11923485.526778145
+    "value": 11918913.567202967
   }
 ]

@@ -3,60 +3,60 @@
     "extra": "DFE OTAP Baseline w/ Gzip (Traces)/1000k - Dropped Spans %",
     "name": "dropped_spans_percentage",
     "unit": "%",
-    "value": -1.6483041048049927
+    "value": -0.31757381558418274
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Traces)/1000k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 100.36999038809489
+    "value": 101.17029302304212
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Traces)/1000k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 100.68714063955294
+    "value": 101.51902469521725
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Traces)/1000k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 113.84583333333333
+    "value": 111.36184895833334
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Traces)/1000k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 118.21484375
+    "value": 115.7421875
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Traces)/1000k - Span Throughput",
     "name": "spans_produced_rate",
     "unit": "spans/sec",
-    "value": 593243.2644090257
+    "value": 602619.067696029
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Traces)/1000k - Span Throughput",
     "name": "spans_received_rate",
     "unit": "spans/sec",
-    "value": 597667.124184979
+    "value": 605742.7776841976
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Traces)/1000k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.000591
+    "value": 60.000495
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Traces)/1000k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 25517828.50615863
+    "value": 25678326.34296841
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Traces)/1000k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 42562376.01467303
+    "value": 42398315.5171768
   }
 ]

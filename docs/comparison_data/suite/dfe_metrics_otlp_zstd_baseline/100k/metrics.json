@@ -9,54 +9,54 @@
     "extra": "DFE OTLP Baseline w/ Zstd (Metrics)/100k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 6.482577807884028
+    "value": 6.214875304282733
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Metrics)/100k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 6.68800996574276
+    "value": 6.514662519440124
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Metrics)/100k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 77.32994791666667
+    "value": 74.43502604166666
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Metrics)/100k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 78.8515625
+    "value": 76.8125
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Metrics)/100k - Metric Throughput",
     "name": "metrics_produced_rate",
     "unit": "metrics/sec",
-    "value": 100352.1205381503
+    "value": 100570.83840259248
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Metrics)/100k - Metric Throughput",
     "name": "metrics_received_rate",
     "unit": "metrics/sec",
-    "value": 100521.8407070264
+    "value": 100570.83840259248
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Metrics)/100k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.000546
+    "value": 60.000596
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Metrics)/100k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 3039960.9759271103
+    "value": 3036425.713936762
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Metrics)/100k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 2980437.462169363
+    "value": 2978649.108517081
   }
 ]

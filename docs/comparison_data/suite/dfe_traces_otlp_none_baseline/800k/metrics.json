@@ -3,60 +3,60 @@
     "extra": "DFE OTLP Baseline (Traces)/800k - Dropped Spans %",
     "name": "dropped_spans_percentage",
     "unit": "%",
-    "value": -1.4778012037277222
+    "value": 0.0
   },
   {
     "extra": "DFE OTLP Baseline (Traces)/800k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 52.95544785295587
+    "value": 50.004473672530246
   },
   {
     "extra": "DFE OTLP Baseline (Traces)/800k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 56.31598494353827
+    "value": 50.763997517070145
   },
   {
     "extra": "DFE OTLP Baseline (Traces)/800k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 77.11497395833334
+    "value": 80.8125
   },
   {
     "extra": "DFE OTLP Baseline (Traces)/800k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 80.3046875
+    "value": 82.65234375
   },
   {
     "extra": "DFE OTLP Baseline (Traces)/800k - Span Throughput",
     "name": "spans_produced_rate",
     "unit": "spans/sec",
-    "value": 794114.2068190033
+    "value": 799526.2051843283
   },
   {
     "extra": "DFE OTLP Baseline (Traces)/800k - Span Throughput",
     "name": "spans_received_rate",
     "unit": "spans/sec",
-    "value": 803125.3739630431
+    "value": 786264.1661542363
   },
   {
     "extra": "DFE OTLP Baseline (Traces)/800k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.000509
+    "value": 60.000643
   },
   {
     "extra": "DFE OTLP Baseline (Traces)/800k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 647393350.7540542
+    "value": 648068629.2830397
   },
   {
     "extra": "DFE OTLP Baseline (Traces)/800k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 648306029.2058636
+    "value": 649192151.563434
   }
 ]

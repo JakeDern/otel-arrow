@@ -3,60 +3,60 @@
     "extra": "DFE OTAP Baseline w/ Zstd (Metrics)/800k - Dropped Metrics %",
     "name": "dropped_metrics_percentage",
     "unit": "%",
-    "value": -1.6949152946472168
+    "value": -0.0015805029543116689
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Metrics)/800k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 33.607804943677635
+    "value": 33.21001867309467
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Metrics)/800k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 34.78319578032888
+    "value": 33.49682896379525
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Metrics)/800k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 83.757421875
+    "value": 83.55520833333334
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Metrics)/800k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 85.984375
+    "value": 84.0078125
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Metrics)/800k - Metric Throughput",
     "name": "metrics_produced_rate",
     "unit": "metrics/sec",
-    "value": 802345.0642357968
+    "value": 800849.2245726696
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Metrics)/800k - Metric Throughput",
     "name": "metrics_received_rate",
     "unit": "metrics/sec",
-    "value": 804852.5229317994
+    "value": 797341.8110588775
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Metrics)/800k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.000627
+    "value": 60.000517
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Metrics)/800k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 10091455.887903707
+    "value": 9875906.546097273
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Metrics)/800k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 10005787.623127459
+    "value": 9799395.571048018
   }
 ]

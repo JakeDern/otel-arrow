@@ -9,60 +9,60 @@
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/800k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 42.87954033602011
+    "value": 40.2345297949027
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/800k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 44.83200997195388
+    "value": 41.19152531842187
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/800k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 78.54388020833333
+    "value": 77.80598958333333
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/800k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 83.3515625
+    "value": 81.71484375
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/800k - Log Throughput",
     "name": "logs_produced_rate",
     "unit": "logs/sec",
-    "value": 801950.9983778495
+    "value": 797693.004515077
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/800k - Log Throughput",
     "name": "logs_received_rate",
     "unit": "logs/sec",
-    "value": 797766.6455317157
+    "value": 788858.6010528905
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/800k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.000519
+    "value": 60.000504
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/800k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 14572064.10082663
+    "value": 14520049.639012944
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/800k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 14536640.843529215
+    "value": 14482959.82991289
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/800k - Egress Bytes Per Log",
     "name": "egress_bytes_per_log",
     "unit": "bytes/log",
-    "value": 18.266073396831818
+    "value": 18.406403403135894
   }
 ]

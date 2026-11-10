@@ -3,60 +3,60 @@
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Traces)/100k - Dropped Spans %",
     "name": "dropped_spans_percentage",
     "unit": "%",
-    "value": -1.6949152946472168
+    "value": 0.0
   },
   {
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Traces)/100k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 9.18105587229876
+    "value": 8.828042296988023
   },
   {
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Traces)/100k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 9.862280373831776
+    "value": 9.290425069810736
   },
   {
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Traces)/100k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 78.79752604166667
+    "value": 78.66393229166667
   },
   {
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Traces)/100k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 81.64453125
+    "value": 83.08984375
   },
   {
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Traces)/100k - Span Throughput",
     "name": "spans_produced_rate",
     "unit": "spans/sec",
-    "value": 100280.16067329256
+    "value": 100581.803709011
   },
   {
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Traces)/100k - Span Throughput",
     "name": "spans_received_rate",
     "unit": "spans/sec",
-    "value": 100436.21120463025
+    "value": 100581.803709011
   },
   {
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Traces)/100k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.004178
+    "value": 60.000613
   },
   {
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Traces)/100k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 6841732.372291554
+    "value": 6826002.204391181
   },
   {
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Traces)/100k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 80499181.99302976
+    "value": 80405209.1576701
   }
 ]

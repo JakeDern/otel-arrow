@@ -9,60 +9,60 @@
     "extra": "DFE OTAP Baseline w/ Zstd (Logs)/600k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 23.139665694450333
+    "value": 21.844791878823084
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Logs)/600k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 23.81317514829847
+    "value": 22.216547877285404
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Logs)/600k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 83.153515625
+    "value": 78.7796875
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Logs)/600k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 85.94140625
+    "value": 80.125
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Logs)/600k - Log Throughput",
     "name": "logs_produced_rate",
     "unit": "logs/sec",
-    "value": 601016.3594106352
+    "value": 602937.8136429557
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Logs)/600k - Log Throughput",
     "name": "logs_received_rate",
     "unit": "logs/sec",
-    "value": 601024.1961645182
+    "value": 602350.5727182709
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Logs)/600k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.00056
+    "value": 60.00055
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Logs)/600k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 4811037.192281037
+    "value": 4675284.77102053
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Logs)/600k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 4733797.434393706
+    "value": 4593841.577030011
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Logs)/600k - Egress Bytes Per Log",
     "name": "egress_bytes_per_log",
     "unit": "bytes/log",
-    "value": 8.004731295317288
+    "value": 7.761733752359584
   }
 ]

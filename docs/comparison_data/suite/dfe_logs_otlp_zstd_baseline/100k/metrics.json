@@ -9,60 +9,60 @@
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/100k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 5.457590861949559
+    "value": 5.363454864739681
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/100k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 5.903121098626716
+    "value": 6.7513901905654485
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/100k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 75.44817708333333
+    "value": 71.77161458333333
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/100k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 77.296875
+    "value": 78.42578125
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/100k - Log Throughput",
     "name": "logs_produced_rate",
     "unit": "logs/sec",
-    "value": 100439.27115238496
+    "value": 100450.48190532734
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/100k - Log Throughput",
     "name": "logs_received_rate",
     "unit": "logs/sec",
-    "value": 100439.27115238496
+    "value": 100630.22023460393
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/100k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.000496
+    "value": 60.000495
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/100k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 1871021.2863062543
+    "value": 1866657.162313454
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/100k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 1812774.9445913346
+    "value": 1808475.378910486
   },
   {
     "extra": "DFE OTLP Baseline w/ Zstd (Logs)/100k - Egress Bytes Per Log",
     "name": "egress_bytes_per_log",
     "unit": "bytes/log",
-    "value": 18.62838374710594
+    "value": 18.549667862811283
   }
 ]

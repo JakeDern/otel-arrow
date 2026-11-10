@@ -3,66 +3,66 @@
     "extra": "DFE OTAP Transform Insert (Logs)/200k - Dropped Logs %",
     "name": "dropped_logs_percentage",
     "unit": "%",
-    "value": -1.6949152946472168
+    "value": 0.0
   },
   {
     "extra": "DFE OTAP Transform Insert (Logs)/200k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 12.535807964884313
+    "value": 11.897060901195601
   },
   {
     "extra": "DFE OTAP Transform Insert (Logs)/200k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 12.660242461921046
+    "value": 12.080449718925673
   },
   {
     "extra": "DFE OTAP Transform Insert (Logs)/200k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 74.34674479166667
+    "value": 76.10625
   },
   {
     "extra": "DFE OTAP Transform Insert (Logs)/200k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 74.74609375
+    "value": 76.92578125
   },
   {
     "extra": "DFE OTAP Transform Insert (Logs)/200k - Log Throughput",
     "name": "logs_produced_rate",
     "unit": "logs/sec",
-    "value": 198396.55233869184
+    "value": 200541.06991795308
   },
   {
     "extra": "DFE OTAP Transform Insert (Logs)/200k - Log Throughput",
     "name": "logs_received_rate",
     "unit": "logs/sec",
-    "value": 200726.34836419066
+    "value": 201523.80207702523
   },
   {
     "extra": "DFE OTAP Transform Insert (Logs)/200k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.000554
+    "value": 60.00051
   },
   {
     "extra": "DFE OTAP Transform Insert (Logs)/200k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 27430659.357865993
+    "value": 26569142.684779946
   },
   {
     "extra": "DFE OTAP Transform Insert (Logs)/200k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 23485791.280088793
+    "value": 22692168.26309673
   },
   {
     "extra": "DFE OTAP Transform Insert (Logs)/200k - Egress Bytes Per Log",
     "name": "egress_bytes_per_log",
     "unit": "bytes/log",
-    "value": 136.65699386956808
+    "value": 131.84121384641625
   }
 ]

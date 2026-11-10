@@ -9,60 +9,60 @@
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Logs)/100k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 3.7755454358752694
+    "value": 3.819911451963741
   },
   {
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Logs)/100k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 4.108048704339681
+    "value": 3.959278158058494
   },
   {
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Logs)/100k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 77.637109375
+    "value": 83.17591145833333
   },
   {
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Logs)/100k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 79.96484375
+    "value": 84.234375
   },
   {
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Logs)/100k - Log Throughput",
     "name": "logs_produced_rate",
     "unit": "logs/sec",
-    "value": 100360.59220574125
+    "value": 100471.26549436459
   },
   {
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Logs)/100k - Log Throughput",
     "name": "logs_received_rate",
     "unit": "logs/sec",
-    "value": 100360.59220574125
+    "value": 100641.40106785894
   },
   {
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Logs)/100k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.000487
+    "value": 60.00118
   },
   {
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Logs)/100k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 1894415.9326798874
+    "value": 1892342.2649011936
   },
   {
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Logs)/100k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 37605901.14858329
+    "value": 37565849.80891633
   },
   {
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Logs)/100k - Egress Bytes Per Log",
     "name": "egress_bytes_per_log",
     "unit": "bytes/log",
-    "value": 18.87609360451258
+    "value": 18.802821153346763
   }
 ]

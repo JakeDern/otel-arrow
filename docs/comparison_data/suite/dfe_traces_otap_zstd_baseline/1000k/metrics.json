@@ -3,60 +3,60 @@
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/1000k - Dropped Spans %",
     "name": "dropped_spans_percentage",
     "unit": "%",
-    "value": -0.003389945486560464
+    "value": -0.00508194649592042
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/1000k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 67.00349261845813
+    "value": 66.04890834510616
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/1000k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 68.12693467336683
+    "value": 66.89739456419869
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/1000k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 92.189453125
+    "value": 90.87434895833333
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/1000k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 96.8671875
+    "value": 93.55078125
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/1000k - Span Throughput",
     "name": "spans_produced_rate",
     "unit": "spans/sec",
-    "value": 995812.9876779664
+    "value": 998438.4665397207
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/1000k - Span Throughput",
     "name": "spans_received_rate",
     "unit": "spans/sec",
-    "value": 999552.6578316942
+    "value": 1003339.3194112219
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/1000k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.000492
+    "value": 60.000553
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/1000k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 43252960.69225428
+    "value": 42935538.41956281
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/1000k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 43216390.35432042
+    "value": 42907374.210653655
   }
 ]

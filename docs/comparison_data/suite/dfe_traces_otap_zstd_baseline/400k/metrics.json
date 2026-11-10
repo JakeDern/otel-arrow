@@ -9,54 +9,54 @@
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/400k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 28.52162585268746
+    "value": 26.795950305117366
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/400k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 29.03055900621118
+    "value": 27.149610227627065
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/400k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 87.27955729166666
+    "value": 86.67317708333333
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/400k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 90.15625
+    "value": 93.3984375
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/400k - Span Throughput",
     "name": "spans_produced_rate",
     "unit": "spans/sec",
-    "value": 398077.5082884882
+    "value": 399850.6252943709
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/400k - Span Throughput",
     "name": "spans_received_rate",
     "unit": "spans/sec",
-    "value": 400835.7016750398
+    "value": 398432.0628760541
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/400k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.000641
+    "value": 60.000629
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/400k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 17292470.34928209
+    "value": 17209080.362095956
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/400k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 17207384.292999126
+    "value": 17142635.324160047
   }
 ]

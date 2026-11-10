@@ -9,60 +9,60 @@
     "extra": "DFE OTLP Transform Insert (Logs)/400k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 58.76999602446209
+    "value": 52.29551155653657
   },
   {
     "extra": "DFE OTLP Transform Insert (Logs)/400k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 61.04871088861077
+    "value": 52.60446110590441
   },
   {
     "extra": "DFE OTLP Transform Insert (Logs)/400k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 74.59622395833334
+    "value": 77.128125
   },
   {
     "extra": "DFE OTLP Transform Insert (Logs)/400k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 75.546875
+    "value": 77.88671875
   },
   {
     "extra": "DFE OTLP Transform Insert (Logs)/400k - Log Throughput",
     "name": "logs_produced_rate",
     "unit": "logs/sec",
-    "value": 401685.0278424743
+    "value": 400496.3542933662
   },
   {
     "extra": "DFE OTLP Transform Insert (Logs)/400k - Log Throughput",
     "name": "logs_received_rate",
     "unit": "logs/sec",
-    "value": 401685.0278424743
+    "value": 402496.51828268066
   },
   {
     "extra": "DFE OTLP Transform Insert (Logs)/400k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.000518
+    "value": 60.000531
   },
   {
     "extra": "DFE OTLP Transform Insert (Logs)/400k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 178990679.9146657
+    "value": 179115046.92087525
   },
   {
     "extra": "DFE OTLP Transform Insert (Logs)/400k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 151460396.6217146
+    "value": 151615946.02882096
   },
   {
     "extra": "DFE OTLP Transform Insert (Logs)/400k - Egress Bytes Per Log",
     "name": "egress_bytes_per_log",
     "unit": "bytes/log",
-    "value": 445.5995805371643
+    "value": 445.01017719382975
   }
 ]

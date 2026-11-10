@@ -3,60 +3,60 @@
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Traces)/300k - Dropped Spans %",
     "name": "dropped_spans_percentage",
     "unit": "%",
-    "value": -1.689265489578247
+    "value": 0.0
   },
   {
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Traces)/300k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 27.809839442547368
+    "value": 25.66354123719278
   },
   {
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Traces)/300k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 28.401793275217933
+    "value": 26.401649484536083
   },
   {
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Traces)/300k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 87.512890625
+    "value": 85.744921875
   },
   {
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Traces)/300k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 92.4140625
+    "value": 91.140625
   },
   {
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Traces)/300k - Span Throughput",
     "name": "spans_produced_rate",
     "unit": "spans/sec",
-    "value": 297821.5714957363
+    "value": 298228.140686042
   },
   {
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Traces)/300k - Span Throughput",
     "name": "spans_received_rate",
     "unit": "spans/sec",
-    "value": 303375.1535058219
+    "value": 303282.854934958
   },
   {
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Traces)/300k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.00053
+    "value": 60.00072
   },
   {
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Traces)/300k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 20411963.99466579
+    "value": 20298201.19974987
   },
   {
     "extra": "DFE OTLP/HTTP Baseline w/ Zstd (Traces)/300k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 241597426.8975025
+    "value": 241131547.7282218
   }
 ]

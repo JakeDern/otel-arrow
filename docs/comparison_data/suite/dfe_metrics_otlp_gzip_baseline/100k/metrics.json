@@ -3,60 +3,60 @@
     "extra": "DFE OTLP Baseline w/ Gzip (Metrics)/100k - Dropped Metrics %",
     "name": "dropped_metrics_percentage",
     "unit": "%",
-    "value": -1.6949152946472168
+    "value": 0.0
   },
   {
     "extra": "DFE OTLP Baseline w/ Gzip (Metrics)/100k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 22.29481698054511
+    "value": 21.09368330642977
   },
   {
     "extra": "DFE OTLP Baseline w/ Gzip (Metrics)/100k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 22.649709828393135
+    "value": 21.465711616318902
   },
   {
     "extra": "DFE OTLP Baseline w/ Gzip (Metrics)/100k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 73.27018229166667
+    "value": 70.23606770833334
   },
   {
     "extra": "DFE OTLP Baseline w/ Gzip (Metrics)/100k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 74.03515625
+    "value": 71.7890625
   },
   {
     "extra": "DFE OTLP Baseline w/ Gzip (Metrics)/100k - Metric Throughput",
     "name": "metrics_produced_rate",
     "unit": "metrics/sec",
-    "value": 100418.95126872537
+    "value": 100312.02221697292
   },
   {
     "extra": "DFE OTLP Baseline w/ Gzip (Metrics)/100k - Metric Throughput",
     "name": "metrics_received_rate",
     "unit": "metrics/sec",
-    "value": 100571.41493202906
+    "value": 100660.10717315164
   },
   {
     "extra": "DFE OTLP Baseline w/ Gzip (Metrics)/100k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.000521
+    "value": 60.000464
   },
   {
     "extra": "DFE OTLP Baseline w/ Gzip (Metrics)/100k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 4447045.996228399
+    "value": 4441106.55789713
   },
   {
     "extra": "DFE OTLP Baseline w/ Gzip (Metrics)/100k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 4385915.559516554
+    "value": 4384843.401797647
   }
 ]

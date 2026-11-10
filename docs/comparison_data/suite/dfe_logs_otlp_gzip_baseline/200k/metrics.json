@@ -9,60 +9,60 @@
     "extra": "DFE OTLP Baseline w/ Gzip (Logs)/200k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 27.88701792934306
+    "value": 26.612797346410872
   },
   {
     "extra": "DFE OTLP Baseline w/ Gzip (Logs)/200k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 28.387048567870487
+    "value": 26.868996561425444
   },
   {
     "extra": "DFE OTLP Baseline w/ Gzip (Logs)/200k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 72.48854166666666
+    "value": 69.85208333333334
   },
   {
     "extra": "DFE OTLP Baseline w/ Gzip (Logs)/200k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 72.9609375
+    "value": 70.546875
   },
   {
     "extra": "DFE OTLP Baseline w/ Gzip (Logs)/200k - Log Throughput",
     "name": "logs_produced_rate",
     "unit": "logs/sec",
-    "value": 199720.39483261266
+    "value": 200017.0556916472
   },
   {
     "extra": "DFE OTLP Baseline w/ Gzip (Logs)/200k - Log Throughput",
     "name": "logs_received_rate",
     "unit": "logs/sec",
-    "value": 199720.44892295514
+    "value": 201345.22435722174
   },
   {
     "extra": "DFE OTLP Baseline w/ Gzip (Logs)/200k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.000577
+    "value": 60.000521
   },
   {
     "extra": "DFE OTLP Baseline w/ Gzip (Logs)/200k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 5512668.984526009
+    "value": 5485832.77423133
   },
   {
     "extra": "DFE OTLP Baseline w/ Gzip (Logs)/200k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 5456652.780302258
+    "value": 5428561.2639848525
   },
   {
     "extra": "DFE OTLP Baseline w/ Gzip (Logs)/200k - Egress Bytes Per Log",
     "name": "egress_bytes_per_log",
     "unit": "bytes/log",
-    "value": 27.60192566286788
+    "value": 27.245904598653407
   }
 ]

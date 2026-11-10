@@ -9,60 +9,60 @@
     "extra": "DFE OTLP Baseline (Logs)/800k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 26.254619134364336
+    "value": 27.9046873197297
   },
   {
     "extra": "DFE OTLP Baseline (Logs)/800k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 27.27499374217772
+    "value": 28.21632807570978
   },
   {
     "extra": "DFE OTLP Baseline (Logs)/800k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 74.81861979166666
+    "value": 70.63815104166666
   },
   {
     "extra": "DFE OTLP Baseline (Logs)/800k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 76.23046875
+    "value": 72.75390625
   },
   {
     "extra": "DFE OTLP Baseline (Logs)/800k - Log Throughput",
     "name": "logs_produced_rate",
     "unit": "logs/sec",
-    "value": 804304.9905302157
+    "value": 798674.2209702224
   },
   {
     "extra": "DFE OTLP Baseline (Logs)/800k - Log Throughput",
     "name": "logs_received_rate",
     "unit": "logs/sec",
-    "value": 795923.3292397499
+    "value": 790981.6095412021
   },
   {
     "extra": "DFE OTLP Baseline (Logs)/800k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.000574
+    "value": 60.000521
   },
   {
     "extra": "DFE OTLP Baseline (Logs)/800k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 301859315.96126306
+    "value": 302169207.8978165
   },
   {
     "extra": "DFE OTLP Baseline (Logs)/800k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 302348347.77394
+    "value": 302182800.01759124
   },
   {
     "extra": "DFE OTLP Baseline (Logs)/800k - Egress Bytes Per Log",
     "name": "egress_bytes_per_log",
     "unit": "bytes/log",
-    "value": 379.2567762143535
+    "value": 382.0179941643467
   }
 ]

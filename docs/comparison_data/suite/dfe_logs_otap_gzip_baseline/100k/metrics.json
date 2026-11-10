@@ -3,66 +3,66 @@
     "extra": "DFE OTAP Baseline w/ Gzip (Logs)/100k - Dropped Logs %",
     "name": "dropped_logs_percentage",
     "unit": "%",
-    "value": -1.6949152946472168
+    "value": 0.0
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Logs)/100k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 7.185354693631714
+    "value": 6.508678879902158
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Logs)/100k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 7.349343292872705
+    "value": 6.813466334164589
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Logs)/100k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 74.07890625
+    "value": 74.49739583333333
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Logs)/100k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 74.30078125
+    "value": 74.86328125
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Logs)/100k - Log Throughput",
     "name": "logs_produced_rate",
     "unit": "logs/sec",
-    "value": 100121.46770401331
+    "value": 100079.61240704887
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Logs)/100k - Log Throughput",
     "name": "logs_received_rate",
     "unit": "logs/sec",
-    "value": 100276.32813489706
+    "value": 100572.36387788728
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Logs)/100k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.00057
+    "value": 60.000575
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Logs)/100k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 939800.8212328559
+    "value": 923486.779499602
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Logs)/100k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 862747.7119499112
+    "value": 846472.5578759648
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Logs)/100k - Egress Bytes Per Log",
     "name": "egress_bytes_per_log",
     "unit": "bytes/log",
-    "value": 9.372110434364785
+    "value": 9.182311560468829
   }
 ]

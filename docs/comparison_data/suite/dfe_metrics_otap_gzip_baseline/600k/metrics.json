@@ -3,60 +3,60 @@
     "extra": "DFE OTAP Baseline w/ Gzip (Metrics)/600k - Dropped Metrics %",
     "name": "dropped_metrics_percentage",
     "unit": "%",
-    "value": -1.4326647520065308
+    "value": 0.0
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Metrics)/600k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 47.34490587069027
+    "value": 41.88989108396595
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Metrics)/600k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 48.513281201126055
+    "value": 42.21156230234029
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Metrics)/600k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 78.39557291666667
+    "value": 77.55104166666666
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Metrics)/600k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 79.65234375
+    "value": 79.53125
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Metrics)/600k - Metric Throughput",
     "name": "metrics_produced_rate",
     "unit": "metrics/sec",
-    "value": 599293.9595942618
+    "value": 602033.0861397953
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Metrics)/600k - Metric Throughput",
     "name": "metrics_received_rate",
     "unit": "metrics/sec",
-    "value": 600431.0789843169
+    "value": 603076.5490174486
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Metrics)/600k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.000571
+    "value": 60.000538
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Metrics)/600k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 7929311.731988762
+    "value": 7795926.089437159
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Metrics)/600k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 7852330.696619057
+    "value": 7716380.861821436
   }
 ]

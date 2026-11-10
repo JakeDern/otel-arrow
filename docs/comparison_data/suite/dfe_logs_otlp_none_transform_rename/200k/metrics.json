@@ -9,60 +9,60 @@
     "extra": "DFE OTLP Transform Rename (Logs)/200k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 24.209388837191266
+    "value": 21.457667496604724
   },
   {
     "extra": "DFE OTLP Transform Rename (Logs)/200k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 25.59711711711712
+    "value": 21.599003115264797
   },
   {
     "extra": "DFE OTLP Transform Rename (Logs)/200k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 73.79427083333333
+    "value": 75.8359375
   },
   {
     "extra": "DFE OTLP Transform Rename (Logs)/200k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 75.71875
+    "value": 76.8046875
   },
   {
     "extra": "DFE OTLP Transform Rename (Logs)/200k - Log Throughput",
     "name": "logs_produced_rate",
     "unit": "logs/sec",
-    "value": 199672.77017252962
+    "value": 199886.00399555182
   },
   {
     "extra": "DFE OTLP Transform Rename (Logs)/200k - Log Throughput",
     "name": "logs_received_rate",
     "unit": "logs/sec",
-    "value": 199672.77017252962
+    "value": 201216.32586098622
   },
   {
     "extra": "DFE OTLP Transform Rename (Logs)/200k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.000511
+    "value": 60.000535
   },
   {
     "extra": "DFE OTLP Transform Rename (Logs)/200k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 81495615.7756733
+    "value": 81424655.85545318
   },
   {
     "extra": "DFE OTLP Transform Rename (Logs)/200k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 75635739.88173825
+    "value": 75654404.94288509
   },
   {
     "extra": "DFE OTLP Transform Rename (Logs)/200k - Egress Bytes Per Log",
     "name": "egress_bytes_per_log",
     "unit": "bytes/log",
-    "value": 408.145866385567
+    "value": 404.6622733371387
   }
 ]

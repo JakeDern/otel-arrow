@@ -3,60 +3,60 @@
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/200k - Dropped Spans %",
     "name": "dropped_spans_percentage",
     "unit": "%",
-    "value": -1.6949152946472168
+    "value": 0.0
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/200k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 13.89576941361073
+    "value": 13.585977005137456
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/200k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 14.44201617921593
+    "value": 13.891888506107108
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/200k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 83.34127604166666
+    "value": 78.65299479166667
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/200k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 86.42578125
+    "value": 81.8984375
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/200k - Span Throughput",
     "name": "spans_produced_rate",
     "unit": "spans/sec",
-    "value": 199032.30493341375
+    "value": 198912.7932431819
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/200k - Span Throughput",
     "name": "spans_received_rate",
     "unit": "spans/sec",
-    "value": 201016.6955421566
+    "value": 201243.10886995605
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/200k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.000494
+    "value": 60.000568
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/200k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 8682691.771777097
+    "value": 8655280.526461422
   },
   {
     "extra": "DFE OTAP Baseline w/ Zstd (Traces)/200k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 8601719.518063834
+    "value": 8577868.517593542
   }
 ]

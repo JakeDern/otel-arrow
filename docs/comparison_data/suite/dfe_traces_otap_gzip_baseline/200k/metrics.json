@@ -3,60 +3,60 @@
     "extra": "DFE OTAP Baseline w/ Gzip (Traces)/200k - Dropped Spans %",
     "name": "dropped_spans_percentage",
     "unit": "%",
-    "value": -1.6949152946472168
+    "value": -0.006305965594947338
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Traces)/200k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 32.306753209608964
+    "value": 31.03580944872854
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Traces)/200k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 33.13306224585549
+    "value": 31.4447323943662
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Traces)/200k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 76.80924479166667
+    "value": 75.5
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Traces)/200k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 78.66796875
+    "value": 76.8203125
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Traces)/200k - Span Throughput",
     "name": "spans_produced_rate",
     "unit": "spans/sec",
-    "value": 198463.54902407905
+    "value": 199398.9675763591
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Traces)/200k - Span Throughput",
     "name": "spans_received_rate",
     "unit": "spans/sec",
-    "value": 201827.33799058886
+    "value": 201403.60522187853
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Traces)/200k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.000502
+    "value": 60.000521
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Traces)/200k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 8632026.411260296
+    "value": 8588636.638389032
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Traces)/200k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 8550330.321254289
+    "value": 8511637.624951895
   }
 ]

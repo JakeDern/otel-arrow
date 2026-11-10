@@ -3,60 +3,60 @@
     "extra": "DFE OTAP Baseline w/ Gzip (Metrics)/1000k - Dropped Metrics %",
     "name": "dropped_metrics_percentage",
     "unit": "%",
-    "value": -1.0256849527359009
+    "value": -0.0012653422309085727
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Metrics)/1000k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 82.94990426024822
+    "value": 67.29246166172442
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Metrics)/1000k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 85.06398249452954
+    "value": 68.32289457267623
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Metrics)/1000k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 78.162890625
+    "value": 76.82866379310344
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Metrics)/1000k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 80.0234375
+    "value": 78.8671875
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Metrics)/1000k - Metric Throughput",
     "name": "metrics_produced_rate",
     "unit": "metrics/sec",
-    "value": 1001574.0834336594
+    "value": 1001904.5278656156
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Metrics)/1000k - Metric Throughput",
     "name": "metrics_received_rate",
     "unit": "metrics/sec",
-    "value": 999603.3709907812
+    "value": 1001533.1435411051
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Metrics)/1000k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.000685
+    "value": 60.000667
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Metrics)/1000k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 13196602.15128244
+    "value": 12941605.065676965
   },
   {
     "extra": "DFE OTAP Baseline w/ Gzip (Metrics)/1000k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 13101664.570044555
+    "value": 12855301.265323304
   }
 ]

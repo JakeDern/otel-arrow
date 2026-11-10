@@ -9,60 +9,60 @@
     "extra": "DFE OTAP Transform Insert (Logs)/100k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 6.302325099179387
+    "value": 5.955452936897091
   },
   {
     "extra": "DFE OTAP Transform Insert (Logs)/100k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 6.425544122232616
+    "value": 6.070720299345182
   },
   {
     "extra": "DFE OTAP Transform Insert (Logs)/100k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 74.13997395833333
+    "value": 72.28580729166667
   },
   {
     "extra": "DFE OTAP Transform Insert (Logs)/100k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 74.43359375
+    "value": 72.77734375
   },
   {
     "extra": "DFE OTAP Transform Insert (Logs)/100k - Log Throughput",
     "name": "logs_produced_rate",
     "unit": "logs/sec",
-    "value": 99957.82213768158
+    "value": 100195.73491550663
   },
   {
     "extra": "DFE OTAP Transform Insert (Logs)/100k - Log Throughput",
     "name": "logs_received_rate",
     "unit": "logs/sec",
-    "value": 99957.82213768158
+    "value": 100521.36747525942
   },
   {
     "extra": "DFE OTAP Transform Insert (Logs)/100k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.000558
+    "value": 60.000482
   },
   {
     "extra": "DFE OTAP Transform Insert (Logs)/100k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 13744987.276785
+    "value": 13309997.300788725
   },
   {
     "extra": "DFE OTAP Transform Insert (Logs)/100k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 11721500.688729377
+    "value": 11331477.737767449
   },
   {
     "extra": "DFE OTAP Transform Insert (Logs)/100k - Egress Bytes Per Log",
     "name": "egress_bytes_per_log",
     "unit": "bytes/log",
-    "value": 137.50787064820898
+    "value": 132.4096322512188
   }
 ]

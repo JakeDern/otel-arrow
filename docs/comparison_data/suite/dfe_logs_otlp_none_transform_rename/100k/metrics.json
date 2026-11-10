@@ -3,66 +3,66 @@
     "extra": "DFE OTLP Transform Rename (Logs)/100k - Dropped Logs %",
     "name": "dropped_logs_percentage",
     "unit": "%",
-    "value": -1.6954901218414307
+    "value": 0.0
   },
   {
     "extra": "DFE OTLP Transform Rename (Logs)/100k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_avg",
     "unit": "%",
-    "value": 11.921232354380866
+    "value": 11.33298553674284
   },
   {
     "extra": "DFE OTLP Transform Rename (Logs)/100k - CPU % (Normalized)",
     "name": "cpu_percentage_normalized_max",
     "unit": "%",
-    "value": 12.304529008109794
+    "value": 11.436668738346798
   },
   {
     "extra": "DFE OTLP Transform Rename (Logs)/100k - RAM (MiB)",
     "name": "ram_mib_avg",
     "unit": "MiB",
-    "value": 72.14088541666666
+    "value": 69.32252604166666
   },
   {
     "extra": "DFE OTLP Transform Rename (Logs)/100k - RAM (MiB)",
     "name": "ram_mib_max",
     "unit": "MiB",
-    "value": 73.171875
+    "value": 71.1171875
   },
   {
     "extra": "DFE OTLP Transform Rename (Logs)/100k - Log Throughput",
     "name": "logs_produced_rate",
     "unit": "logs/sec",
-    "value": 100219.57909272087
+    "value": 100543.69674305117
   },
   {
     "extra": "DFE OTLP Transform Rename (Logs)/100k - Log Throughput",
     "name": "logs_received_rate",
     "unit": "logs/sec",
-    "value": 100540.3650708155
+    "value": 100543.6023921468
   },
   {
     "extra": "DFE OTLP Transform Rename (Logs)/100k - Test Duration",
     "name": "test_duration",
     "unit": "seconds",
-    "value": 60.005608
+    "value": 60.000453
   },
   {
     "extra": "DFE OTLP Transform Rename (Logs)/100k - Network Utilization",
     "name": "network_tx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 40731410.464459054
+    "value": 40839657.60370944
   },
   {
     "extra": "DFE OTLP Transform Rename (Logs)/100k - Network Utilization",
     "name": "network_rx_bytes_rate_avg",
     "unit": "bytes/sec",
-    "value": 37729472.12207902
+    "value": 37868876.10301097
   },
   {
     "extra": "DFE OTLP Transform Rename (Logs)/100k - Egress Bytes Per Log",
     "name": "egress_bytes_per_log",
     "unit": "bytes/log",
-    "value": 405.12495091667836
+    "value": 406.18852549587297
   }
 ]
