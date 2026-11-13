@@ -9,33 +9,88 @@ Tracking Issue: open-telemetry/otel-arrow#0000
 
 ## Summary
 
-The Dataflow Engine (DFE) has a well-defined entity model and hierarchy. The goal
-of this RFC is to formalize that hierarchy in terms of OpenTelemetry Entities and
-outline how the DFE will communicate it using OpenTelemetry signals.
+The Dataflow Engine (DFE) has a well-defined entity model. The goal of this RFC is
+to formalize that hierarchy in OpenTelemetry terms and outline how the DFE will 
+communicate it using OpenTelemetry signals.
+
+For the sake of completeness, this RFC consolidates some information already
+present about entities in the following documents:
+
+- TODO link to relevant ITS/Entity documents
 
 ## Motivation
 
-The Dataflow Engine is made up of entities. These entities have valuable state and
-status information available via the `/api/v1/status` admin endpoint, but
-not exported via the Internal Telemetry System (ITS).
+Dataflow Engine entities have status information that is valuable for monitoring
+and troubleshooting. Entity status is available via the `/api/v1/status` admin
+endpoint, but it's in a bespoke format. This data is also not exported via the
+Internal Telemetry System (ITS).
 
-OpenTelemetry is in the process of formalizing Entities, including more than one
-way for how they're communicated over signals. 
+We want entity information to be readily available for DFE users like any other
+internal telemetry. This includes:
 
-Why are we doing this? What use cases does it support? What is the expected
-outcome? What problem in `otap-dataflow` does it solve, and for whom?
+- Status of existing entities and their types
+- Lifecycle events including deletion
+- Relationships between entities
+
+The natural thing to do is to align ourselves with OpenTelemetry Entities, which
+are in the process of being defined. To that end we place the following
+restrictions on ourselves:
+
+- DFE Entities are defined according to the abstract notion of OpenTelemetry
+entities e.g. type, identifying attributes, and descriptive attributes.
+- 
+
+There are also certain problems with the existing entity model in the engine:
+
+- Can't dismbiguate between a pipeline/node that was deleted and recreated :( 
 
 ## Guide-level explanation
 
-Explain the proposal as if it were already implemented and you were teaching it
-to another contributor. That generally means:
+### Entity modeling
 
-- Introducing new named concepts.
-- Explaining the feature mainly through examples.
-- Explaining how contributors should *think* about the feature and how it
-  changes the way they work in the repo.
-- If applicable, sample error messages, deprecation warnings, or migration
-  guidance.
+- TODO: Explain entity types
+- TODO: Explain that all entities inside the engine are assigned a UUID V7 as
+their sole identifying attribute
+- TODO: Explain that remaining attributes are descriptive and mention the signal
+modeling section
+
+### Entity Containment Chain
+
+- TODO explain the boundary between Resources and Entities that enclose the DFE
+and are injected via resource/entity detectors and entities that are owned and
+operated by the DFE
+  - TODO: Need words to describe entities above and below this boundary
+- TODO: introduce the concept of entity containment within the DFE and how descriptive
+- TODO: Need a word to describe entities 
+
+### Signal modeling and Entity Refs
+
+- TODO: Explain how entities above the boundary and the engine itself are unioned
+up into the resource
+- TODO: Explain how entity refs are only used for resources above the boundary
+- TODO: Explain how entities internal to the engine are represented via scope
+- TODO: Explain how descriptive and identifying attributes for internal entities
+are unioned into each scope
+- TODO: Explain how logs and metrics are attached to explicit entities based on
+the narrowest containing entity in the scope
+
+### Entity Events
+
+- TODO: Explain how entity events are used to communicate internal entities below
+the boundary
+- TODO: Explain how entities are emitted as entity status events
+- TODO: Describe entity relationships
+  - TODO: This might need it's own section before this similar to entity containment
+  chain or embedded therein. Trying to describe NUMA nodes and cores is probably 
+  going to be a doozy here
+- TODO: Explain deletion entity events
+- TODO: Address periodic emission, probably introduce ITS settings for entity
+event emission rates
+
+### api/v1/metrics
+
+- TODO: Explain how we're going to represent status. Should we change the shape
+of engine status to be aligned to the entity model more explicitly?
 
 ## Reference-level explanation
 
@@ -55,6 +110,8 @@ design makes them work.
 Why should we *not* do this?
 
 ## Rationale and alternatives
+
+- TODO: Describe why we're not using EntityRefs for
 
 - Why is this design the best in the space of possible designs?
 - What other designs were considered, and why were they not chosen?
