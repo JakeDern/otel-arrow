@@ -16,7 +16,8 @@ communicate it using OpenTelemetry signals.
 For the sake of completeness, this RFC consolidates some information already
 present about entities in the following documents:
 
-- TODO link to relevant ITS/Entity documents
+- TODO: Link to relevant ITS/Entity documents
+- TODO: Link to relevant OpenTelemetry Entity documentation
 
 ## Motivation
 
@@ -37,12 +38,13 @@ are in the process of being defined. To that end we place the following
 restrictions on ourselves:
 
 - DFE Entities are defined according to the abstract notion of OpenTelemetry
-entities e.g. type, identifying attributes, and descriptive attributes.
+entities e.g. type, identifyinkjg attributes, and descriptive attributes.
 - 
 
 There are also certain problems with the existing entity model in the engine:
 
 - Can't dismbiguate between a pipeline/node that was deleted and recreated :( 
+- TODO: consider removing this section
 
 ## Guide-level explanation
 
@@ -90,7 +92,8 @@ event emission rates
 ### api/v1/metrics
 
 - TODO: Explain how we're going to represent status. Should we change the shape
-of engine status to be aligned to the entity model more explicitly?
+of engine status to be aligned to the entity model more explicitly? This could maybe
+be in the "unresolved questions" or "future possibilities" section
 
 ## Reference-level explanation
 
@@ -107,11 +110,16 @@ design makes them work.
 
 ## Drawbacks
 
-Why should we *not* do this?
+- TODO: Explain that consumers have to interpret events to get internal DFE
+entities
+- TODO: Explain that there is still redundancy on scope attributes, but it's not
+avoidable in existing OpenTelemetry signals
+- TODO: Explain that signals cannot be tied to entities above the boundary. This is
+not actually a problem in the current engine design, but for opentelemetry more
+generally this seems like a hole because what we're doing with scope is not
+a standard
 
 ## Rationale and alternatives
-
-- TODO: Describe why we're not using EntityRefs for
 
 - Why is this design the best in the space of possible designs?
 - What other designs were considered, and why were they not chosen?
