@@ -38,7 +38,7 @@ are in the process of being defined. To that end we place the following
 restrictions on ourselves:
 
 - DFE Entities are defined according to the abstract notion of OpenTelemetry
-entities e.g. type, identifyinkjg attributes, and descriptive attributes.
+entities e.g. type, identifying attributes, and descriptive attributes.
 - 
 
 There are also certain problems with the existing entity model in the engine:
@@ -102,7 +102,7 @@ and `k8s.pod.name` is a human-friendly, descriptive name. The DFE keeps its
 existing human-friendly identifiers (`pipeline.id`, `node.id`, ...) as
 descriptive attributes alongside the new `uid` attributes.
 
-Using a UUID v7 as the identity has several useful properties:
+Using a UUID v7 as the identity has useful properties:
 
 - **Delete and recreate is unambiguous.** Today, a pipeline that is deleted and
   recreated with the same configuration produces exactly the same attribute
@@ -213,17 +213,17 @@ The mapping between the two is:
                                                                -> extension
 ```
 
-The engine is the exception because it is the boundary between the two
-worlds. It exists exactly once per process, so placing it on the resource
-costs nothing, and it gives every internal entity a single root that can be
-referenced from the resource. Telemetry about the engine as a whole (for
-example the existing `engine` metric set) already carries no scope
+The engine is the exception because it is the boundary between the two. It is the
+last entity forming the root of the tree, and it gives every internal entity a
+single root that can be referenced from the resource. Telemetry about the engine
+as a whole (for example the existing `engine` metric set) already carries no scope
 attributes, which is consistent with the engine being a resource entity.
 
 #### Containment
 
 Internal entities form a containment tree rooted at the `engine`. Each internal
-entity other than the engine has exactly one containing entity:
+entity other than the engine has exactly one containing entity (the engine may
+have no detected ambient containing entities):
 
 ```text
 engine
@@ -242,21 +242,9 @@ entity. For example, the containment chain of a node is
 Stable descriptive attributes accumulate along the chain. The full description
 of a node is its own stable descriptive attributes (`node.id`, `node.urn`,
 `node.type`) together with those of its pipeline instance, pipeline, pipeline
-group, and engine. This mirrors the way the
-[OpenTelemetry entities proposal][otep-0256] builds a global identity from a
-local identity plus the identity of its identification context, except that
-the DFE does not need the context for uniqueness (the `uid` is already
-unique). The chain is used for navigation and for inferring which entity a
-signal belongs to (see
+group, and engine. The chain is used for navigation and for inferring which entity
+a signal belongs to (see
 [Signal modeling and Entity Refs](#signal-modeling-and-entity-refs)).
-
-Containment is distinct from other relationships between entities. A pipeline
-instance is *contained* by its pipeline, but it also *runs on* a particular
-CPU core, and that core belongs to a NUMA node. Cores and NUMA nodes cut across
-the containment tree: one core runs many pipeline instances from many
-pipelines. These placement relationships are reported through entity events
-(see [Entity relationships](#entity-relationships)) and are not part of the
-containment chain.
 
 ### Signal modeling and Entity Refs
 
@@ -282,12 +270,6 @@ Each resource entity is described with an [`EntityRef`][otlp-entity-ref] in
 `Resource.entity_refs`. An entity ref names the entity type and lists which
 keys in `Resource.attributes` are identifying and which are descriptive.
 
-Entity refs are only used for resource entities. An `EntityRef` points to keys
-in `Resource.attributes`, and the resource can hold only one value per key.
-That fits the resource entities, which each exist exactly once per process.
-It does not fit internal entities, because one process runs many pipelines,
-pipeline instances, and nodes.
-
 ```text
 Resource:
   attributes:
@@ -310,7 +292,7 @@ Resource:
 
 Scope entities are reported on the `InstrumentationScope` attributes. The DFE
 already places entity attributes on the scope rather than repeating them on
-every log record or data point. This RFC keeps that approach and specifies
+every log record or data point. This RFC keeps that approach and further specifies
 what goes into the scope.
 
 The scope attributes for a signal are the flattened union, over every scope
@@ -355,8 +337,8 @@ not the entity.
 #### Attaching signals to entities
 
 Each log record or metric belongs to exactly one entity: the **narrowest**
-entity in its scope's containment chain. A consumer finds that entity by
-looking at which `uid` keys are present on the scope:
+entity in its scope's containment chain. A consumer can infer that entity by
+looking at the dfe containment chain and referencing the uid attributes present.
 
 | Scope `uid` attributes present | Signal belongs to |
 | --- | --- |
@@ -370,7 +352,7 @@ looking at which `uid` keys are present on the scope:
 
 This works because containment is a tree: each entity type has one parent
 type, so the deepest `uid` present identifies the entity unambiguously.
-Whether the scope should also mark the entity explicitly is an open
+Whether the scope should also mark the entity type explicitly is an open
 question (see [Unresolved questions](#unresolved-questions)).
 
 Signals with an empty scope, such as the existing `engine` metric set, belong
@@ -412,9 +394,7 @@ through the ITS logs pipeline like any other DFE log.
 
 Entity events are emitted for **internal scope entities**. Ambient entities are
 owned by other observers (the OpenTelemetry SDK, a host agent, an
-orchestrator), and the DFE does not report events for them. The `engine` is
-internal, so the DFE reports events for it even though it is placed on the
-resource.
+orchestrator), and the internal telemetry system does not report events for them.
 
 Entity events carry the same resource as all other DFE telemetry. Their scope
 is empty: the subject of each event is in the event's attributes, not on the
