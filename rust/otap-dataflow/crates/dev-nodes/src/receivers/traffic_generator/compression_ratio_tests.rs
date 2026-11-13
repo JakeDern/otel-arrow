@@ -56,7 +56,7 @@
 
 #![cfg(test)]
 
-use super::semconv_signal::semconv_otlp_logs;
+use super::semconv_signal_old::semconv_otlp_logs;
 use super::synthetic_signal::{OtlpEncoder, static_otap_logs};
 use super::synthetic_signal_old::static_otlp_logs_with_config;
 use prost::Message;
@@ -95,7 +95,7 @@ const PRE_GENERATED_RATIO_FLOOR: f64 = 50.0;
 /// env var (any `VirtualDirectoryPath`-parseable value, e.g. a local path).
 /// When unset, the upstream Git repo pinned via [`config::default_registry_path`]
 /// is used.
-fn load_semconv_registry() -> ResolvedRegistry {
+pub(super) fn load_semconv_registry() -> ResolvedRegistry {
     // weaver fetches remote registries over rustls without choosing a crypto
     // provider. Production installs one at startup; tests must do it here.
     otel_arrow_dfe_otap::crypto::ensure_crypto_provider();
